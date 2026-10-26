@@ -1,0 +1,1176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Keepers</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Young+Serif&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#EEF0EA; --surface:#FFFFFF; --surface-2:#F6F7F3; --ink:#22302A; --muted:#5F6D66; --line:#D6DBD2;
+  --accent:#C9822B; --accent-ink:#FFFFFF; --accent-soft:#F6E7D2;
+  --ship:#3F6E99; --ship-soft:#E1EAF3; --keep:#4E7D5E; --keep-soft:#E0ECE3;
+  --donate:#8A5C86; --donate-soft:#EFE3EE; --toss:#6E7470; --toss-soft:#E7E9E7;
+  --talk:#B26A15; --talk-soft:#F7E8D3; --danger:#A3412F;
+  --grid:#E3E7DF; --room:#FBFBF8;
+  --serif:"Young Serif", Georgia, "Times New Roman", serif;
+  --sans:"Atkinson Hyperlegible", -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  color-scheme: light;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#161C19; --surface:#1F2723; --surface-2:#252E29; --ink:#E8ECE7; --muted:#A3AEA7; --line:#34403A;
+    --accent:#E0A050; --accent-ink:#1A1408; --accent-soft:#3A2E1C;
+    --ship:#8DB4DA; --ship-soft:#22303D; --keep:#93C3A2; --keep-soft:#213229;
+    --donate:#D3A5CF; --donate-soft:#33263A; --toss:#B3B9B5; --toss-soft:#2B312E;
+    --talk:#E9AE62; --talk-soft:#3A2D1A; --danger:#E28A78;
+    --grid:#2B3530; --room:#1B2320;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#161C19; --surface:#1F2723; --surface-2:#252E29; --ink:#E8ECE7; --muted:#A3AEA7; --line:#34403A;
+  --accent:#E0A050; --accent-ink:#1A1408; --accent-soft:#3A2E1C;
+  --ship:#8DB4DA; --ship-soft:#22303D; --keep:#93C3A2; --keep-soft:#213229;
+  --donate:#D3A5CF; --donate-soft:#33263A; --toss:#B3B9B5; --toss-soft:#2B312E;
+  --talk:#E9AE62; --talk-soft:#3A2D1A; --danger:#E28A78;
+  --grid:#2B3530; --room:#1B2320;
+  color-scheme: dark;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:17px;line-height:1.5;-webkit-text-size-adjust:100%}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+button,input,textarea,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+img{max-width:100%;display:block}
+h1,h2,h3{font-family:var(--serif);font-weight:400;line-height:1.2;margin:0}
+h1{font-size:1.75rem} h2{font-size:1.35rem} h3{font-size:1.1rem}
+p{margin:0}
+.app{max-width:560px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column}
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding:14px 18px 10px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--line)}
+.top .title{flex:1;min-width:0}
+.top .title h1{font-size:1.3rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.top .title small{color:var(--muted);font-size:.85rem}
+.iconbtn{width:44px;height:44px;border-radius:12px;border:1px solid var(--line);background:var(--surface);display:inline-flex;align-items:center;justify-content:center}
+.iconbtn svg{width:22px;height:22px}
+main{flex:1;padding:18px 18px 110px}
+.tabs{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
+.tabs .inner{max-width:560px;margin:0 auto;display:grid;grid-template-columns:repeat(3,1fr)}
+.tab{border:0;background:none;padding:10px 4px 12px;display:flex;flex-direction:column;align-items:center;gap:2px;color:var(--muted);font-size:.85rem;min-height:64px;position:relative}
+.tab svg{width:24px;height:24px}
+.tab[aria-current="page"]{color:var(--ink);font-weight:700}
+.tab[aria-current="page"]::before{content:"";position:absolute;top:0;left:28%;right:28%;height:3px;border-radius:0 0 3px 3px;background:var(--accent)}
+.tab .count{position:absolute;top:6px;left:calc(50% + 8px);background:var(--accent);color:var(--accent-ink);font-size:.7rem;font-weight:700;border-radius:9px;min-width:18px;height:18px;padding:0 5px;display:flex;align-items:center;justify-content:center}
+.btn{min-height:50px;padding:12px 20px;border-radius:14px;border:1px solid var(--line);background:var(--surface);font-weight:700;display:inline-flex;align-items:center;justify-content:center;gap:8px;text-align:center}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.block{width:100%}
+.btn.quiet{background:none;border-color:transparent;color:var(--muted);font-weight:400;text-decoration:underline;text-underline-offset:3px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn svg{width:20px;height:20px}
+.stack{display:flex;flex-direction:column;gap:12px}
+.row{display:flex;gap:10px;align-items:center}
+.muted{color:var(--muted)}
+.small{font-size:.88rem}
+label.field{display:flex;flex-direction:column;gap:6px;font-weight:700;font-size:.95rem}
+label.field span.hint{font-weight:400;color:var(--muted);font-size:.85rem}
+input[type=text],input[type=number],textarea{width:100%;min-height:50px;padding:12px 14px;border-radius:12px;border:1px solid var(--line);background:var(--surface);font-size:1rem}
+textarea{min-height:84px;resize:vertical}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:18px}
+.welcome{padding:28px 6px 10px}
+.welcome h1{font-size:2.2rem;margin-bottom:10px}
+.welcome p{color:var(--muted);max-width:30em}
+.choice{display:flex;gap:14px;align-items:flex-start;text-align:left;width:100%;padding:18px;border-radius:18px;border:1px solid var(--line);background:var(--surface)}
+.choice .ico{width:46px;height:46px;border-radius:14px;background:var(--accent-soft);color:var(--accent);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.choice .ico svg{width:24px;height:24px}
+.choice strong{display:block;font-size:1.05rem}
+.choice span{color:var(--muted);font-size:.92rem}
+.sim{display:inline-flex;align-items:center;gap:4px;font-size:.72rem;font-weight:700;letter-spacing:.01em;padding:2px 8px;border-radius:999px;border:1px dashed var(--muted);color:var(--muted);background:transparent;white-space:nowrap;vertical-align:middle}
+.banner{position:fixed;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top,0px) + 10px);z-index:30;width:min(520px,calc(100% - 24px));background:var(--ink);color:var(--bg);border-radius:16px;padding:12px 14px;display:flex;gap:10px;align-items:flex-start;box-shadow:0 8px 30px rgba(0,0,0,.25)}
+.banner .sim{border-color:var(--bg);color:var(--bg);opacity:.8}
+.banner p{flex:1;font-size:.95rem}
+.banner button{background:none;border:0;color:var(--bg);font-weight:700;min-height:32px}
+@media (prefers-reduced-motion: no-preference){
+  .banner{animation:drop .28s ease-out}
+  @keyframes drop{from{opacity:0;transform:translate(-50%,-12px)}to{opacity:1;transform:translate(-50%,0)}}
+}
+.offline{background:var(--talk-soft);color:var(--talk);border-radius:12px;padding:10px 14px;font-size:.88rem;margin-bottom:14px}
+/* item grid (parent) */
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.thumb{background:var(--surface);border:1px solid var(--line);border-radius:16px;overflow:hidden;display:flex;flex-direction:column;text-align:left;padding:0}
+.thumb .ph{aspect-ratio:1/1;background:var(--surface-2);overflow:hidden}
+.thumb .ph img{width:100%;height:100%;object-fit:cover}
+.thumb .meta{padding:10px 12px 12px;display:flex;flex-direction:column;gap:6px}
+.thumb .name{font-weight:700;line-height:1.25}
+/* keepsake tag */
+.tag{display:inline-flex;align-items:center;gap:7px;font-size:.8rem;font-weight:700;padding:4px 10px 4px 8px;border-radius:6px 999px 999px 6px;background:var(--toss-soft);color:var(--toss);align-self:flex-start;white-space:nowrap}
+.tag::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--surface);box-shadow:inset 0 0 0 1.5px currentColor;flex-shrink:0}
+.tag.waiting{background:var(--surface-2);color:var(--muted)}
+.tag.ship{background:var(--ship-soft);color:var(--ship)}
+.tag.keep{background:var(--keep-soft);color:var(--keep)}
+.tag.donate{background:var(--donate-soft);color:var(--donate)}
+.tag.toss{background:var(--toss-soft);color:var(--toss)}
+.tag.talk{background:var(--talk-soft);color:var(--talk)}
+.addbar{display:grid;grid-template-columns:1fr;gap:10px;margin-bottom:18px}
+.empty{text-align:center;padding:30px 10px;display:flex;flex-direction:column;gap:12px;align-items:center}
+.empty .art{width:96px;height:96px;border-radius:24px;background:var(--accent-soft);color:var(--accent);display:flex;align-items:center;justify-content:center}
+.empty .art svg{width:48px;height:48px}
+/* review feed (child) */
+.feed{display:flex;flex-direction:column;gap:18px}
+.review{background:var(--surface);border:1px solid var(--line);border-radius:22px;overflow:hidden}
+.review .photo{aspect-ratio:4/3;background:var(--surface-2)}
+.review .photo img{width:100%;height:100%;object-fit:cover}
+.review .body{padding:16px 18px 18px;display:flex;flex-direction:column;gap:12px}
+.review .q{font-family:var(--serif);font-size:1.05rem;color:var(--muted)}
+.voice{display:flex;align-items:center;gap:10px;padding:8px 12px 8px 8px;border-radius:999px;background:var(--surface-2);border:1px solid var(--line);align-self:flex-start;min-height:48px}
+.voice .play{width:36px;height:36px;border-radius:50%;border:0;background:var(--accent);color:var(--accent-ink);display:flex;align-items:center;justify-content:center}
+.voice .play svg{width:18px;height:18px}
+.decisions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.dec{min-height:52px;border-radius:14px;border:1.5px solid var(--line);background:var(--surface);font-weight:700;display:flex;align-items:center;gap:8px;padding:8px 12px;text-align:left;font-size:.95rem}
+.dec .dot{width:12px;height:12px;border-radius:50%;flex-shrink:0}
+.dec.talk-opt{grid-column:1 / -1}
+.dec[aria-pressed="true"]{border-color:currentColor}
+.dec.ship .dot{background:var(--ship)} .dec.ship[aria-pressed="true"]{background:var(--ship-soft);color:var(--ship)}
+.dec.keep .dot{background:var(--keep)} .dec.keep[aria-pressed="true"]{background:var(--keep-soft);color:var(--keep)}
+.dec.donate .dot{background:var(--donate)} .dec.donate[aria-pressed="true"]{background:var(--donate-soft);color:var(--donate)}
+.dec.toss .dot{background:var(--toss)} .dec.toss[aria-pressed="true"]{background:var(--toss-soft);color:var(--toss)}
+.dec.talk .dot{background:var(--talk)} .dec.talk[aria-pressed="true"]{background:var(--talk-soft);color:var(--talk)}
+/* checklist */
+.progress{display:flex;flex-direction:column;gap:8px}
+.bar{height:14px;border-radius:999px;background:var(--surface-2);border:1px solid var(--line);overflow:hidden;display:flex}
+.bar span{height:100%}
+.counts{display:flex;flex-wrap:wrap;gap:8px}
+.group{margin-top:22px}
+.group h2{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.group h2 .n{font-family:var(--sans);font-size:.9rem;color:var(--muted)}
+.citem{display:flex;gap:12px;align-items:flex-start;padding:12px;border:1px solid var(--line);border-radius:16px;background:var(--surface);margin-bottom:10px}
+.citem img{width:64px;height:64px;border-radius:10px;object-fit:cover;flex-shrink:0;background:var(--surface-2)}
+.citem .txt{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+.citem.done .txt .nm{text-decoration:line-through;color:var(--muted)}
+.check{width:48px;height:48px;border-radius:12px;border:1.5px solid var(--line);background:var(--surface);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.check svg{width:24px;height:24px;opacity:0}
+.check[aria-checked="true"]{background:var(--keep);border-color:var(--keep);color:var(--surface)}
+.check[aria-checked="true"] svg{opacity:1}
+.thread{display:flex;flex-direction:column;gap:6px;margin-top:4px}
+.bubble{padding:8px 12px;border-radius:14px;background:var(--surface-2);font-size:.93rem;max-width:100%}
+.bubble.mine{background:var(--accent-soft)}
+.bubble b{display:block;font-size:.78rem;color:var(--muted)}
+.replyrow{display:flex;gap:8px;margin-top:4px}
+.replyrow input{min-height:46px}
+.replyrow .btn{min-height:46px;padding:8px 14px}
+.shipnote{font-size:.88rem;color:var(--muted);display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+/* sheet */
+.scrim{position:fixed;inset:0;background:rgba(10,15,12,.45);z-index:20;display:flex;align-items:flex-end;justify-content:center}
+.sheet{background:var(--bg);width:100%;max-width:560px;max-height:92vh;overflow:auto;border-radius:24px 24px 0 0;padding:18px 18px calc(24px + env(safe-area-inset-bottom,0px))}
+.sheet .grab{width:44px;height:5px;border-radius:3px;background:var(--line);margin:0 auto 14px}
+.sheet header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.photopick{border:2px dashed var(--line);border-radius:18px;min-height:200px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:var(--surface);color:var(--muted);overflow:hidden;width:100%;padding:0}
+.photopick img{width:100%;max-height:300px;object-fit:cover}
+.photopick svg{width:36px;height:36px}
+.rec{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.recdot{width:12px;height:12px;border-radius:50%;background:var(--danger)}
+@media (prefers-reduced-motion: no-preference){.recdot{animation:pulse 1s infinite}@keyframes pulse{50%{opacity:.3}}}
+.code{font-family:var(--serif);font-size:2.6rem;letter-spacing:.12em;text-align:center;padding:14px;border-radius:16px;background:var(--surface);border:1px solid var(--line)}
+.codeinput{font-family:var(--serif);font-size:1.8rem !important;letter-spacing:.3em;text-align:center}
+.seg{display:flex;flex-wrap:wrap;gap:8px}
+.seg button{min-height:46px;padding:8px 14px;border-radius:999px;border:1.5px solid var(--line);background:var(--surface);font-weight:700}
+.seg button[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft);color:var(--ink)}
+/* plan */
+.planwrap{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:12px;touch-action:none}
+.planwrap svg{width:100%;height:auto;display:block;user-select:none;-webkit-user-select:none}
+.tray{display:flex;gap:8px;overflow-x:auto;padding:4px 2px 10px;scrollbar-width:thin}
+.tray button{flex-shrink:0;min-height:48px;padding:6px 14px;border-radius:12px;border:1px solid var(--line);background:var(--surface);font-size:.9rem;font-weight:700;display:flex;flex-direction:column;align-items:flex-start;line-height:1.2}
+.tray button small{font-weight:400;color:var(--muted);font-size:.75rem}
+.tray button.kept{border-color:var(--keep);background:var(--keep-soft);color:var(--keep)}
+.seltools{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;min-height:50px;align-items:center}
+.cost{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:14px 16px;border-radius:14px;background:var(--surface);border:1px solid var(--line);flex-wrap:wrap}
+.cost strong{font-family:var(--serif);font-size:1.3rem;font-weight:400}
+.dims{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.menu{display:flex;flex-direction:column;gap:8px}
+.menu button{justify-content:flex-start}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.loading{padding:60px 20px;text-align:center;color:var(--muted)}
+.segline{display:flex;align-items:center;gap:10px;margin:22px 0 10px}
+.segline::before,.segline::after{content:"";flex:1;height:1px;background:var(--line)}
+.rolechip{font-size:.75rem;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--accent-soft);color:var(--ink)}
+
+.splitbtn{min-height:44px;padding:8px 14px;font-size:.9rem;display:none}
+@media (min-width:860px){.splitbtn{display:inline-flex}}
+body.split{background:var(--surface-2)}
+body.split::before{display:none}
+.stage{max-width:1000px;margin:0 auto;padding:20px 20px 40px}
+.stagebar{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:18px}
+.stagebar h1{font-size:1.6rem}
+.phones{display:flex;gap:32px;justify-content:center;flex-wrap:wrap}
+.phonecol{margin:0;display:flex;flex-direction:column;align-items:center;gap:10px}
+.phonecol figcaption{font-family:var(--serif);font-size:1.1rem}
+.phone{position:relative;width:min(390px, calc(100vw - 40px));height:min(800px, calc(100vh - 150px));min-height:560px;border-radius:42px;border:10px solid var(--ink);background:var(--bg);overflow:hidden;box-shadow:0 20px 50px rgba(0,0,0,.18)}
+.phone .screen{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain}
+.phone .app{min-height:100%;max-width:none}
+.phone .top{top:0;padding-top:18px}
+.phone .tabs{position:absolute;padding-bottom:6px}
+.phone .scrim{position:absolute}
+.phone .sheet{max-height:88%}
+.phone > .banner{position:absolute;top:12px;width:calc(100% - 20px)}
+</style>
+</head>
+<body>
+<div class="app" id="app"><div class="loading">Opening Keepers…</div></div>
+<div id="layer"></div>
+<script>
+(function(){
+"use strict";
+
+/* ---------- icons ---------- */
+const I = {
+  camera:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>',
+  box:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8l9-4 9 4-9 4z"/><path d="M3 8v8l9 4 9-4V8"/><path d="M12 12v8"/></svg>',
+  list:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h11M9 12h11M9 18h11"/><path d="M4 6l1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2"/></svg>',
+  plan:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="1"/><path d="M3 12h7v8M14 4v6h7"/></svg>',
+  inbox:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 13l2-8h12l2 8v6H4z"/><path d="M4 13h5l1 2h4l1-2h5"/></svg>',
+  done:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg>',
+  check:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg>',
+  more:'<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>',
+  play:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 5v14l12-7z"/></svg>',
+  pause:'<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14"/><rect x="14" y="5" width="4" height="14"/></svg>',
+  mic:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>',
+  home:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11l8-7 8 7v9H4z"/><path d="M10 20v-6h4v6"/></svg>',
+  key:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M17 6l3 3M15 8l2 2"/></svg>',
+  spark:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5L18 18M6 18l2.5-2.5M15.5 8.5L18 6"/></svg>'
+};
+
+const DEC = {
+  ship:{label:"Ship to me", short:"Ship to me"},
+  keep:{label:"Keep at home", short:"Keep at home"},
+  donate:{label:"Donate", short:"Donate"},
+  toss:{label:"Throw it out", short:"Throw it out"},
+  talk:{label:"Let’s talk about it", short:"Let’s talk"}
+};
+const DEC_ORDER = ["ship","keep","donate","toss","talk"];
+const DONE_WORD = {ship:"Shipped", keep:"Put away", donate:"Donated", toss:"Cleared out", talk:"Settled"};
+
+const FURN = {
+  bed:{label:"Bed", w:5, h:6.7, cost:[400,900]},
+  desk:{label:"Desk", w:4, h:2, cost:[150,400]},
+  chair:{label:"Chair", w:2, h:2, cost:[60,200]},
+  shelf:{label:"Shelf", w:3, h:1, cost:[80,250]},
+  dresser:{label:"Dresser", w:5, h:1.7, cost:[200,600]},
+  sofa:{label:"Sofa", w:7, h:3, cost:[500,1400]}
+};
+const ROOM_TYPES = ["Guest room","Home office","Hobby room","Gym"];
+const SHIP_EST = 14; // per item, simulated
+
+/* ---------- helpers ---------- */
+const $ = (s, r=document) => r.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const uid6 = () => String(Math.floor(100000 + Math.random()*900000));
+const rid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,8);
+const money = n => "$" + Math.round(n).toLocaleString("en-US");
+function lsGet(k){ try { return localStorage.getItem(k); } catch(e){ return null; } }
+function lsSet(k,v){ try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k,v); } catch(e){} }
+
+const ENV = {db:null, user:null, me:null, online:false};
+/* ---------- store: db-backed or local memory ---------- */
+const mem = { rooms:{}, items:{}, voices:{}, subs:[] };
+function memEmit(){ mem.subs.forEach(f => f()); }
+const store = {
+  async roomExists(code){
+    if (ENV.online){ const s = await ENV.db.doc("rooms/"+code).get(); return s.exists; }
+    return !!mem.rooms[code];
+  },
+  async setRoom(code, data){
+    if (ENV.online) return ENV.db.doc("rooms/"+code).set(data);
+    mem.rooms[code] = JSON.parse(JSON.stringify(data)); memEmit();
+  },
+  async updateRoom(code, data){
+    if (ENV.online) return ENV.db.doc("rooms/"+code).update(data);
+    const r = mem.rooms[code]; deepMerge(r, JSON.parse(JSON.stringify(data))); memEmit();
+  },
+  async getRoom(code){
+    if (ENV.online){ const s = await ENV.db.doc("rooms/"+code).get(); return s.exists ? s.data() : null; }
+    return mem.rooms[code] || null;
+  },
+  async setItem(code, id, data){
+    if (ENV.online) return ENV.db.doc("rooms/"+code+"/items/"+id).set(data);
+    (mem.items[code] ||= {})[id] = JSON.parse(JSON.stringify(data)); memEmit();
+  },
+  async updateItem(code, id, data){
+    if (ENV.online) return ENV.db.doc("rooms/"+code+"/items/"+id).update(data);
+    Object.assign(mem.items[code][id], JSON.parse(JSON.stringify(data))); memEmit();
+  },
+  async deleteItem(code, id){
+    if (ENV.online){ await ENV.db.doc("rooms/"+code+"/items/"+id).delete(); try{ await ENV.db.doc("rooms/"+code+"/voice/"+id).delete(); }catch(e){} return; }
+    delete mem.items[code][id]; memEmit();
+  },
+  async setVoice(code, id, dataUrl){
+    if (ENV.online) return ENV.db.doc("rooms/"+code+"/voice/"+id).set({data:dataUrl});
+    mem.voices[code+"/"+id] = dataUrl;
+  },
+  async getVoice(code, id){
+    if (ENV.online){ const s = await ENV.db.doc("rooms/"+code+"/voice/"+id).get(); return s.exists ? s.data().data : null; }
+    return mem.voices[code+"/"+id] || null;
+  },
+  subscribe(code, onRoom, onItems){
+    if (ENV.online){
+      const u1 = ENV.db.doc("rooms/"+code).onSnapshot(s => onRoom(s.exists ? s.data() : null), e => console.warn(e));
+      const u2 = ENV.db.collection("rooms/"+code+"/items").orderBy("createdAt","asc").onSnapshot(q => {
+        onItems(q.docs.map(d => Object.assign({id:d.id}, d.data())));
+      }, e => console.warn(e));
+      return () => { u1(); u2(); };
+    }
+    const f = () => {
+      onRoom(mem.rooms[code] ? JSON.parse(JSON.stringify(mem.rooms[code])) : null);
+      const it = Object.entries(mem.items[code] || {}).map(([id,d]) => Object.assign({id}, JSON.parse(JSON.stringify(d))));
+      it.sort((a,b) => a.createdAt - b.createdAt);
+      onItems(it);
+    };
+    mem.subs.push(f); setTimeout(f, 0);
+    return () => { mem.subs = mem.subs.filter(x => x !== f); };
+  },
+  async saveMyRoom(code){
+    lsSet("keepers-room", code);
+    if (ENV.online && ENV.me && ENV.me.id){
+      try { await ENV.db.doc("data/users/"+ENV.me.id+"/profile").set({room: code || ""}); } catch(e){}
+    }
+  },
+  async loadMyRoom(){
+    if (ENV.online && ENV.me && ENV.me.id){
+      try { const s = await ENV.db.doc("data/users/"+ENV.me.id+"/profile").get(); if (s.exists && s.data().room) return s.data().room; } catch(e){}
+    }
+    return ENV.online ? lsGet("keepers-room") : null;
+  }
+};
+function deepMerge(t, s){ for (const k in s){ if (s[k] && typeof s[k]==="object" && !Array.isArray(s[k])){ t[k] ||= {}; deepMerge(t[k], s[k]); } else t[k] = s[k]; } }
+
+
+function makeApp(root, layer, opts){
+opts = opts || {};
+const $ = s => layer.querySelector(s) || root.querySelector(s);
+const qa = s => [...root.querySelectorAll(s), ...layer.querySelectorAll(s)];
+const bannerHost = opts.bannerHost || document.body;
+const scroller = () => opts.scroller || window;
+function actor(){ return opts.forcedRole ? myId()+":"+opts.forcedRole : myId(); }
+/* ---------- state ---------- */
+const S = {
+  ready:false, db:null, user:null, me:null, online:false,
+  code:null, room:null, items:[], voices:{},
+  tab:null, viewRole:null, drafts:{}, replyDrafts:{},
+  plan:null, planDirty:false, sel:null,
+  banner:null, bannerTimer:null, firstItemsSnap:true, unsub:[]
+};
+
+/* ---------- identity ---------- */
+function myId(){ return (ENV.me && ENV.me.id) || "local-me"; }
+function myRole(){
+  if (!S.room) return null;
+  const m = S.room.members && S.room.members[myId()];
+  return m ? m.role : null;
+}
+function role(){ return S.viewRole || myRole(); }
+function myName(){
+  const m = S.room && S.room.members && S.room.members[myId()];
+  if (S.viewRole && S.viewRole !== myRole()) return S.viewRole === "child" ? childName() : parentName();
+  return (m && m.name) || "You";
+}
+function childName(){
+  const r = S.room; if (!r) return "your child";
+  const m = Object.values(r.members || {}).find(x => x.role === "child");
+  return (m && m.name) || r.childName || "your child";
+}
+function parentName(){
+  const r = S.room; if (!r) return "Parent";
+  const m = Object.values(r.members || {}).find(x => x.role === "parent");
+  return (m && m.name) || "Parent";
+}
+function nameFor(by){
+  if (!S.room) return "Someone";
+  if (by === "parent") return parentName();
+  if (by === "child") return childName();
+  return "Someone";
+}
+
+/* ---------- start ---------- */
+async function start(code){
+  S.ready = true;
+  if (opts.forcedRole) S.viewRole = opts.forcedRole;
+  if (code){ await openRoom(code); return; }
+  render();
+  const hash = (location.hash || "").replace("#","");
+  const saved = await store.loadMyRoom();
+  if (/^\d{6}$/.test(hash) && hash !== saved){ S.pendingJoin = hash; render(); return; }
+  if (saved){ await openRoom(saved); } else render();
+}
+function destroy(){ S.unsub.forEach(f => f()); S.unsub = []; stopRecording(true); document.removeEventListener("keydown", escClose); clearTimeout(S.bannerTimer); const b = bannerHost.querySelector(":scope > .banner"); if (b) b.remove(); }
+
+async function openRoom(code){
+  S.unsub.forEach(f => f()); S.unsub = [];
+  S.code = code; S.room = null; S.items = []; S.firstItemsSnap = true; S.plan = null; S.planDirty = false;
+  let firstRoom = true, prevPlanAt = null;
+  const un = store.subscribe(code, room => {
+    if (!room){ leaveRoomLocal(); return; }
+    const prevMembers = S.room ? Object.keys(S.room.members||{}).length : null;
+    S.room = room;
+    if (!myRole()){ leaveRoomLocal(); return; }
+    if (prevMembers !== null && Object.keys(room.members||{}).length > prevMembers && role()==="parent"){
+      notify(childName() + " joined the room.");
+    }
+    if (!S.tab) S.tab = role()==="parent" ? "items" : "review";
+    if (!S.planDirty) S.plan = room.plan ? JSON.parse(JSON.stringify(room.plan)) : null;
+    if (!firstRoom && role()==="child" && room.planSavedAt && room.planSavedAt !== prevPlanAt){ notify(parentName()+" saved a new room plan."); }
+    prevPlanAt = room.planSavedAt || null;
+    firstRoom = false;
+    render();
+  }, items => {
+    diffNotify(S.items, items);
+    S.items = items;
+    render();
+  });
+  S.unsub.push(un);
+}
+function leaveRoomLocal(){
+  if (opts.forcedRole && opts.onExit){ opts.onExit(); return; }
+  S.unsub.forEach(f => f()); S.unsub = [];
+  S.code = null; S.room = null; S.items = []; S.tab = null; S.viewRole = null;
+  store.saveMyRoom(null);
+  render();
+}
+
+/* ---------- simulated notifications ---------- */
+function diffNotify(prev, next){
+  if (S.firstItemsSnap){ S.firstItemsSnap = false; return; }
+  const r = role();
+  const prevMap = Object.fromEntries(prev.map(i => [i.id, i]));
+  const added = next.filter(i => !prevMap[i.id] && i.addedById !== actor());
+  if (added.length && r === "child") notify(parentName()+" added "+(added.length===1 ? "“"+added[0].name+"”" : added.length+" items")+" for you to review.");
+  const decided = next.filter(i => prevMap[i.id] && i.decision && i.decision !== prevMap[i.id].decision && i.decidedById !== actor());
+  if (decided.length && r === "parent"){
+    const d = decided[0];
+    notify(childName()+" chose “"+DEC[d.decision].short+"” for "+d.name+(decided.length>1 ? " and "+(decided.length-1)+" more." : "."));
+  }
+  const replied = next.filter(i => prevMap[i.id] && (i.replies||[]).length > (prevMap[i.id].replies||[]).length && (i.replies[i.replies.length-1]||{}).byId !== actor());
+  if (replied.length) notify(nameFor(replied[0].replies[replied[0].replies.length-1].by)+" replied about "+replied[0].name+".");
+}
+function notify(text){
+  S.banner = text; clearTimeout(S.bannerTimer);
+  S.bannerTimer = setTimeout(() => { S.banner = null; renderBanner(); }, 6000);
+  renderBanner();
+}
+function renderBanner(){
+  let el = bannerHost.querySelector(":scope > .banner");
+  if (!S.banner){ if (el) el.remove(); return; }
+  if (!el){ el = document.createElement("div"); el.className = "banner"; el.setAttribute("role","status"); bannerHost.appendChild(el); }
+  el.innerHTML = '<p>'+esc(S.banner)+' <span class="sim">Prototype: simulated notification</span></p><button aria-label="Dismiss">OK</button>';
+  el.querySelector("button").onclick = () => { S.banner = null; renderBanner(); };
+}
+
+/* ---------- render ---------- */
+function render(){
+  const app = root;
+  const active = document.activeElement;
+  const focusId = active && active.id;
+  const selStart = active && active.selectionStart, selEnd = active && active.selectionEnd;
+  if (!S.ready){ app.innerHTML = '<div class="loading">Opening Keepers…</div>'; return; }
+  if (!S.code || !S.room){
+    app.innerHTML = S.code ? '<div class="loading">Opening the room…</div>' : renderWelcome();
+    if (!S.code) bindWelcome();
+  } else {
+    app.innerHTML = renderShell();
+    bindShell();
+  }
+  if (focusId && root.contains(active) === false && !layer.contains(active)) {} else if (focusId){ const el = $("#"+CSS.escape(focusId)); if (el && el !== document.activeElement){ el.focus(); try{ if (selStart!=null) el.setSelectionRange(selStart, selEnd); }catch(e){} } }
+}
+
+function offlineNote(){
+  return ENV.online ? "" : '<div class="offline">You’re in single-device mode, so changes stay on this screen. Open Keepers from its claude.ai link while signed in to share a room with family.</div>';
+}
+
+/* --- welcome --- */
+function renderWelcome(){
+  const join = S.pendingJoin || "";
+  return `<main style="padding-bottom:40px">
+    ${offlineNote()}
+    <div class="welcome">
+      <h1>Keepers</h1>
+      <p>Sort the things your kids left behind, decide together what happens to each one, then plan what the room becomes next.</p>
+    </div>
+    <div class="stack" style="margin-top:18px">
+      <label class="field" for="w-name">Your first name <span class="hint">So your family knows who’s who.</span>
+        <input id="w-name" type="text" autocomplete="given-name" placeholder="e.g., Linda" value="${esc(lsGet("keepers-name")||"")}">
+      </label>
+    </div>
+    ${join ? `
+    <div class="card stack" style="margin-top:18px">
+      <h2>You’ve been invited</h2>
+      <p class="muted">Join room <strong>${esc(join)}</strong> to see what your parent has photographed.</p>
+      <button class="btn primary block" id="w-join-pending">Join this room</button>
+    </div>` : ""}
+    <div class="stack" style="margin-top:18px">
+      <button class="choice" id="w-start"><span class="ico">${I.home}</span><span><strong>I’m the parent</strong><span>Start a room for the belongings in your home.</span></span></button>
+      <button class="choice" id="w-join-open"><span class="ico">${I.key}</span><span><strong>I’m the grown-up kid</strong><span>Join with the 6-digit code your parent sent you.</span></span></button>
+    </div>
+    <div class="segline"><span class="small muted">or</span></div>
+    <button class="btn block" id="w-demo">${I.spark} Try a demo room</button>
+    <p class="small muted" style="text-align:center;margin-top:8px">Creates a room with 8 sample items, with you as the parent.</p>
+  </main>`;
+}
+function getName(){
+  const v = ($("#w-name") && $("#w-name").value.trim()) || "";
+  if (!v){ $("#w-name").focus(); $("#w-name").setAttribute("aria-invalid","true"); toastInline("Add your first name to continue."); return null; }
+  lsSet("keepers-name", v); return v;
+}
+function toastInline(t){ notifyPlain(t); }
+function notifyPlain(t){
+  let el = bannerHost.querySelector(":scope > .banner"); if (el) el.remove();
+  el = document.createElement("div"); el.className="banner"; el.setAttribute("role","alert");
+  el.innerHTML = '<p>'+esc(t)+'</p><button>OK</button>'; bannerHost.appendChild(el);
+  el.querySelector("button").onclick = () => el.remove();
+  clearTimeout(S.bannerTimer); S.bannerTimer = setTimeout(() => el.remove(), 4000);
+}
+function bindWelcome(){
+  $("#w-start").onclick = () => { const n = getName(); if (n) sheetCreateRoom(n); };
+  $("#w-join-open").onclick = () => { const n = getName(); if (n) sheetJoin(n); };
+  $("#w-demo").onclick = async () => { const n = getName(); if (!n) return; await createRoom(n, "Maya’s bedroom", "Maya", true); };
+  const p = $("#w-join-pending"); if (p) p.onclick = async () => { const n = getName(); if (n) await joinRoom(S.pendingJoin, n); };
+}
+
+async function createRoom(name, roomName, kidName, demo){
+  let code = uid6();
+  try {
+    for (let i=0; i<5 && await store.roomExists(code); i++) code = uid6();
+    const room = { name: roomName, childName: kidName, createdAt: Date.now(), members: { [myId()]: { role:"parent", name } }, plan: null };
+    await store.setRoom(code, room);
+    if (demo) await loadDemo(code);
+    await store.saveMyRoom(code);
+    closeSheet();
+    S.tab = "items";
+    await openRoom(code);
+    if (!demo) sheetInvite(true);
+  } catch(e){ handleWriteError(e); }
+}
+async function joinRoom(code, name){
+  try {
+    const room = await store.getRoom(code);
+    if (!room){ notifyPlain("No room uses the code "+code+". Check the code with your parent and try again."); return; }
+    const members = room.members || {};
+    if (members[myId()]){ await store.saveMyRoom(code); closeSheet(); S.pendingJoin=null; await openRoom(code); return; }
+    await store.updateRoom(code, { members: { [myId()]: { role:"child", name } } });
+    await store.saveMyRoom(code);
+    S.pendingJoin = null; closeSheet(); S.tab = "review";
+    await openRoom(code);
+  } catch(e){ handleWriteError(e); }
+}
+function handleWriteError(e){
+  console.warn(e);
+  const code = e && e.code;
+  if (code === "invalid_argument") notifyPlain("This account can’t save changes here. Ask the person who shared Keepers to give you Contributor access.");
+  else if (code === "quota_exceeded") notifyPlain("The room is full. Remove some items to add more.");
+  else notifyPlain("That didn’t save. Check your connection and try again.");
+}
+
+/* --- shell --- */
+function renderShell(){
+  const r = role();
+  const tabs = r === "parent"
+    ? [["items","Items",I.box],["checklist","Checklist",I.list],["plan","Room plan",I.plan]]
+    : [["review","To review",I.inbox],["decided","Decided",I.done],["plan","Room plan",I.plan]];
+  if (!tabs.find(t => t[0]===S.tab)) S.tab = tabs[0][0];
+  const waiting = S.items.filter(i => !i.decision).length;
+  const talk = S.items.filter(i => i.decision==="talk" && !i.done).length;
+  const badge = k => (r==="child" && k==="review" && waiting) ? waiting : (r==="parent" && k==="checklist" && talk) ? talk : 0;
+  let body = "";
+  if (S.tab==="items") body = viewItems();
+  else if (S.tab==="checklist") body = viewChecklist();
+  else if (S.tab==="review") body = viewReview();
+  else if (S.tab==="decided") body = viewDecided();
+  else if (S.tab==="plan") body = viewPlan();
+  const demoRole = S.viewRole && S.viewRole !== myRole();
+  return `
+  <header class="top">
+    <div class="title"><h1>${esc(S.room.name)}</h1><small>${r==="parent" ? "Deciding together with "+esc(childName()) : "Deciding together with "+esc(parentName())}${demoRole && !opts.forcedRole ? ' <span class="sim">Demo: viewing as '+(r==="parent"?"parent":"child")+'</span>' : ""}</small></div>
+    ${!opts.forcedRole ? `<button class="btn splitbtn" id="split-btn">Side by side</button>` : ""}
+    <button class="iconbtn" id="menu-btn" aria-label="Room menu">${I.more}</button>
+  </header>
+  <main>${offlineNote()}${body}</main>
+  <nav class="tabs" aria-label="Sections"><div class="inner">
+    ${tabs.map(([k,l,ic]) => `<button class="tab" data-tab="${k}" ${S.tab===k?'aria-current="page"':""}>${ic}<span>${l}</span>${badge(k)?`<span class="count" aria-label="${badge(k)} new">${badge(k)}</span>`:""}</button>`).join("")}
+  </div></nav>`;
+}
+function bindShell(){
+  qa(".tab").forEach(b => b.onclick = () => { if (S.tab==="plan" && S.planDirty && b.dataset.tab!=="plan" && !confirm("Leave without saving your room plan?")) return; if (b.dataset.tab!=="plan"){ S.planDirty=false; S.plan = S.room.plan ? JSON.parse(JSON.stringify(S.room.plan)) : null; } S.tab = b.dataset.tab; S.sel=null; render(); scroller().scrollTo(0,0); });
+  $("#menu-btn").onclick = sheetMenu;
+  const sb = $("#split-btn"); if (sb) sb.onclick = () => opts.onSplit && opts.onSplit(S.code);
+  if (S.tab==="items") bindItems();
+  if (S.tab==="checklist") bindChecklist();
+  if (S.tab==="review" || S.tab==="decided") bindReview();
+  if (S.tab==="plan") bindPlan();
+  bindVoiceButtons();
+}
+
+function statusTag(i){
+  if (!i.decision) return `<span class="tag waiting">Waiting for ${esc(childName())}</span>`;
+  return `<span class="tag ${i.decision}">${esc(DEC[i.decision].short)}${i.done?" · done":""}</span>`;
+}
+
+/* --- parent: items --- */
+function viewItems(){
+  const items = S.items;
+  const add = `<div class="addbar"><button class="btn primary block" id="add-item">${I.camera} Add item</button></div>`;
+  if (!items.length){
+    return add + `<div class="empty"><div class="art">${I.camera}</div><h2>Start with one thing</h2><p class="muted">Photograph something from the room. ${esc(childName())} will see it on their phone and choose what happens to it.</p><button class="btn" id="load-demo">${I.spark} Load demo room</button></div>`;
+  }
+  const waiting = items.filter(i => !i.decision).length;
+  return add + `<p class="muted small" style="margin-bottom:12px">${items.length} item${items.length===1?"":"s"} · ${waiting} waiting for ${esc(childName())}</p>
+  <div class="grid">${items.slice().reverse().map(i => `
+    <button class="thumb" data-item="${i.id}" aria-label="${esc(i.name)}">
+      <div class="ph">${i.photo ? `<img src="${i.photo}" alt="">` : ""}</div>
+      <div class="meta"><span class="name">${esc(i.name)}</span>${statusTag(i)}</div>
+    </button>`).join("")}</div>`;
+}
+function bindItems(){
+  const a = $("#add-item"); if (a) a.onclick = () => sheetAddItem();
+  const d = $("#load-demo"); if (d) d.onclick = async () => { try { await loadDemo(S.code); } catch(e){ handleWriteError(e); } };
+  qa("[data-item]").forEach(b => b.onclick = () => sheetItemDetail(b.dataset.item));
+}
+
+/* --- parent: checklist --- */
+function viewChecklist(){
+  const items = S.items;
+  if (!items.length) return `<div class="empty"><div class="art">${I.list}</div><h2>Nothing to sort yet</h2><p class="muted">Add items from the Items tab. As ${esc(childName())} decides, they’ll show up here grouped by what happens next.</p></div>`;
+  const decided = items.filter(i => i.decision);
+  const total = items.length;
+  const pct = Math.round(decided.length / total * 100);
+  const counts = DEC_ORDER.map(k => [k, items.filter(i => i.decision===k).length]);
+  const segs = counts.filter(c => c[1]).map(([k,n]) => `<span style="width:${n/total*100}%;background:var(--${k})" title="${DEC[k].short}: ${n}"></span>`).join("");
+  let html = `<div class="card progress">
+    <div class="row" style="justify-content:space-between"><h2>${pct}% sorted</h2><span class="muted small">${decided.length} of ${total} decided</span></div>
+    <div class="bar" role="img" aria-label="${pct} percent of items decided">${segs}</div>
+    <div class="counts">${counts.map(([k,n]) => `<span class="tag ${k}">${DEC[k].short}: ${n}</span>`).join("")}<span class="tag waiting">Waiting: ${total-decided.length}</span></div>
+  </div>`;
+  ["talk","ship","keep","donate","toss"].forEach(k => {
+    const list = items.filter(i => i.decision===k);
+    if (!list.length) return;
+    const doneN = list.filter(i => i.done).length;
+    html += `<section class="group"><h2>${DEC[k].label} <span class="n">${doneN}/${list.length} done</span></h2>`;
+    if (k==="ship") html += `<div class="shipnote">Estimated shipping: <strong>${money(list.filter(i=>!i.done).length*SHIP_EST)}</strong> for ${list.filter(i=>!i.done).length} item${list.filter(i=>!i.done).length===1?"":"s"} <span class="sim">Prototype: simulated</span></div>`;
+    html += list.map(i => checklistItem(i)).join("") + `</section>`;
+  });
+  const waiting = items.filter(i => !i.decision);
+  if (waiting.length) html += `<section class="group"><h2>Waiting for ${esc(childName())} <span class="n">${waiting.length}</span></h2>${waiting.map(i => `<div class="citem"><img src="${i.photo||""}" alt=""><div class="txt"><span class="nm" style="font-weight:700">${esc(i.name)}</span><span class="small muted">Not decided yet</span></div></div>`).join("")}</section>`;
+  return html;
+}
+function checklistItem(i){
+  const thread = threadHtml(i);
+  return `<div class="citem ${i.done?"done":""}">
+    <img src="${i.photo||""}" alt="">
+    <div class="txt">
+      <span class="nm" style="font-weight:700">${esc(i.name)}</span>
+      ${i.done ? `<span class="small muted">${DONE_WORD[i.decision]}</span>` : ""}
+      ${thread}
+    </div>
+    <button class="check" role="checkbox" aria-checked="${i.done?"true":"false"}" aria-label="Mark ${esc(i.name)} as ${DONE_WORD[i.decision].toLowerCase()}" data-done="${i.id}">${I.check}</button>
+  </div>`;
+}
+function threadHtml(i){
+  const msgs = [];
+  if (i.comment) msgs.push({by:"child", text:i.comment, byId:i.decidedById});
+  (i.replies||[]).forEach(r => msgs.push(r));
+  const me = role();
+  let h = msgs.length ? `<div class="thread">${msgs.map(m => `<div class="bubble ${m.by===me?"mine":""}"><b>${esc(nameFor(m.by))}</b>${esc(m.text)}</div>`).join("")}</div>` : "";
+  if (i.decision==="talk" || msgs.length){
+    h += `<div class="replyrow"><label class="sr" for="reply-${i.id}">Reply about ${esc(i.name)}</label><input type="text" id="reply-${i.id}" data-reply="${i.id}" placeholder="Reply…" value="${esc(S.replyDrafts[i.id]||"")}"><button class="btn" data-send="${i.id}">Send</button></div>`;
+  }
+  return h;
+}
+function bindChecklist(){
+  qa("[data-done]").forEach(b => b.onclick = async () => {
+    const it = S.items.find(x => x.id===b.dataset.done); if (!it) return;
+    try { await store.updateItem(S.code, it.id, {done: !it.done}); } catch(e){ handleWriteError(e); }
+  });
+  bindReplies();
+}
+function bindReplies(){
+  qa("[data-reply]").forEach(inp => {
+    inp.oninput = () => { S.replyDrafts[inp.dataset.reply] = inp.value; };
+    inp.onkeydown = e => { if (e.key==="Enter"){ e.preventDefault(); sendReply(inp.dataset.reply); } };
+  });
+  qa("[data-send]").forEach(b => b.onclick = () => sendReply(b.dataset.send));
+}
+async function sendReply(id){
+  const text = (S.replyDrafts[id]||"").trim(); if (!text) return;
+  const it = S.items.find(x => x.id===id); if (!it) return;
+  const replies = (it.replies||[]).concat([{by:role(), byId:actor(), text, at:Date.now()}]);
+  S.replyDrafts[id] = "";
+  try { await store.updateItem(S.code, id, {replies}); } catch(e){ S.replyDrafts[id]=text; handleWriteError(e); }
+}
+
+/* --- child: review / decided --- */
+function reviewCard(i, compact){
+  return `<article class="review" id="card-${i.id}">
+    ${compact ? "" : `<div class="photo">${i.photo?`<img src="${i.photo}" alt="Photo of ${esc(i.name)}">`:""}</div>`}
+    <div class="body">
+      ${compact ? `<div class="row"><img src="${i.photo||""}" alt="" style="width:64px;height:64px;border-radius:10px;object-fit:cover"><div style="flex:1;min-width:0"><h3>${esc(i.name)}</h3>${statusTag(i)}</div></div>` : `<div><h2>${esc(i.name)}</h2>${i.desc?`<p class="muted" style="margin-top:4px">${esc(i.desc)}</p>`:""}</div>`}
+      ${i.hasVoice ? `<div class="voice"><button class="play" data-voice="${i.id}" aria-label="Play voice note from ${esc(parentName())}">${I.play}</button><span class="small">Voice note from ${esc(parentName())}</span></div>` : ""}
+      ${compact ? "" : `<p class="q">What happens to this?</p>`}
+      <div class="decisions" role="group" aria-label="Choose what happens to ${esc(i.name)}">
+        ${DEC_ORDER.map(k => `<button class="dec ${k} ${k==="talk"?"talk-opt":""}" data-dec="${k}" data-id="${i.id}" aria-pressed="${i.decision===k}"><span class="dot"></span>${DEC[k].label}</button>`).join("")}
+      </div>
+      ${compact ? threadHtml(i) : `<label class="field" for="cm-${i.id}"><span>Add a note <span class="hint">(optional)</span></span><input type="text" id="cm-${i.id}" data-comment="${i.id}" placeholder="e.g., Save this for my kids someday" value="${esc(S.drafts[i.id]||"")}"></label>`}
+    </div>
+  </article>`;
+}
+function viewReview(){
+  const list = S.items.filter(i => !i.decision);
+  if (!S.items.length) return `<div class="empty"><div class="art">${I.inbox}</div><h2>Nothing yet</h2><p class="muted">When ${esc(parentName())} photographs things from ${esc(S.room.name.toLowerCase())}, they’ll appear here for you to decide on.</p></div>`;
+  if (!list.length) return `<div class="empty"><div class="art">${I.done}</div><h2>You’re all caught up</h2><p class="muted">You’ve decided on all ${S.items.length} items. You can change any choice from the Decided tab.</p></div>`;
+  return `<p class="muted small" style="margin-bottom:12px">${list.length} item${list.length===1?"":"s"} from ${esc(parentName())} waiting for you</p><div class="feed">${list.map(i => reviewCard(i,false)).join("")}</div>`;
+}
+function viewDecided(){
+  const list = S.items.filter(i => i.decision);
+  if (!list.length) return `<div class="empty"><div class="art">${I.done}</div><h2>No decisions yet</h2><p class="muted">Items you decide on will collect here, and you can change your mind anytime.</p></div>`;
+  return `<div class="feed">${list.slice().reverse().map(i => reviewCard(i,true)).join("")}</div>`;
+}
+function bindReview(){
+  qa("[data-comment]").forEach(inp => inp.oninput = () => { S.drafts[inp.dataset.comment] = inp.value; });
+  qa("[data-dec]").forEach(b => b.onclick = async () => {
+    const id = b.dataset.id, k = b.dataset.dec;
+    const it = S.items.find(x => x.id===id); if (!it) return;
+    const upd = {decision:k, decidedById:actor(), decidedAt:Date.now(), done:false};
+    if (S.tab==="review") upd.comment = (S.drafts[id]||"").trim();
+    try { await store.updateItem(S.code, id, upd); delete S.drafts[id]; } catch(e){ handleWriteError(e); }
+  });
+  bindReplies();
+}
+
+/* --- voice playback --- */
+let currentAudio = null, currentBtn = null;
+function bindVoiceButtons(){
+  qa("[data-voice]").forEach(b => b.onclick = async () => {
+    if (currentAudio && currentBtn === b.dataset.voice){ currentAudio.pause(); currentAudio=null; currentBtn=null; b.innerHTML = I.play; return; }
+    if (currentAudio){ currentAudio.pause(); }
+    b.innerHTML = I.pause;
+    let src = S.voices[b.dataset.voice];
+    if (!src){ try { src = await store.getVoice(S.code, b.dataset.voice); S.voices[b.dataset.voice] = src; } catch(e){} }
+    if (!src){ b.innerHTML = I.play; notifyPlain("This voice note couldn’t be loaded."); return; }
+    currentAudio = new Audio(src); currentBtn = b.dataset.voice;
+    currentAudio.onended = () => { const el = $('[data-voice="'+currentBtn+'"]'); if (el) el.innerHTML = I.play; currentAudio=null; currentBtn=null; };
+    currentAudio.play().catch(() => { b.innerHTML = I.play; notifyPlain("Tap play again to hear the note."); });
+  });
+}
+
+/* ---------- sheets ---------- */
+function openSheet(html, onBind){
+    layer.innerHTML = `<div class="scrim" id="scrim"><div class="sheet" role="dialog" aria-modal="true">${'<div class="grab"></div>'}${html}</div></div>`;
+  $("#scrim").addEventListener("click", e => { if (e.target.id==="scrim") closeSheet(); });
+  document.addEventListener("keydown", escClose);
+  onBind && onBind();
+  const f = layer.querySelector("input,button:not(.iconbtn)"); f && f.focus();
+}
+function escClose(e){ if (e.key==="Escape") closeSheet(); }
+function closeSheet(){ stopRecording(true); layer.innerHTML = ""; document.removeEventListener("keydown", escClose); }
+
+function sheetCreateRoom(name){
+  openSheet(`<header><h2>Start a room</h2><button class="btn quiet" data-close>Cancel</button></header>
+    <div class="stack">
+      <label class="field" for="c-kid">Your child’s first name<input id="c-kid" type="text" placeholder="e.g., Maya"></label>
+      <label class="field" for="c-room">Name this room<span class="hint">Usually the bedroom or space you’re clearing.</span><input id="c-room" type="text" placeholder="e.g., Maya’s bedroom"></label>
+      <button class="btn primary block" id="c-go">Create room</button>
+    </div>`, () => {
+      $("[data-close]").onclick = closeSheet;
+      $("#c-kid").oninput = () => { const v = $("#c-kid").value.trim(); if (!$("#c-room").dataset.touched) $("#c-room").value = v ? v+"’s bedroom" : ""; };
+      $("#c-room").oninput = () => { $("#c-room").dataset.touched = "1"; };
+      $("#c-go").onclick = async () => {
+        const kid = $("#c-kid").value.trim(), rn = $("#c-room").value.trim() || (kid ? kid+"’s bedroom" : "");
+        if (!kid){ $("#c-kid").focus(); return; }
+        $("#c-go").disabled = true; await createRoom(name, rn, kid, false);
+      };
+    });
+}
+function sheetJoin(name){
+  openSheet(`<header><h2>Join your family’s room</h2><button class="btn quiet" data-close>Cancel</button></header>
+    <div class="stack">
+      <label class="field" for="j-code">6-digit family code<input id="j-code" class="codeinput" type="text" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="000000"></label>
+      <button class="btn primary block" id="j-go">Join room</button>
+    </div>`, () => {
+      $("[data-close]").onclick = closeSheet;
+      $("#j-code").oninput = () => { $("#j-code").value = $("#j-code").value.replace(/\D/g,"").slice(0,6); };
+      $("#j-go").onclick = async () => { const c = $("#j-code").value; if (c.length!==6){ $("#j-code").focus(); return; } $("#j-go").disabled = true; await joinRoom(c, name); if ($("#j-go")) $("#j-go").disabled=false; };
+    });
+}
+function sheetInvite(fresh){
+  const msg = `I’m sorting your old room and want your help deciding what to keep. Open Keepers and join with code ${S.code}.`;
+  openSheet(`<header><h2>${fresh ? "Room created" : "Invite "+esc(childName())}</h2><button class="btn quiet" data-close>Done</button></header>
+    <div class="stack">
+      <p class="muted">Send ${esc(childName())} this code. They’ll open Keepers on their phone and choose “I’m the grown-up kid.”</p>
+      <div class="code" aria-label="Family code ${S.code.split("").join(" ")}">${S.code}</div>
+      <button class="btn primary block" id="inv-copy">Copy invite message</button>
+      <p class="small muted">${esc(msg)}</p>
+    </div>`, () => {
+      $("[data-close]").onclick = closeSheet;
+      $("#inv-copy").onclick = async () => {
+        try { await navigator.clipboard.writeText(msg); $("#inv-copy").textContent = "Copied"; }
+        catch(e){ $("#inv-copy").textContent = "Select the message below to copy it"; }
+      };
+    });
+}
+function sheetMenu(){
+  const real = myRole();
+  const other = (role()==="parent") ? "child" : "parent";
+  openSheet(`<header><h2>${esc(S.room.name)}</h2><button class="btn quiet" data-close>Close</button></header>
+    <div class="menu">
+      <p class="muted small">Family code <strong>${S.code}</strong> · You’re the ${real==="parent"?"parent":"grown-up kid"}</p>
+      ${real==="parent" ? `<button class="btn block" id="m-invite">${I.key} Invite ${esc(childName())}</button>` : ""}
+      ${opts.forcedRole ? `<button class="btn block" id="m-exit">Back to one phone</button>` : `<button class="btn block" id="m-split">Show both phones side by side <span class="sim">Demo only</span></button>
+      <button class="btn block" id="m-switch">See the ${other==="child"?"grown-up kid’s":"parent’s"} view <span class="sim">Demo only</span></button>
+      <button class="btn block" id="m-leave">Leave this room on this device</button>`}
+    </div>`, () => {
+      $("[data-close]").onclick = closeSheet;
+      const inv = $("#m-invite"); if (inv) inv.onclick = () => sheetInvite(false);
+      const sp = $("#m-split"); if (sp) sp.onclick = () => { closeSheet(); opts.onSplit && opts.onSplit(S.code); };
+      const ex = $("#m-exit"); if (ex) ex.onclick = () => { closeSheet(); opts.onExit && opts.onExit(); };
+      if ($("#m-switch")) $("#m-switch").onclick = () => { S.viewRole = other===real ? null : other; S.tab = other==="parent" ? "items" : "review"; S.sel=null; S.planDirty=false; closeSheet(); render(); scroller().scrollTo(0,0); };
+      if ($("#m-leave")) $("#m-leave").onclick = () => { if (confirm("Leave this room on this device? You can rejoin with code "+S.code+".")){ closeSheet(); leaveRoomLocal(); } };
+    });
+}
+function sheetItemDetail(id){
+  const i = S.items.find(x => x.id===id); if (!i) return;
+  openSheet(`<header><h2>${esc(i.name)}</h2><button class="btn quiet" data-close>Close</button></header>
+    <div class="stack">
+      ${i.photo ? `<img src="${i.photo}" alt="Photo of ${esc(i.name)}" style="border-radius:16px;width:100%;max-height:340px;object-fit:cover">` : ""}
+      ${statusTag(i)}
+      ${i.desc ? `<p>${esc(i.desc)}</p>` : ""}
+      ${i.hasVoice ? `<div class="voice"><button class="play" data-voice="${i.id}" aria-label="Play your voice note">${I.play}</button><span class="small">Your voice note</span></div>` : ""}
+      ${i.comment ? `<div class="bubble"><b>${esc(childName())}</b>${esc(i.comment)}</div>` : ""}
+      <button class="btn block" id="d-del" style="color:var(--danger)">Remove this item</button>
+    </div>`, () => {
+      $("[data-close]").onclick = closeSheet;
+      bindVoiceButtons();
+      $("#d-del").onclick = async () => { if (!confirm("Remove “"+i.name+"” from the room?")) return; try { await store.deleteItem(S.code, i.id); closeSheet(); } catch(e){ handleWriteError(e); } };
+    });
+}
+
+/* --- add item --- */
+let rec = null, recChunks = [], recTimer = null, recStart = 0, voiceData = null, photoData = null;
+function sheetAddItem(count){
+  photoData = null; voiceData = null;
+  openSheet(`<header><h2>Add item${count?` <span class="muted small" style="font-family:var(--sans)">${count} added</span>`:""}</h2><button class="btn quiet" data-close>Done</button></header>
+    <div class="stack">
+      <input type="file" id="a-file" accept="image/*" class="sr" tabindex="-1">
+      <button class="photopick" id="a-pick" type="button">${I.camera}<span>Take a photo or choose one</span></button>
+      <label class="field" for="a-name">What is it?<input id="a-name" type="text" placeholder="e.g., Soccer trophies"></label>
+      <label class="field" for="a-desc">A short note <span class="hint">(optional)</span><textarea id="a-desc" placeholder="e.g., From the 2012 state finals. Top shelf of the closet."></textarea></label>
+      <div class="field"><span>Voice note <span class="hint">(optional, up to 30 seconds)</span></span><div class="rec" id="a-rec"></div></div>
+      <button class="btn primary block" id="a-next">Save and add another</button>
+      <button class="btn block" id="a-save">Save</button>
+    </div>`, () => {
+      $("[data-close]").onclick = closeSheet;
+      $("#a-pick").onclick = () => $("#a-file").click();
+      $("#a-file").onchange = async e => {
+        const f = e.target.files && e.target.files[0]; if (!f) return;
+        try { photoData = await compressImage(f); $("#a-pick").innerHTML = `<img src="${photoData}" alt="Selected photo">`; $("#a-name").focus(); }
+        catch(err){ notifyPlain("That photo couldn’t be read. Try another one."); }
+      };
+      renderRec();
+      $("#a-next").onclick = () => saveItem(true, (count||0));
+      $("#a-save").onclick = () => saveItem(false, (count||0));
+    });
+}
+function renderRec(){
+  const el = $("#a-rec"); if (!el) return;
+  if (rec && rec.state==="recording"){
+    const s = Math.floor((Date.now()-recStart)/1000);
+    el.innerHTML = `<span class="recdot" aria-hidden="true"></span><span>Recording ${s}s</span><button class="btn" id="r-stop" type="button">Stop</button>`;
+    $("#r-stop").onclick = () => stopRecording(false);
+  } else if (voiceData){
+    el.innerHTML = `<audio controls src="${voiceData}" style="max-width:100%;height:44px"></audio><button class="btn quiet" id="r-del" type="button">Remove</button>`;
+    $("#r-del").onclick = () => { voiceData = null; renderRec(); };
+  } else {
+    el.innerHTML = `<button class="btn" id="r-start" type="button">${I.mic} Record a voice note</button>`;
+    $("#r-start").onclick = startRecording;
+  }
+}
+async function startRecording(){
+  if (!navigator.mediaDevices || !window.MediaRecorder){ notifyPlain("Voice notes aren’t supported in this browser."); return; }
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({audio:true});
+    const types = ["audio/webm;codecs=opus","audio/mp4","audio/webm","audio/ogg"];
+    const mt = types.find(t => MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t));
+    rec = new MediaRecorder(stream, Object.assign({audioBitsPerSecond:24000}, mt?{mimeType:mt}:{}));
+    recChunks = [];
+    rec.ondataavailable = e => { if (e.data.size) recChunks.push(e.data); };
+    rec.onstop = async () => {
+      stream.getTracks().forEach(t => t.stop());
+      clearInterval(recTimer);
+      if (rec && rec._discard){ rec = null; return; }
+      const blob = new Blob(recChunks, {type: rec.mimeType || "audio/webm"});
+      rec = null;
+      voiceData = await blobToDataURL(blob);
+      if (voiceData.length > 240000){ voiceData = null; notifyPlain("That voice note is too long. Keep it under 30 seconds."); }
+      renderRec();
+    };
+    rec.start(); recStart = Date.now();
+    recTimer = setInterval(() => { if (Date.now()-recStart >= 30000) stopRecording(false); else renderRec(); }, 500);
+    renderRec();
+  } catch(e){ notifyPlain("Keepers needs microphone access to record. Allow it in your browser settings, or skip the voice note."); }
+}
+function stopRecording(discard){
+  if (rec && rec.state==="recording"){ rec._discard = !!discard; rec.stop(); }
+  clearInterval(recTimer);
+}
+async function saveItem(another, count){
+  const name = $("#a-name").value.trim();
+  if (!photoData){ notifyPlain("Add a photo so "+childName()+" can see the item."); return; }
+  if (!name){ $("#a-name").focus(); notifyPlain("Give the item a name."); return; }
+  if (rec && rec.state==="recording"){ notifyPlain("Stop the recording first."); return; }
+  const id = rid();
+  const btns = [$("#a-next"), $("#a-save")]; btns.forEach(b => b.disabled = true);
+  try {
+    if (voiceData){ await store.setVoice(S.code, id, voiceData); S.voices[id] = voiceData; }
+    await store.setItem(S.code, id, { name, desc: $("#a-desc").value.trim(), photo: photoData, hasVoice: !!voiceData, addedById: actor(), createdAt: Date.now(), decision: null, comment: "", replies: [], done: false });
+    if (another){ sheetAddItem(count+1); setTimeout(() => { const f = $("#a-file"); f && f.click(); }, 50); }
+    else closeSheet();
+  } catch(e){ btns.forEach(b => b && (b.disabled = false)); handleWriteError(e); }
+}
+function blobToDataURL(blob){ return new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(blob); }); }
+function compressImage(file){
+  return new Promise((res, rej) => {
+    const url = URL.createObjectURL(file); const img = new Image();
+    img.onload = () => {
+      let max = 900, q = 0.72, out;
+      for (let i=0; i<5; i++){
+        const sc = Math.min(1, max / Math.max(img.width, img.height));
+        const c = document.createElement("canvas"); c.width = Math.round(img.width*sc); c.height = Math.round(img.height*sc);
+        c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+        out = c.toDataURL("image/jpeg", q);
+        if (out.length < 170000) break;
+        max = Math.round(max*0.8); q = Math.max(0.5, q-0.06);
+      }
+      URL.revokeObjectURL(url); res(out);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); rej(new Error("bad image")); };
+    img.src = url;
+  });
+}
+
+/* ---------- demo data ---------- */
+function placeholder(emoji, bg, label){
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400"><rect width="400" height="400" fill="${bg}"/><circle cx="200" cy="185" r="120" fill="#ffffff" opacity=".35"/><text x="200" y="230" font-size="140" text-anchor="middle">${emoji}</text><text x="200" y="365" font-size="22" text-anchor="middle" fill="#22302A" opacity=".55" font-family="Arial">Sample photo</text></svg>`;
+  return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+}
+async function loadDemo(code){
+  const demo = [
+    ["Soccer trophies","Six trophies from middle and high school. Top shelf of the closet.","🏆","#E9DDBF"],
+    ["Yearbooks","Grades 9 through 12, a few signed pages folded down.","📚","#D9E4DA"],
+    ["Stuffed animals","The big bin under the bed. Mr. Buttons is in there.","🧸","#EBD9CF"],
+    ["Acoustic guitar","Needs new strings, case is in the closet.","🎸","#DCD6E8"],
+    ["Old clothes","Two drawers of T-shirts and the prom dress.","👕","#D5E2EA"],
+    ["Posters","Rolled up behind the door, mostly bands.","🖼️","#EADFD5"],
+    ["Desk lamp","Still works. Could go to the new office.","💡","#E8E5C9"],
+    ["School papers","A box of report cards, art projects, and essays.","📦","#DDE0D6"]
+  ];
+  const t = Date.now();
+  for (let i=0; i<demo.length; i++){
+    const [name, desc, em, bg] = demo[i];
+    await store.setItem(code, "demo"+i+"-"+t.toString(36), { name, desc, photo: placeholder(em, bg), hasVoice:false, addedById: actor(), createdAt: t+i, decision:null, comment:"", replies:[], done:false, demo:true });
+  }
+}
+
+/* ---------- room plan ---------- */
+function defaultPlan(){ return { type:"Guest room", w:12, l:10, pieces:[] }; }
+function keptItems(){ return S.items.filter(i => i.decision==="keep"); }
+function costRange(plan){
+  let lo=0, hi=0;
+  (plan.pieces||[]).forEach(p => { const f = FURN[p.kind]; if (f){ lo += f.cost[0]; hi += f.cost[1]; } });
+  return [lo, hi];
+}
+function viewPlan(){
+  const r = role();
+  if (r === "child"){
+    const p = S.room.plan;
+    if (!p) return `<div class="empty"><div class="art">${I.plan}</div><h2>No plan yet</h2><p class="muted">When ${esc(parentName())} plans what the room becomes, you’ll see it here.</p></div>`;
+    lsSet("keepers-plan-seen-"+S.code, String(S.room.planSavedAt||0));
+    const [lo,hi] = costRange(p);
+    return `<div class="stack">
+      <div><h2>${esc(S.room.name)} is becoming a ${esc(p.type.toLowerCase())}</h2><p class="muted small">${p.w} × ${p.l} ft · saved by ${esc(parentName())}</p></div>
+      <div class="planwrap">${planSvg(p, false)}</div>
+      <div class="cost"><span>Estimated new furniture <span class="sim">Prototype: simulated</span></span><strong>${money(lo)}–${money(hi)}</strong></div>
+    </div>`;
+  }
+  if (!S.plan){
+    return `<div class="stack">
+      <div class="empty" style="padding-bottom:6px"><div class="art">${I.plan}</div><h2>What will this room become?</h2><p class="muted">Plan the new layout now, or come back once everything’s sorted. Items marked “Keep at home” can be placed in the plan.</p></div>
+      <button class="btn primary block" id="p-start">Plan the new room</button>
+    </div>`;
+  }
+  const p = S.plan;
+  const [lo,hi] = costRange(p);
+  const sel = S.sel && p.pieces.find(x => x.id===S.sel);
+  const kept = keptItems();
+  const placedKeep = new Set(p.pieces.filter(x => x.kind==="keep").map(x => x.itemId));
+  const isCustom = !ROOM_TYPES.includes(p.type);
+  return `<div class="stack">
+    <div class="field"><span>This room will become a…</span>
+      <div class="seg" role="group" aria-label="Room type">${ROOM_TYPES.map(t => `<button data-type="${t}" aria-pressed="${p.type===t}">${t}</button>`).join("")}<button data-type="__custom" aria-pressed="${isCustom}">Custom</button></div>
+      ${isCustom ? `<input type="text" id="p-custom" value="${esc(p.type)}" placeholder="e.g., Reading nook" style="margin-top:8px">` : ""}
+    </div>
+    <div class="dims">
+      <label class="field" for="p-w">Width (ft)<input id="p-w" type="number" inputmode="decimal" min="6" max="30" step="0.5" value="${p.w}"></label>
+      <label class="field" for="p-l">Length (ft)<input id="p-l" type="number" inputmode="decimal" min="6" max="30" step="0.5" value="${p.l}"></label>
+    </div>
+    <div>
+      <div class="row" style="justify-content:space-between;margin-bottom:6px"><strong>Tap to add, then drag to place</strong></div>
+      <div class="tray" role="group" aria-label="Furniture">
+        ${Object.entries(FURN).map(([k,f]) => `<button data-add="${k}">${f.label}<small>${f.w}×${f.h} ft</small></button>`).join("")}
+        ${kept.map(i => `<button class="kept" data-addkeep="${i.id}" ${placedKeep.has(i.id)?"disabled":""}>${esc(i.name)}<small>${placedKeep.has(i.id)?"Placed":"Kept item"}</small></button>`).join("")}
+      </div>
+      ${!kept.length ? `<p class="small muted">Items ${esc(childName())} marks “Keep at home” will show up here too.</p>` : ""}
+    </div>
+    <div class="planwrap" id="planwrap">${planSvg(p, true)}</div>
+    <div class="seltools">${sel ? `<span class="small"><strong>${esc(pieceLabel(sel))}</strong> selected</span><button class="btn" id="p-rot">Rotate</button><button class="btn" id="p-rm" style="color:var(--danger)">Remove</button>` : `<span class="small muted">Tap a piece to rotate or remove it.</span>`}</div>
+    <div class="cost"><span>Estimated new furniture <span class="sim">Prototype: simulated</span></span><strong>${money(lo)}–${money(hi)}</strong></div>
+    <button class="btn primary block" id="p-save">${S.planDirty ? "Save plan" : (S.room.plan ? "Plan saved" : "Save plan")}</button>
+    ${S.room.plan ? `<p class="small muted" style="text-align:center">${esc(childName())} can see the saved plan.</p>` : ""}
+  </div>`;
+}
+function pieceLabel(p){
+  if (p.kind==="keep"){ const it = S.items.find(i => i.id===p.itemId); return it ? it.name : (p.label||"Kept item"); }
+  return FURN[p.kind] ? FURN[p.kind].label : p.kind;
+}
+function pieceDims(p){
+  const base = p.kind==="keep" ? {w:2, h:2} : FURN[p.kind];
+  return (p.rot % 180 === 0) ? {w:base.w, h:base.h} : {w:base.h, h:base.w};
+}
+function planSvg(p, editable){
+  const pad = 1.2;
+  const W = p.w + pad*2, L = p.l + pad*2;
+  let grid = "";
+  for (let x=1; x<p.w; x++) grid += `<line x1="${pad+x}" y1="${pad}" x2="${pad+x}" y2="${pad+p.l}" stroke="var(--grid)" stroke-width="0.04"/>`;
+  for (let y=1; y<p.l; y++) grid += `<line x1="${pad}" y1="${pad+y}" x2="${pad+p.w}" y2="${pad+y}" stroke="var(--grid)" stroke-width="0.04"/>`;
+  const pieces = (p.pieces||[]).map(pc => {
+    const d = pieceDims(pc);
+    const isSel = editable && S.sel===pc.id;
+    const keep = pc.kind==="keep";
+    const label = pieceLabel(pc);
+    const fs = Math.max(0.32, Math.min(0.55, d.w/ (label.length*0.55)));
+    return `<g class="pc" data-pc="${pc.id}" transform="translate(${pad+pc.x} ${pad+pc.y})" style="cursor:${editable?"grab":"default"}">
+      <rect width="${d.w}" height="${d.h}" rx="0.15" fill="${keep?"var(--keep-soft)":"var(--surface-2)"}" stroke="${isSel?"var(--accent)":(keep?"var(--keep)":"var(--muted)")}" stroke-width="${isSel?0.12:0.06}"/>
+      <text x="${d.w/2}" y="${d.h/2}" font-size="${fs}" text-anchor="middle" dominant-baseline="central" fill="var(--ink)" font-family="Atkinson Hyperlegible, Arial, sans-serif" style="pointer-events:none">${esc(label.length>16?label.slice(0,15)+"…":label)}</text>
+    </g>`;
+  }).join("");
+  return `<svg id="plansvg" viewBox="0 0 ${W} ${L}" role="img" aria-label="Floor plan, ${p.w} by ${p.l} feet, ${(p.pieces||[]).length} pieces">
+    <rect x="${pad}" y="${pad}" width="${p.w}" height="${p.l}" fill="var(--room)" stroke="var(--ink)" stroke-width="0.16"/>
+    ${grid}
+    <path d="M ${pad+0.6} ${pad} A 2.2 2.2 0 0 1 ${pad+2.8} ${pad+2.2} L ${pad+0.6} ${pad+2.2} Z" fill="none" stroke="var(--muted)" stroke-width="0.05" stroke-dasharray="0.15 0.12"/>
+    <rect x="${pad+0.6}" y="${pad-0.08}" width="2.2" height="0.16" fill="var(--room)"/>
+    <text x="${pad+p.w/2}" y="${pad-0.45}" font-size="0.5" text-anchor="middle" fill="var(--muted)" font-family="Atkinson Hyperlegible, Arial, sans-serif">${p.w} ft</text>
+    <text x="${pad-0.45}" y="${pad+p.l/2}" font-size="0.5" text-anchor="middle" fill="var(--muted)" font-family="Atkinson Hyperlegible, Arial, sans-serif" transform="rotate(-90 ${pad-0.45} ${pad+p.l/2})">${p.l} ft</text>
+    ${pieces}
+  </svg>`;
+}
+function clampPiece(pc, p){
+  const d = pieceDims(pc);
+  pc.x = Math.max(0, Math.min(p.w - d.w, pc.x));
+  pc.y = Math.max(0, Math.min(p.l - d.h, pc.y));
+  pc.x = Math.round(pc.x*4)/4; pc.y = Math.round(pc.y*4)/4;
+}
+function markDirty(){ S.planDirty = true; }
+function bindPlan(){
+  if (role()!=="parent") return;
+  const st = $("#p-start"); if (st){ st.onclick = () => { S.plan = defaultPlan(); markDirty(); render(); }; return; }
+  const p = S.plan; if (!p) return;
+  qa("[data-type]").forEach(b => b.onclick = () => { p.type = b.dataset.type==="__custom" ? (ROOM_TYPES.includes(p.type) ? "Custom room" : p.type) : b.dataset.type; markDirty(); render(); });
+  const cu = $("#p-custom"); if (cu) cu.onchange = () => { p.type = cu.value.trim() || "Custom room"; markDirty(); render(); };
+  const dim = (id, key) => { const el = $(id); el.onchange = () => { let v = parseFloat(el.value); if (!isFinite(v)) v = p[key]; v = Math.max(6, Math.min(30, Math.round(v*2)/2)); p[key] = v; p.pieces.forEach(pc => clampPiece(pc, p)); markDirty(); render(); }; };
+  dim("#p-w","w"); dim("#p-l","l");
+  qa("[data-add]").forEach(b => b.onclick = () => {
+    const pc = {id:rid(), kind:b.dataset.add, x:0, y:0, rot:0};
+    const d = pieceDims(pc); pc.x = (p.w-d.w)/2; pc.y = (p.l-d.h)/2; clampPiece(pc,p);
+    p.pieces.push(pc); S.sel = pc.id; markDirty(); render();
+  });
+  qa("[data-addkeep]").forEach(b => b.onclick = () => {
+    const it = S.items.find(i => i.id===b.dataset.addkeep);
+    const pc = {id:rid(), kind:"keep", itemId:b.dataset.addkeep, label: it ? it.name : "Kept item", x:(p.w-2)/2, y:(p.l-2)/2, rot:0};
+    clampPiece(pc,p); p.pieces.push(pc); S.sel = pc.id; markDirty(); render();
+  });
+  const rot = $("#p-rot"); if (rot) rot.onclick = () => { const pc = p.pieces.find(x => x.id===S.sel); if (!pc) return; pc.rot = (pc.rot+90)%360; clampPiece(pc,p); markDirty(); render(); };
+  const rm = $("#p-rm"); if (rm) rm.onclick = () => { p.pieces = p.pieces.filter(x => x.id!==S.sel); S.sel=null; markDirty(); render(); };
+  $("#p-save").onclick = async () => {
+    try { const now = Date.now(); await store.updateRoom(S.code, { plan: JSON.parse(JSON.stringify(p)), planSavedAt: now }); S.planDirty = false; render(); notifyPlain("Plan saved. "+childName()+" can see it now."); }
+    catch(e){ handleWriteError(e); }
+  };
+  // dragging
+  const svg = $("#plansvg"); if (!svg) return;
+  let drag = null;
+  const toPt = (e) => { const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY; return pt.matrixTransform(svg.getScreenCTM().inverse()); };
+  svg.addEventListener("pointerdown", e => {
+    const g = e.target.closest("[data-pc]");
+    if (!g){ if (S.sel){ S.sel=null; render(); } return; }
+    const pc = p.pieces.find(x => x.id===g.dataset.pc); if (!pc) return;
+    const pt = toPt(e);
+    drag = {pc, g, ox: pt.x - pc.x, oy: pt.y - pc.y, moved:false};
+    svg.setPointerCapture(e.pointerId);
+    e.preventDefault();
+  });
+  svg.addEventListener("pointermove", e => {
+    if (!drag) return;
+    const pt = toPt(e);
+    drag.pc.x = pt.x - drag.ox; drag.pc.y = pt.y - drag.oy;
+    clampPiece(drag.pc, p); drag.moved = true;
+    drag.g.setAttribute("transform", `translate(${1.2+drag.pc.x} ${1.2+drag.pc.y})`);
+  });
+  const end = () => { if (!drag) return; const id = drag.pc.id, moved = drag.moved; drag = null; if (moved) markDirty(); S.sel = id; render(); };
+  svg.addEventListener("pointerup", end);
+  svg.addEventListener("pointercancel", end);
+}
+
+return { start, destroy };
+}
+
+/* ---------- controller ---------- */
+const host = document.getElementById("app"), hostLayer = document.getElementById("layer");
+let instances = [], stage = null;
+function destroyAll(){ instances.forEach(i => i.destroy()); instances = []; if (stage){ stage.remove(); stage = null; } hostLayer.innerHTML = ""; }
+function single(code){
+  destroyAll(); document.body.classList.remove("split"); host.style.display = "";
+  const a = makeApp(host, hostLayer, { bannerHost: document.body, onSplit: split });
+  instances = [a]; a.start(code);
+}
+function split(code){
+  destroyAll(); host.innerHTML = ""; host.style.display = "none"; document.body.classList.add("split");
+  stage = document.createElement("div"); stage.className = "stage";
+  stage.innerHTML = `<div class="stagebar"><div><h1>Side-by-side view</h1><p class="muted small">Both phones share the same room. Act on one and watch the other update.</p></div><button class="btn" id="exit-split">Back to one phone</button></div>
+    <div class="phones">
+      <figure class="phonecol"><figcaption>Parent’s phone</figcaption><div class="phone"><div class="screen"><div class="app"></div></div><div class="player"></div></div></figure>
+      <figure class="phonecol"><figcaption>Grown-up kid’s phone</figcaption><div class="phone"><div class="screen"><div class="app"></div></div><div class="player"></div></div></figure>
+    </div>`;
+  document.body.appendChild(stage);
+  stage.querySelector("#exit-split").onclick = () => single(code);
+  const phones = stage.querySelectorAll(".phone");
+  instances = ["parent","child"].map((r, n) => {
+    const ph = phones[n];
+    return makeApp(ph.querySelector(".app"), ph.querySelector(".player"), { forcedRole: r, bannerHost: ph, scroller: ph.querySelector(".screen"), onExit: () => single(code) });
+  });
+  instances.forEach(i => i.start(code));
+}
+async function bootEnv(){
+  host.innerHTML = '<div class="loading">Opening Keepers…</div>';
+  const claude = window.claude;
+  let db = null, user = null;
+  if (claude && typeof claude.use === "function"){
+    try { [db, user] = await Promise.all([claude.use("db"), claude.use("user")]); } catch(e){ db = null; user = null; }
+  }
+  ENV.db = db; ENV.user = user; ENV.online = !!db;
+  if (user){ try { ENV.me = await user.me(); } catch(e){ ENV.me = null; } }
+  if (ENV.online && !(ENV.me && ENV.me.id)) ENV.online = false;
+  single(null);
+}
+bootEnv();
+})();
+</script>
+</body>
+</html>
