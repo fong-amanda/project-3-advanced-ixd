@@ -834,7 +834,7 @@ function sheetMenu(){
       const sp = $("#m-split"); if (sp) sp.onclick = () => { closeSheet(); opts.onSplit && opts.onSplit(S.code); };
       const ex = $("#m-exit"); if (ex) ex.onclick = () => { closeSheet(); opts.onExit && opts.onExit(); };
       if ($("#m-switch")) $("#m-switch").onclick = () => { S.viewRole = other===real ? null : other; S.tab = other==="parent" ? "items" : "review"; S.sel=null; S.planDirty=false; closeSheet(); render(); scroller().scrollTo(0,0); };
-      if ($("#m-leave")) $("#m-leave").onclick = () => { if (confirm("Leave this room on this device? You can rejoin with code "+S.code+".")){ closeSheet(); leaveRoomLocal(); } };
+      if ($("#m-leave")) $("#m-leave").onclick = (e) => { const b = e.currentTarget; if (b.dataset.armed !== "1"){ b.dataset.armed = "1"; b.textContent = "Tap again to leave (rejoin with code "+S.code+")"; return; } closeSheet(); leaveRoomLocal(); };
     });
 }
 function sheetItemDetail(id){
@@ -850,7 +850,12 @@ function sheetItemDetail(id){
     </div>`, () => {
       $("[data-close]").onclick = closeSheet;
       bindVoiceButtons();
-      $("#d-del").onclick = async () => { if (!confirm("Remove “"+i.name+"” from the room?")) return; try { await store.deleteItem(S.code, i.id); closeSheet(); } catch(e){ handleWriteError(e); } };
+      $("#d-del").onclick = async (e) => {
+        const b = e.currentTarget;
+        if (b.dataset.armed !== "1"){ b.dataset.armed = "1"; b.textContent = "Tap again to remove “"+i.name+"”"; setTimeout(() => { if (b.isConnected){ b.dataset.armed = ""; b.textContent = "Remove this item"; } }, 4000); return; }
+        b.disabled = true; b.textContent = "Removing…";
+        try { await store.deleteItem(S.code, i.id); closeSheet(); } catch(err){ b.disabled = false; b.textContent = "Remove this item"; handleWriteError(err); }
+      };
     });
 }
 
