@@ -42,7 +42,7 @@ export const people = [
     iterations: [
       {
         title: "Keepers",
-        description: "Combined concept, working prototype",
+        description: "October 26, 2026",
         href: "/keepers.html",
       },
       {
