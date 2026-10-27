@@ -46,10 +46,7 @@ export default function App() {
       <header className="page">
         <span className="course">AIxD Project 3: Zero to Launch</span>
         <h1>Our iterations</h1>
-        <p>
-          Every concept and prototype we’ve built for Project 3, grouped by
-          teammate. Open any version below to review it.
-        </p>
+
       </header>
 
       <Section name="Team prototype" color="team" items={team} isTeam />
