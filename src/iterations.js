@@ -13,11 +13,7 @@ export const people = [
         description: "October 26, 2026 - P3.1: (GROUP) Concept Prototypes",
         href: "/FridgePostCharline.html",
       },
-      {
-        title: "Iteration 2",
-        description: "Add a short description",
-        href: "#",
-      },
+
     ],
   },
   {
@@ -25,15 +21,11 @@ export const people = [
     color: "vivian",
     iterations: [
       {
-        title: "Iteration 1",
-        description: "Add a short description",
-        href: "#",
+        title: "Date Again",
+        description: "October 26, 2026 - P3.1: (GROUP) Concept Prototypes",
+        href: "/dateAgainVivian.html",
       },
-      {
-        title: "Iteration 2",
-        description: "Add a short description",
-        href: "#",
-      },
+
     ],
   },
   {
@@ -44,11 +36,6 @@ export const people = [
         title: "Keepers",
         description: "October 26, 2026 - P3.1: (GROUP) Concept Prototypes",
         href: "/keepersAmanda.html",
-      },
-      {
-        title: "Iteration 2",
-        description: "Add a short description",
-        href: "#",
       },
     ],
   },
