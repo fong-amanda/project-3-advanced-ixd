@@ -1,0 +1,960 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f4f6f7">
+<title>Shared Space</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,650&family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);height:100%;
+  --desk:#dfe4e7;--bg:#f4f6f7;--surface:#ffffff;--surface2:#eef1f3;--text:#1f2a33;--muted:#5b6872;--line:#dbe1e5;--line2:#c3ccd3;
+  --accent:#2f5d62;--accent-ink:#ffffff;--accent-soft:#dfeceb;--marigold:#c38a17;
+  --keep:#3f7d5a;--remove:#5d6b78;--repurpose:#3b6ea5;--store:#86599a;--discuss:#c38a17;--none:#8f9aa2;
+  --wall:#e6e1d8;--floor:#c9ad88;--plank:#b89a74;--board:#f3efe8;--frame:#f7f5f1;--glass:#cfe2ec;
+  --wood:#a87c55;--wood2:#86603f;--woodIn:#7a5638;--sheet:#fbfaf7;--blanket:#7f9bb5;--fabric:#5f7f99;--metal:#5d646a;--shade:#f0d9a8;--plant:#5e8b5a;
+  --nWood:#d2b48a;--nSheet:#ffffff;--nBlanket:#9cbca8;--nFabric:#c9b18c;--rug:#b9c7c2;--weave:#c8a874;
+  --ghost:rgba(244,246,247,.78);--shadow:0 1px 2px rgba(31,42,51,.06),0 6px 18px rgba(31,42,51,.07);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){color-scheme:dark;
+  --desk:#0d1215;--bg:#141a1f;--surface:#1d252b;--surface2:#252f36;--text:#e7ecef;--muted:#9aa8b2;--line:#2f3b44;--line2:#3a4852;
+  --accent:#7fb7b1;--accent-ink:#0f1b1c;--accent-soft:#22393a;--marigold:#e0b04d;
+  --keep:#6fb68a;--remove:#93a3b0;--repurpose:#79a7da;--store:#b993cc;--discuss:#e0b04d;--none:#6c7a84;
+  --wall:#3a3631;--floor:#55453a;--plank:#4a3c32;--board:#4a4540;--frame:#5a5550;--glass:#3a5463;
+  --wood:#7d5d43;--wood2:#644a35;--woodIn:#563f2d;--sheet:#d8d6d1;--blanket:#4f6a82;--fabric:#46627a;--metal:#8a9298;--shade:#c9b27f;--plant:#4c7449;
+  --nWood:#a88d68;--nSheet:#ecebe7;--nBlanket:#6f9180;--nFabric:#9e8a6b;--rug:#4f5f5a;--weave:#9d8458;
+  --ghost:rgba(20,26,31,.78);--shadow:0 1px 2px rgba(0,0,0,.3),0 6px 18px rgba(0,0,0,.25);}}
+:root[data-theme="dark"]{color-scheme:dark;
+  --desk:#0d1215;--bg:#141a1f;--surface:#1d252b;--surface2:#252f36;--text:#e7ecef;--muted:#9aa8b2;--line:#2f3b44;--line2:#3a4852;
+  --accent:#7fb7b1;--accent-ink:#0f1b1c;--accent-soft:#22393a;--marigold:#e0b04d;
+  --keep:#6fb68a;--remove:#93a3b0;--repurpose:#79a7da;--store:#b993cc;--discuss:#e0b04d;--none:#6c7a84;
+  --wall:#3a3631;--floor:#55453a;--plank:#4a3c32;--board:#4a4540;--frame:#5a5550;--glass:#3a5463;
+  --wood:#7d5d43;--wood2:#644a35;--woodIn:#563f2d;--sheet:#d8d6d1;--blanket:#4f6a82;--fabric:#46627a;--metal:#8a9298;--shade:#c9b27f;--plant:#4c7449;
+  --nWood:#a88d68;--nSheet:#ecebe7;--nBlanket:#6f9180;--nFabric:#9e8a6b;--rug:#4f5f5a;--weave:#9d8458;
+  --ghost:rgba(20,26,31,.78);--shadow:0 1px 2px rgba(0,0,0,.3),0 6px 18px rgba(0,0,0,.25);}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;height:100%;background:var(--bg);color:var(--text);font:15px/1.45 "Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased;display:flex;justify-content:center;align-items:center;gap:40px}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+h1,h2,h3{font-family:"Bricolage Grotesque","Avenir Next","Segoe UI",system-ui,sans-serif;font-weight:650;margin:0;letter-spacing:-.01em;line-height:1.2}
+h1{font-size:1.55rem}h2{font-size:1.2rem}h3{font-size:1rem}
+p{margin:.25rem 0}
+button,input,textarea,select{font:inherit;color:inherit}
+button{cursor:pointer;-webkit-tap-highlight-color:transparent}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+a{color:var(--accent)}
+.muted{color:var(--muted)}
+.tiny{font-size:.78rem;color:var(--muted)}
+
+/* phone shell */
+.phone{width:100%;height:100%;background:var(--bg);position:relative;overflow:hidden;display:flex;flex-direction:column}
+@media (min-width:640px){
+  body{background:var(--desk);padding:24px}
+  .phone{width:400px;height:min(860px,100%);border-radius:42px;border:9px solid #11171b;box-shadow:0 30px 80px rgba(0,0,0,.25);flex:none}
+}
+.side{display:none;max-width:320px}
+@media (min-width:1000px){.side{display:block}}
+.side h2{margin-bottom:6px}
+.side ol{padding-left:0;list-style:none;margin:14px 0;display:grid;gap:8px}
+.side li{display:flex;gap:10px;align-items:flex-start;font-size:.92rem}
+.side li .ck{width:20px;height:20px;border-radius:50%;border:2px solid var(--line2);flex:none;display:grid;place-items:center;font-size:.7rem;color:#fff;margin-top:1px}
+.side li.done .ck{background:var(--keep);border-color:var(--keep)}
+.side li.done span:last-child{color:var(--muted)}
+
+.topbar{display:flex;align-items:center;gap:8px;padding:12px 14px 10px;background:var(--bg);flex:none;min-height:58px}
+.topbar .tt{flex:1;min-width:0}
+.topbar .tt h1{font-size:1.05rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.topbar .tt div{font-size:.78rem;color:var(--muted)}
+.ib{border:0;background:var(--surface);width:38px;height:38px;border-radius:50%;display:grid;place-items:center;flex:none;box-shadow:var(--shadow)}
+.ib svg{width:20px;height:20px}
+.whochip{border:0;background:var(--surface);border-radius:999px;padding:4px 10px 4px 4px;display:flex;gap:6px;align-items:center;font-weight:700;font-size:.82rem;box-shadow:var(--shadow);flex:none}
+.content{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding:0 14px 24px;position:relative}
+.tabbar{flex:none;display:grid;grid-template-columns:repeat(4,1fr);background:var(--surface);border-top:1px solid var(--line);padding:6px 4px 8px}
+.tabbar button{border:0;background:none;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:.7rem;color:var(--muted);padding:4px 0;position:relative;font-weight:700}
+.tabbar svg{width:24px;height:24px}
+.tabbar button[aria-current="page"]{color:var(--accent)}
+.tabbar .bdg{position:absolute;top:0;left:calc(50% + 6px);background:var(--discuss);color:#fff;border-radius:999px;font-size:.62rem;padding:0 5px;line-height:16px}
+
+.av{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:50%;color:#fff;font-weight:700;font-size:.78rem;flex:none}
+.av.s{width:20px;height:20px;font-size:.62rem}
+.btn{border:1px solid var(--line2);background:var(--surface);border-radius:12px;padding:9px 14px;font-weight:700;font-size:.9rem;display:inline-flex;align-items:center;justify-content:center;gap:6px;text-decoration:none;color:var(--text)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.block{width:100%;padding:13px}
+.btn.small{padding:6px 10px;font-size:.8rem;border-radius:9px}
+.btn svg{width:18px;height:18px}
+.link{border:0;background:none;color:var(--accent);padding:0;font-weight:700;text-decoration:underline;text-underline-offset:3px}
+.card{background:var(--surface);border-radius:18px;padding:14px;box-shadow:var(--shadow)}
+.sec{margin-top:18px}
+.sec>h3{margin-bottom:8px}
+.row{display:flex;gap:8px;align-items:center}
+.between{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.banner{padding:10px 12px;border-radius:12px;background:var(--accent-soft);font-size:.86rem;margin-top:10px}
+.banner.warn{background:color-mix(in srgb,var(--discuss) 16%,var(--surface))}
+.banner.final{background:color-mix(in srgb,var(--keep) 16%,var(--surface))}
+
+/* home */
+.hello{padding:8px 0 4px}
+.scanhero{margin-top:14px;border:0;width:100%;text-align:left;border-radius:22px;padding:18px;background:var(--accent);color:var(--accent-ink);display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center}
+.scanhero h2{font-size:1.25rem}
+.scanhero p{opacity:.88;font-size:.88rem}
+.vf{width:78px;height:78px;position:relative}
+.vf i{position:absolute;width:22px;height:22px;border:3px solid currentColor}
+.vf i:nth-child(1){top:0;left:0;border-right:0;border-bottom:0;border-radius:8px 0 0 0}
+.vf i:nth-child(2){top:0;right:0;border-left:0;border-bottom:0;border-radius:0 8px 0 0}
+.vf i:nth-child(3){bottom:0;left:0;border-right:0;border-top:0;border-radius:0 0 0 8px}
+.vf i:nth-child(4){bottom:0;right:0;border-left:0;border-top:0;border-radius:0 0 8px 0}
+.vf svg{position:absolute;inset:20px;width:38px;height:38px}
+.proj{border:0;width:100%;text-align:left;background:var(--surface);border-radius:18px;overflow:hidden;box-shadow:var(--shadow);padding:0;display:block;margin-bottom:12px}
+.proj img{display:block;width:100%;aspect-ratio:16/8;object-fit:cover}
+.proj .pb{padding:12px 14px}
+.proj .meta{display:flex;justify-content:space-between;align-items:center;margin-top:8px;font-size:.8rem;color:var(--muted)}
+.stack-av{display:flex}.stack-av .av{border:2px solid var(--surface);margin-left:-6px}.stack-av .av:first-child{margin-left:0}
+
+/* photo stage */
+.stage{position:relative;border-radius:16px;overflow:hidden;background:var(--surface2);user-select:none;-webkit-user-select:none;touch-action:manipulation}
+.stage img.ph{display:block;width:100%;height:100%;object-fit:cover;pointer-events:none}
+.bx{position:absolute;border:2.5px solid var(--c);border-radius:10px;background:transparent;padding:0;color:inherit}
+.bx.open{border-style:dashed}
+.bx.sel{background:color-mix(in srgb,var(--c) 18%,transparent);border-width:3.5px}
+.bx .pill{position:absolute;left:4px;top:-11px;background:var(--c);color:#fff;font-size:.66rem;font-weight:700;border-radius:999px;padding:1px 7px;white-space:nowrap;max-width:calc(100% + 40px);overflow:hidden;text-overflow:ellipsis;line-height:18px}
+.s-keep{--c:var(--keep)}.s-remove{--c:var(--remove)}.s-repurpose{--c:var(--repurpose)}.s-store{--c:var(--store)}.s-discuss{--c:var(--discuss)}.s-none{--c:var(--none)}.s-scan{--c:var(--accent)}
+.gh{position:absolute;border:2px dashed var(--muted);border-radius:10px;background:var(--ghost);display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding-top:6px;text-align:center;font-size:.66rem;color:var(--muted);font-weight:700;line-height:1.2}
+.gh span{font-weight:400}
+.tk{position:absolute;touch-action:none}
+.tk svg{display:block;width:100%;height:auto;overflow:visible}
+.tk .tag{position:absolute;right:0;top:-10px;background:var(--accent);color:var(--accent-ink);font-size:.62rem;font-weight:700;border-radius:999px;padding:0 7px;line-height:17px}
+.tk.prev .tag{background:var(--marigold);color:#fff}
+.tk.drag{cursor:grab;outline:2px dashed var(--accent);outline-offset:2px;border-radius:8px}
+.tk.dragging{cursor:grabbing;opacity:.85}
+.tk .flag{position:absolute;left:0;top:-10px}
+.oflag{position:absolute;background:var(--discuss);color:#fff;font-size:.62rem;font-weight:700;border-radius:999px;padding:0 7px;line-height:17px;white-space:nowrap}
+.scanline{position:absolute;left:0;right:0;height:3px;background:var(--accent);box-shadow:0 0 18px 6px color-mix(in srgb,var(--accent) 55%,transparent);animation:scan 2.2s ease-in-out infinite alternate}
+@keyframes scan{from{top:4%}to{top:94%}}
+.scanveil{position:absolute;inset:0;background:color-mix(in srgb,var(--accent) 10%,transparent)}
+@media (prefers-reduced-motion:reduce){.scanline{animation:none;top:50%}}
+
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{display:inline-flex;gap:5px;align-items:center;border-radius:999px;padding:2px 9px;font-size:.76rem;font-weight:700;color:#fff;white-space:nowrap;background:var(--c)}
+.chip.outline{background:transparent;border:1.5px dashed var(--c);color:var(--c)}
+.legend{display:flex;flex-wrap:wrap;gap:4px 10px;font-size:.74rem;color:var(--muted);margin-top:8px}
+.legend i{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:4px;background:var(--c)}
+.items{list-style:none;margin:0;padding:0;background:var(--surface);border-radius:16px;box-shadow:var(--shadow);overflow:hidden}
+.items li+li{border-top:1px solid var(--line)}
+.items button.it{width:100%;border:0;background:none;text-align:left;padding:12px 14px;display:flex;align-items:center;gap:10px}
+.items .nm{flex:1;min-width:0;font-weight:700}
+.items .nm small{display:block;font-weight:400;color:var(--muted);font-size:.78rem}
+.chev{width:16px;height:16px;color:var(--muted);flex:none}
+.stat{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.stat div{background:var(--surface);border-radius:14px;padding:10px 12px;box-shadow:var(--shadow);font-size:.82rem;color:var(--muted)}
+.stat strong{display:block;font-family:"Bricolage Grotesque",sans-serif;font-size:1.5rem;color:var(--text);line-height:1.1}
+
+/* segmented */
+.seg{display:flex;background:var(--surface2);border-radius:12px;padding:3px;gap:2px}
+.seg button{flex:1;border:0;background:transparent;border-radius:9px;padding:7px 8px;font-weight:700;font-size:.85rem;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--text);box-shadow:var(--shadow)}
+
+/* sheet */
+.sheetwrap{position:absolute;inset:0;z-index:40;display:flex;flex-direction:column;justify-content:flex-end}
+.backdrop{position:absolute;inset:0;background:rgba(10,15,20,.42);border:0;padding:0;width:100%}
+.sheet{position:relative;background:var(--surface);border-radius:22px 22px 0 0;max-height:90%;overflow-y:auto;padding:8px 16px 22px;box-shadow:0 -10px 40px rgba(0,0,0,.2)}
+.sheet.anim{animation:up .26s cubic-bezier(.2,.8,.2,1)}
+@keyframes up{from{transform:translateY(40px);opacity:.4}to{transform:none;opacity:1}}
+@media (prefers-reduced-motion:reduce){.sheet.anim{animation:none}}
+.grab{width:40px;height:5px;border-radius:3px;background:var(--line2);margin:4px auto 10px}
+.sh{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:8px}
+.x{border:0;background:var(--surface2);width:32px;height:32px;border-radius:50%;font-size:1.15rem;line-height:1;flex:none}
+.sub{margin:18px 0 8px;font-size:.92rem}
+.meaning{margin-top:10px;border-left:3px solid var(--store);background:var(--surface2);padding:9px 12px;border-radius:0 10px 10px 0;font-size:.88rem}
+.meaning b{display:block;font-size:.76rem;color:var(--store)}
+.stances{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.stances li{display:grid;grid-template-columns:auto 1fr;gap:10px;padding:10px;background:var(--surface2);border-radius:12px}
+.stances .n{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.stances .nt{font-size:.86rem;margin-top:2px}
+.note{font-size:.85rem;background:color-mix(in srgb,var(--discuss) 14%,var(--surface));padding:9px 12px;border-radius:10px;margin-top:10px}
+textarea,input[type=text],input[type=url],input[type=number],select{width:100%;border:1px solid var(--line2);background:var(--surface);border-radius:11px;padding:9px 11px;font-size:16px}
+textarea{resize:vertical;min-height:54px}
+.sbtns{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px}
+.sbtn{border:1.5px solid var(--line);background:var(--surface);border-radius:12px;padding:9px 10px;text-align:left;display:flex;flex-direction:column}
+.sbtn b{display:flex;align-items:center;gap:7px;font-size:.88rem}
+.sbtn b::before{content:"";width:10px;height:10px;border-radius:50%;background:var(--c)}
+.sbtn small{color:var(--muted);font-size:.72rem}
+.sbtn.on{border-color:var(--c);background:color-mix(in srgb,var(--c) 13%,var(--surface))}
+.sbtn:last-child{grid-column:1/-1}
+details summary{cursor:pointer;color:var(--accent);font-weight:700;font-size:.9rem}
+.thread{display:grid;gap:10px}
+.cmt{display:grid;grid-template-columns:auto 1fr;gap:8px}
+.cmt .bub{background:var(--surface2);border-radius:4px 14px 14px 14px;padding:8px 11px;font-size:.9rem}
+.cmt .mt{font-size:.74rem;color:var(--muted);display:flex;gap:6px;margin-bottom:2px}
+.cmt .mt b{color:var(--text)}
+.composer{display:flex;gap:6px;margin-top:10px;align-items:flex-end}
+.composer textarea{min-height:42px;height:42px;flex:1}
+.empty{color:var(--muted);font-size:.86rem}
+.hist{list-style:none;padding:0;margin:0;font-size:.82rem;display:grid;gap:6px}
+.hist li{display:flex;gap:8px;align-items:baseline}
+.hist time{color:var(--muted);white-space:nowrap;font-size:.72rem;margin-left:auto}
+.field{display:grid;gap:4px;margin-bottom:10px;font-size:.86rem;font-weight:700}
+.field span{font-weight:400;color:var(--muted);font-size:.76rem}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+
+/* shortlist */
+.pc{background:var(--surface);border-radius:18px;box-shadow:var(--shadow);overflow:hidden;margin-bottom:12px}
+.pc.cmp{box-shadow:0 0 0 2.5px var(--accent)}
+.pc .top{display:grid;grid-template-columns:96px 1fr;gap:12px;padding:12px}
+.thumb{background:var(--wall);border-radius:12px;display:grid;place-items:center;aspect-ratio:1;padding:6px}
+.thumb svg{width:100%;height:100%}
+.pc h3{font-size:.96rem}
+.price{font-family:"Bricolage Grotesque",sans-serif;font-weight:650}
+.by{font-size:.78rem;color:var(--muted);display:flex;gap:5px;align-items:center;flex-wrap:wrap;margin-top:2px}
+.pc .bot{padding:0 12px 12px;display:grid;gap:8px}
+.reacts{display:flex;gap:5px;flex-wrap:wrap}
+.rb{border:1px solid var(--line);background:var(--surface2);border-radius:999px;padding:5px 10px;font-size:.78rem;display:inline-flex;gap:5px;align-items:center}
+.rb.on{border-color:var(--accent);background:var(--accent-soft);font-weight:700}
+.rb .who{color:var(--muted);font-weight:400}
+.acts{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.chk{display:inline-flex;gap:6px;align-items:center;font-size:.8rem;margin-left:auto}
+.chk input{width:18px;height:18px;accent-color:var(--accent)}
+.fab{position:absolute;right:16px;bottom:78px;z-index:20;border:0;background:var(--accent);color:var(--accent-ink);border-radius:999px;padding:12px 18px;font-weight:700;box-shadow:0 8px 24px rgba(0,0,0,.22);display:flex;gap:6px;align-items:center}
+.fab svg{width:18px;height:18px}
+.tray{position:absolute;left:12px;right:12px;bottom:78px;z-index:21;background:var(--text);color:var(--bg);border-radius:16px;padding:10px 12px;display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:.86rem}
+.tray .btn{background:var(--bg);color:var(--text);border:0}
+.scroller{overflow-x:auto;margin:0 -16px;padding:0 16px}
+table.ct{border-collapse:collapse;font-size:.84rem;min-width:100%}
+table.ct th,table.ct td{text-align:left;padding:8px;border-bottom:1px solid var(--line);vertical-align:top;min-width:120px}
+table.ct th{color:var(--muted);font-weight:400;min-width:84px;position:sticky;left:0;background:var(--surface)}
+table.ct .thumb{width:100px}
+
+/* layouts */
+.lname{margin-top:12px}
+.ribbon{display:flex;gap:8px;align-items:center;font-size:.8rem;margin:10px 0 8px;color:var(--muted)}
+.ribbon b{color:var(--text)}
+.ribbon.final b{color:var(--keep)}
+.sumgrid{display:grid;gap:8px}
+.sumgrid .card{padding:12px 14px}
+.sumgrid h3{display:flex;gap:8px;align-items:center;font-size:.9rem}
+.sumgrid h3 i{width:9px;height:9px;border-radius:3px;background:var(--c)}
+.sumgrid ul{list-style:none;padding:0;margin:6px 0 0;font-size:.86rem;display:grid;gap:3px}
+.fl{font-size:.72rem;color:var(--discuss);font-weight:700}
+.toggles{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.tg{border:1px solid var(--line2);background:var(--surface);border-radius:999px;padding:6px 12px;font-size:.82rem}
+.tg[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.dl{list-style:none;padding:0;margin:0;display:grid;gap:8px}
+.dl li{background:var(--surface);border-radius:14px;padding:12px;box-shadow:var(--shadow);display:grid;gap:6px}
+.minis{display:flex;gap:4px 10px;flex-wrap:wrap;font-size:.78rem;color:var(--muted)}
+.minis span{display:inline-flex;gap:4px;align-items:center}
+
+/* scan */
+.tips{list-style:none;padding:0;margin:12px 0;display:grid;gap:10px}
+.tips li{display:flex;gap:10px;align-items:flex-start;font-size:.9rem}
+.tips li b{width:24px;height:24px;border-radius:8px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;flex:none;font-size:.8rem}
+.detected{list-style:none;padding:0;margin:0;display:grid;gap:6px}
+.detected li{display:grid;grid-template-columns:auto 1fr 110px auto;gap:6px;align-items:center;background:var(--surface);border-radius:12px;padding:6px 8px;box-shadow:var(--shadow)}
+.detected input,.detected select{padding:6px 8px;font-size:15px}
+.num{width:22px;height:22px;border-radius:50%;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font-size:.72rem;font-weight:700}
+.purp{display:flex;gap:6px;flex-wrap:wrap}
+.purp button{border:1.5px solid var(--line2);background:var(--surface);border-radius:999px;padding:7px 13px;font-size:.86rem;font-weight:700}
+.purp button[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
+.toast{position:absolute;left:50%;bottom:80px;transform:translateX(-50%) translateY(14px);background:var(--text);color:var(--bg);padding:9px 14px;border-radius:12px;font-size:.84rem;opacity:0;transition:.22s;z-index:60;pointer-events:none;width:max-content;max-width:86%;text-align:center}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.sr{position:absolute;left:-9999px}
+#camv{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none;z-index:0;background:#000}
+.camscreen{position:absolute;inset:0;z-index:2;display:flex;flex-direction:column;justify-content:space-between;color:#fff}
+.camtop{display:flex;align-items:center;gap:10px;padding:14px;background:linear-gradient(rgba(0,0,0,.6),transparent)}
+.camtop .ib{background:rgba(0,0,0,.45);color:#fff;box-shadow:none;border:0;font-size:1.3rem}
+.camtop .tt{flex:1;font-weight:700;text-shadow:0 1px 3px rgba(0,0,0,.6)}
+.camtop .tt small{display:block;font-weight:400;opacity:.9;font-size:.78rem}
+.cambot{padding:14px 14px 18px;background:linear-gradient(transparent,rgba(0,0,0,.65));display:grid;gap:12px;justify-items:center}
+.shutter{width:72px;height:72px;border-radius:50%;border:5px solid #fff;background:rgba(255,255,255,.25);flex:none}
+.shutter:active{background:#fff}
+.guide{position:absolute;inset:16% 7% 26%;border:2px dashed rgba(255,255,255,.7);border-radius:18px;pointer-events:none;z-index:2}
+.camhint{background:rgba(0,0,0,.5);border-radius:999px;padding:6px 12px;font-size:.82rem;text-align:center}
+.flash{position:absolute;inset:0;background:#fff;z-index:5;animation:fl .35s ease-out forwards;pointer-events:none}
+@keyframes fl{from{opacity:.9}to{opacity:0}}
+.arlayer{position:absolute;inset:0;z-index:1;touch-action:none}
+.art{position:absolute;touch-action:none;cursor:grab;transform:translate(-50%,-50%)}
+.art svg{display:block;width:100%;height:auto;filter:drop-shadow(0 10px 10px rgba(0,0,0,.4))}
+.art.sel{outline:2px dashed #fff;outline-offset:6px;border-radius:8px}
+.art .rm{display:none;position:absolute;right:-16px;top:-16px;width:30px;height:30px;border-radius:50%;border:0;background:#fff;color:#111;font-weight:700;font-size:1rem}
+.art.sel .rm{display:block}
+.arch{display:flex;gap:6px;overflow-x:auto;max-width:100%;padding-bottom:2px;scrollbar-width:none}
+.arch button{flex:none;border:1.5px solid rgba(255,255,255,.6);background:rgba(0,0,0,.4);color:#fff;border-radius:999px;padding:6px 12px;font-size:.8rem;font-weight:700}
+.arch button[aria-pressed="true"]{background:#fff;color:#111;border-color:#fff}
+.camrow{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;width:100%;gap:8px}
+.camrow .btn{background:rgba(0,0,0,.45);color:#fff;border-color:rgba(255,255,255,.55)}
+.camrow .lbl{font-size:.75rem;text-align:right;opacity:.9}
+.arcta{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;width:100%;border:0;text-align:left;background:var(--surface);border-radius:16px;padding:12px 14px;box-shadow:var(--shadow);margin-top:10px}
+.arcta .ico{width:40px;height:40px;border-radius:12px;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center}
+.arcta .ico svg{width:22px;height:22px}
+.arcta small{display:block;color:var(--muted);font-size:.78rem}
+.snaps{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px}
+.snaps button{border:0;padding:0;background:none;flex:none;text-align:left;font-size:.72rem;color:var(--muted)}
+.snaps img{width:132px;height:100px;object-fit:cover;border-radius:12px;display:block;margin-bottom:3px}
+#xro{position:fixed;inset:0;display:none;z-index:100;pointer-events:none;color:#fff;font:15px/1.4 system-ui,sans-serif;flex-direction:column;justify-content:space-between}
+#xro .bar{pointer-events:auto;padding:16px;display:grid;gap:10px}
+#xro .xtop{background:linear-gradient(rgba(0,0,0,.6),transparent);grid-template-columns:auto 1fr;align-items:center}
+#xro .xbot{background:linear-gradient(transparent,rgba(0,0,0,.7))}
+#xro button{border:1.5px solid rgba(255,255,255,.7);background:rgba(0,0,0,.45);color:#fff;border-radius:999px;padding:9px 14px;font-weight:700;font-size:14px}
+#xro button[aria-pressed="true"]{background:#fff;color:#111}
+#xro button[disabled]{opacity:.4}
+#xro .xch{display:flex;gap:6px;overflow-x:auto}
+#xro .xch button{flex:none}
+#xro .xrow{display:flex;gap:8px;justify-content:center}
+#xro .msg{font-weight:700;text-shadow:0 1px 3px rgba(0,0,0,.6)}
+/* svg classes */
+.wall{fill:var(--wall)}.floor{fill:var(--floor)}.board{fill:var(--board)}.plank{stroke:var(--plank);stroke-width:1.2}
+.frameW{fill:var(--frame)}.glass{fill:var(--glass)}.wood{fill:var(--wood)}.wood2{fill:var(--wood2)}.woodIn{fill:var(--woodIn)}
+.sheetC{fill:var(--sheet)}.blanket{fill:var(--blanket)}.pillow{fill:var(--sheet)}.fabric{fill:var(--fabric)}.metal{fill:var(--metal)}.shade{fill:var(--shade)}.plant{fill:var(--plant)}
+.nWood{fill:var(--nWood)}.nSheet{fill:var(--nSheet);stroke:rgba(0,0,0,.12)}.nBlanket{fill:var(--nBlanket)}.nFabric{fill:var(--nFabric)}.rug{fill:var(--rug)}.weave{fill:var(--weave)}
+</style>
+</head>
+<body>
+<aside class="side" id="side"></aside>
+<div class="phone" id="phone"><video id="camv" playsinline muted autoplay></video><div id="app" style="display:contents"></div><div class="toast" id="toast" role="status" aria-live="polite"></div></div>
+<div id="xro" aria-live="polite"></div>
+<input type="file" id="camIn" accept="image/*" capture="environment" class="sr" aria-hidden="true" tabindex="-1">
+<input type="file" id="libIn" accept="image/*" class="sr" aria-hidden="true" tabindex="-1">
+<script>
+const BASE_URL='https://claude.ai/artifact/Tsb7iTGwmHmDYxErF7QiRY';
+const KEY='shared-space-mobile-v2';
+const H=3600e3,D=24*H;
+const STATUS={
+  keep:{btn:'Keep',label:'Keep',hint:'Leave it in the room'},
+  remove:{btn:'Remove',label:'Proposed removal',hint:'Take it out of the room'},
+  repurpose:{btn:'Repurpose',label:'Repurpose',hint:'Keep it, use it differently'},
+  store:{btn:'Store',label:'Saved for later',hint:'Move it out, keep it safe'},
+  discuss:{btn:'Discuss',label:'Needs discussion',hint:'We haven’t agreed yet'}
+};
+const HIDE=new Set(['remove','store']);
+const REACT={love:'Love it',ok:'It’s okay',no:'Not for me'};
+const CATS={bed:'Bed',sofa:'Sofa or sleeper',chair:'Chair',storage:'Storage',lamp:'Lighting',rug:'Rug',desk:'Desk',other:'Something else'};
+const OCATS={bed:'Bed',desk:'Desk',shelf:'Shelf',dresser:'Dresser',table:'Table',chair:'Chair',sofa:'Sofa',lamp:'Lamp',rug:'Rug',decor:'Decor',storage:'Storage',other:'Other'};
+const PURPOSES=['Guest room','Home office','Multipurpose room','Hobby room'];
+const PERMISSIONS={
+  owner:['invite','setPosition','markMeaningful','comment','react','suggestProduct','editLayouts','finalize'],
+  collaborator:['setPosition','markMeaningful','comment','react','suggestProduct']
+};
+const COLORS=['#2f7d78','#b0704f','#6a5aa8','#3b6ea5','#8a6d1f'];
+const DEMO_STEPS=[['scan','Scan a room (optional)'],['open','Open the shared room project'],['switch','Switch between Maria and Sam'],['status','Select an object and change its status'],['comment','Leave a comment'],['suggest','Suggest a piece of furniture'],['react','React to a suggestion'],['preview','Preview the redesign, or try it with the camera'],['unresolved','See what’s unresolved before finalizing']];
+
+/* ---------- drawing: demo room and product art ---------- */
+function books(){
+  const lv=[[120,58],[186,57],[251,57],[316,69]],cols=['#c46a4f','#4f7ca8','#d9b44a','#6b9a6b','#8a5d9c','#e3ddd2','#5d6b78'];
+  let s='',k=0;
+  lv.forEach(([y,h],li)=>{let x=33;while(x<92){const w=7+(k*5%6),hh=h-6-(k*7%14);if(li===3&&x>70)break;s+=`<rect x="${x}" y="${y+h-hh}" width="${w}" height="${hh}" rx="1" fill="${cols[k%cols.length]}"/>`;x+=w+1.5;k++}});
+  return s+`<rect x="74" y="370" width="22" height="16" rx="2" fill="#e3ddd2"/>`;
+}
+const DRAW={
+  bookshelf:`<rect class="wood" x="22" y="112" width="86" height="283" rx="3"/><rect class="woodIn" x="30" y="120" width="70" height="267"/>${[178,243,308].map(y=>`<rect class="wood" x="30" y="${y}" width="70" height="8"/>`).join('')}${books()}`,
+  photos:`<rect class="frameW" x="486" y="118" width="44" height="56" rx="2"/><rect x="491" y="123" width="34" height="46" fill="#8fb3c9"/><circle cx="508" cy="140" r="7" fill="#f0d9a8"/><rect x="491" y="150" width="34" height="19" fill="#6b9a6b"/><rect class="frameW" x="540" y="104" width="56" height="42" rx="2"/><rect x="545" y="109" width="46" height="32" fill="#d9b44a"/><rect x="552" y="120" width="10" height="21" fill="#c46a4f"/><rect x="568" y="116" width="10" height="25" fill="#4f7ca8"/><polygon points="546,156 604,165 546,176" fill="#c46a4f"/><rect x="543" y="154" width="4" height="25" fill="#7a5638"/><rect class="frameW" x="606" y="120" width="36" height="40" rx="2"/><rect x="611" y="125" width="26" height="30" fill="#b993cc"/>`,
+  bed:`<rect class="wood2" x="140" y="232" width="230" height="92" rx="8"/><rect class="wood2" x="134" y="360" width="9" height="36"/><rect class="wood2" x="367" y="360" width="9" height="36"/><rect class="sheetC" x="130" y="300" width="250" height="34" rx="6"/><rect class="blanket" x="130" y="320" width="250" height="56" rx="6"/><rect class="pillow" x="160" y="286" width="82" height="26" rx="11"/>`,
+  bedside:`<rect class="metal" x="420" y="298" width="12" height="26"/><polygon class="shade" points="402,300 450,300 440,270 412,270"/><rect class="wood" x="394" y="322" width="64" height="70" rx="3"/><rect class="woodIn" x="400" y="332" width="52" height="22" rx="2"/><circle cx="426" cy="343" r="3" fill="#e3ddd2"/>`,
+  desk:`<rect class="metal" x="498" y="268" width="48" height="20" rx="2"/><rect x="590" y="274" width="12" height="14" rx="2" fill="#4f7ca8"/><rect class="wood" x="476" y="288" width="150" height="11" rx="2"/><rect class="wood2" x="482" y="299" width="9" height="96"/><rect class="wood2" x="611" y="299" width="9" height="96"/><rect class="woodIn" x="566" y="299" width="45" height="30"/><rect class="fabric" x="520" y="310" width="42" height="44" rx="7"/><rect class="wood2" x="512" y="350" width="58" height="9" rx="2"/><rect class="wood2" x="516" y="359" width="5" height="36"/><rect class="wood2" x="561" y="359" width="5" height="36"/>`,
+  dresser:`<rect x="670" y="244" width="22" height="18" rx="3" fill="#c46a4f"/><path d="M681 244 C670 225 660 232 668 240 M681 244 C690 222 702 230 692 240" stroke="#5e8b5a" stroke-width="5" fill="none" stroke-linecap="round"/><rect x="720" y="248" width="40" height="14" rx="2" fill="#e3ddd2"/><rect class="wood" x="652" y="262" width="126" height="132" rx="4"/>${[272,310,348].map(y=>`<rect class="woodIn" x="662" y="${y}" width="106" height="32" rx="3"/><circle cx="700" cy="${y+16}" r="3" fill="#e3ddd2"/><circle cx="730" cy="${y+16}" r="3" fill="#e3ddd2"/>`).join('')}`
+};
+const DEMO_BASE=`<rect class="wall" x="0" y="0" width="800" height="395"/><rect class="floor" x="0" y="395" width="800" height="105"/>${[420,450,480].map(y=>`<line class="plank" x1="0" y1="${y}" x2="800" y2="${y}"/>`).join('')}${[90,260,430,600,770].map((x,i)=>`<line class="plank" x1="${x}" y1="${i%2?395:420}" x2="${x}" y2="${i%2?420:450}"/>`).join('')}<rect class="board" x="0" y="389" width="800" height="7"/><rect class="frameW" x="226" y="56" width="148" height="128" rx="4"/><rect class="glass" x="234" y="64" width="132" height="112"/><rect class="frameW" x="297" y="64" width="6" height="112"/><rect class="frameW" x="234" y="117" width="132" height="5"/>`;
+const PHOTO_CSS='.wall{fill:#e6e1d8}.floor{fill:#c9ad88}.board{fill:#f3efe8}.plank{stroke:#b89a74;stroke-width:1.2}.frameW{fill:#f7f5f1}.glass{fill:#cfe2ec}.wood{fill:#a87c55}.wood2{fill:#86603f}.woodIn{fill:#7a5638}.sheetC,.pillow{fill:#fbfaf7}.blanket{fill:#7f9bb5}.fabric{fill:#5f7f99}.metal{fill:#5d646a}.shade{fill:#f0d9a8}';
+const DEMO_SVG=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" width="1200" height="750"><style>${PHOTO_CSS}</style>${DEMO_BASE}${['bookshelf','photos','bed','bedside','desk','dresser'].map(k=>DRAW[k]).join('')}</svg>`;
+const DEMO_PHOTO='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(DEMO_SVG);
+const pct=(b)=>[b[0]/8,b[1]/5,b[2]/8,b[3]/5];
+const PBOX={bed:[118,232,274,164],sofa:[122,276,266,120],chair:[556,374,112,112],storage:[164,412,192,58],lamp:[32,222,64,262],rug:[188,424,464,62],desk:[472,268,158,130],other:[376,414,92,70]};
+const PDRAW={
+  bed:`<rect class="nWood" x="128" y="238" width="254" height="86" rx="14"/><rect class="nSheet" x="122" y="304" width="266" height="34" rx="9"/><rect class="nBlanket" x="122" y="324" width="266" height="56" rx="9"/><rect class="nSheet" x="146" y="288" width="96" height="26" rx="12"/><rect class="nSheet" x="262" y="288" width="96" height="26" rx="12"/><rect class="nWood" x="122" y="380" width="266" height="12" rx="4"/>`,
+  sofa:`<rect class="nFabric" x="142" y="280" width="226" height="64" rx="18"/><rect class="nFabric" x="126" y="304" width="30" height="82" rx="12"/><rect class="nFabric" x="354" y="304" width="30" height="82" rx="12"/><rect class="nFabric" x="150" y="334" width="210" height="42" rx="10" style="filter:brightness(1.06)"/><path d="M255 336 V374" stroke="rgba(0,0,0,.15)" stroke-width="2"/><rect class="nWood" x="140" y="384" width="8" height="10"/><rect class="nWood" x="362" y="384" width="8" height="10"/>`,
+  chair:`<rect class="nFabric" x="576" y="378" width="74" height="62" rx="20"/><rect class="nFabric" x="562" y="410" width="20" height="52" rx="8"/><rect class="nFabric" x="644" y="410" width="20" height="52" rx="8"/><rect class="nFabric" x="574" y="428" width="78" height="28" rx="9" style="filter:brightness(1.07)"/><rect class="nWood" x="572" y="460" width="6" height="22"/><rect class="nWood" x="648" y="460" width="6" height="22"/>`,
+  storage:`<rect class="nWood" x="168" y="416" width="184" height="50" rx="5"/>${[176,234,292].map(x=>`<rect class="weave" x="${x}" y="426" width="52" height="34" rx="4"/><path d="M${x+6} 436 H${x+46} M${x+6} 444 H${x+46} M${x+6} 452 H${x+46}" stroke="rgba(0,0,0,.15)" stroke-width="2"/>`).join('')}`,
+  lamp:`<rect class="metal" x="60" y="250" width="5" height="226"/><ellipse class="metal" cx="62" cy="478" rx="22" ry="5"/><polygon class="shade" points="38,262 88,262 78,226 48,226"/>`,
+  rug:`<ellipse class="rug" cx="420" cy="455" rx="230" ry="30"/><ellipse cx="420" cy="455" rx="205" ry="22" fill="none" stroke="rgba(255,255,255,.35)" stroke-width="2"/>`,
+  desk:`<rect class="nWood" x="486" y="290" width="132" height="10" rx="3"/><rect class="nWood" x="494" y="300" width="6" height="94"/><rect class="nWood" x="604" y="300" width="6" height="94"/>`,
+  other:`<rect class="nWood" x="380" y="420" width="84" height="60" rx="8"/><rect class="nSheet" x="392" y="432" width="60" height="10" rx="3"/>`
+};
+function art(cat,pad){const b=PBOX[cat]||PBOX.other,p=pad||0;return`<svg viewBox="${b[0]-p} ${b[1]-p} ${b[2]+2*p} ${b[3]+2*p}" aria-hidden="true">${PDRAW[cat]||PDRAW.other}</svg>`}
+const ICON={
+  back:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>',
+  chev:'<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M9 5l7 7-7 7"/></svg>',
+  invite:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="8" r="4"/><path d="M2 21c0-4 3-6 7-6s7 2 7 6M19 8v6M16 11h6"/></svg>',
+  cam:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="4"/></svg>',
+  img:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 17l-5-5-9 8"/></svg>',
+  plus:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+  room:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 11l9-7 9 7v9H3z"/><path d="M7 20v-5h10v5"/></svg>',
+  list:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>',
+  lay:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3" y="4" width="8" height="16" rx="2"/><rect x="13" y="4" width="8" height="16" rx="2"/></svg>',
+  ar:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M12 12l8-4.5M12 12v9M12 12L4 7.5"/></svg>',
+  dec:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg>'
+};
+
+/* ---------- seed data ---------- */
+function seedDemo(){
+  const t=Date.now();
+  const ob=(id,name,cat,positions,meaningful)=>({id,name,cat,box:pct({bookshelf:[16,106,98,292],photos:[480,98,166,84],bed:[124,226,262,172],bedside:[390,266,72,130],desk:[472,264,158,134],dresser:[646,226,138,172]}[id]),positions,meaningful:meaningful||[]});
+  return {
+    id:'demo',demo:true,title:'Turning the Old Bedroom into a Guest Room',purpose:'Guest room',photo:'demo',ar:1.6,ownerId:'maria',createdAt:t-6*D,
+    users:[{id:'maria',name:'Maria',role:'owner',relation:'Parent',color:'#2f7d78'},{id:'sam',name:'Sam',role:'collaborator',relation:'Adult child',color:'#b0704f',invite:'join-sam'}],
+    objects:[
+      ob('bed','Twin bed','bed',{maria:{status:'remove',note:'A queen would be more comfortable for guests.',at:t-5*D},sam:{status:'remove',note:'Happy to swap it for something bigger.',at:t-4*D}}),
+      ob('desk','Desk','desk',{maria:{status:'remove',note:'It would free up floor space for guests.',at:t-5*D},sam:{status:'keep',note:'It has a lot of history for me.',at:t-4*D}},[{by:'sam',text:'I did all my homework here from middle school through graduation.',at:t-4*D}]),
+      ob('bookshelf','Bookshelf','shelf',{maria:{status:'discuss',note:'Not sure it fits a guest room.',at:t-5*D},sam:{status:'discuss',note:'Some of the books are mine, some could go.',at:t-3*D}}),
+      ob('bedside','Bedside table','table',{maria:{status:'keep',note:'Guests will need somewhere for a lamp and a glass of water.',at:t-5*D}}),
+      ob('dresser','Dresser','dresser',{maria:{status:'repurpose',note:'Guest linens and towels.',at:t-5*D},sam:{status:'repurpose',note:'Fine by me once I clear out the top drawer.',at:t-4*D}}),
+      ob('photos','Photos and decorations','decor',{maria:{status:'store',note:'I’ll box them up carefully.',at:t-5*D},sam:{status:'store',note:'',at:t-3*D}},[{by:'sam',text:'School trip photos and the pennant from my first concert.',at:t-3*D}])
+    ],
+    products:[
+      {id:'p-bed',name:'Linnea Queen Platform Bed',price:549,retailer:'Oakline Home',url:'https://example.com/oakline/linnea-queen-bed',cat:'bed',suggestedBy:'maria',at:t-5*D,reactions:{maria:'love',sam:'ok'}},
+      {id:'p-chair',name:'Harbor Reading Chair',price:329,retailer:'Nook & Co.',url:'https://example.com/nook/harbor-reading-chair',cat:'chair',suggestedBy:'sam',at:t-3*D,reactions:{sam:'love',maria:'love'}},
+      {id:'p-storage',name:'Woven Storage Bench',price:189,retailer:'Fieldhouse',url:'https://example.com/fieldhouse/woven-storage-bench',cat:'storage',suggestedBy:'maria',at:t-4*D,reactions:{maria:'love'}},
+      {id:'p-sofa',name:'Ellis Sleeper Sofa',price:899,retailer:'Oakline Home',url:'https://example.com/oakline/ellis-sleeper-sofa',cat:'sofa',suggestedBy:'maria',at:t-2*D,reactions:{maria:'ok',sam:'ok'}},
+      {id:'p-lamp',name:'Arc Floor Lamp',price:119,retailer:'Brightside',url:'https://example.com/brightside/arc-floor-lamp',cat:'lamp',suggestedBy:'sam',at:t-1*D,reactions:{sam:'love'}}
+    ],
+    layouts:[
+      {id:'A',name:'Classic guest room',desc:'Queen bed, a reading corner and storage at the foot of the bed.',productIds:['p-bed','p-chair','p-storage'],overrides:{},reactions:{maria:'love'},placements:{}},
+      {id:'B',name:'Guest room with the desk',desc:'A sleeper sofa frees up space so the desk can stay.',productIds:['p-sofa','p-chair','p-lamp'],overrides:{desk:'keep'},reactions:{sam:'love',maria:'ok'},placements:{}},
+      {id:'C',name:'Guest room, shelf stays',desc:'Queen bed, with the bookshelf kept for guests’ reading.',productIds:['p-bed','p-chair','p-lamp'],overrides:{bookshelf:'keep'},reactions:{},placements:{}}
+    ],
+    comments:[
+      {id:'c1',target:'obj:bookshelf',author:'sam',text:'Can we keep this bookshelf? I still have books and personal items here.',at:t-3*D},
+      {id:'c2',target:'obj:bookshelf',author:'maria',text:'Of course. Let’s sort through it together first. Maybe guests could use the lower shelves?',at:t-2*D},
+      {id:'c3',target:'obj:desk',author:'sam',text:'I’d love to keep the desk, even if it moves to another room.',at:t-4*D},
+      {id:'c4',target:'layout:A',author:'sam',text:'What if we turn this into a guest room but leave space for my things?',at:t-2*D},
+      {id:'c5',target:'prod:p-sofa',author:'sam',text:'I like the new sofa, but I prefer the lighter color.',at:t-1*D},
+      {id:'c6',target:'prod:p-chair',author:'maria',text:'This would be perfect by the window.',at:t-2*D}
+    ],
+    final:null,
+    history:[
+      {at:t-6*D,by:'maria',text:'Scanned the room and created the project'},{at:t-6*D+H,by:'maria',text:'Invited Sam to the project'},
+      {at:t-5*D,by:'maria',text:'Proposed removal of the Desk',ref:'obj:desk'},{at:t-5*D,by:'maria',text:'Suggested Linnea Queen Platform Bed',ref:'prod:p-bed'},
+      {at:t-4*D,by:'sam',text:'Marked the Desk as Keep',ref:'obj:desk'},{at:t-4*D,by:'sam',text:'Noted the Desk is meaningful to them',ref:'obj:desk'},
+      {at:t-3*D,by:'sam',text:'Marked the Bookshelf as Needs discussion',ref:'obj:bookshelf'},{at:t-3*D,by:'sam',text:'Suggested Harbor Reading Chair',ref:'prod:p-chair'}
+    ]
+  };
+}
+function defUI(){return{screen:'home',pid:null,me:{},tab:'room',sheet:null,compare:[],preview:null,layout:'A',view:'proposed',arrange:false,welcome:null,scan:null,done:{}}}
+let S,ui;
+function load(){
+  try{const raw=localStorage.getItem(KEY);if(raw){const p=JSON.parse(raw);if(p&&p.projects){S={projects:p.projects};ui=Object.assign(defUI(),p.ui||{});return}}}catch(e){}
+  S={projects:[seedDemo()]};ui=defUI();
+}
+function save(){try{localStorage.setItem(KEY,JSON.stringify({projects:S.projects,ui:{me:ui.me,done:ui.done,screen:ui.screen==='scan'?'home':ui.screen==='ar'?'project':ui.screen,pid:ui.pid,tab:ui.tab,layout:ui.layout}}))}catch(e){toast('This browser’s storage is full. Recent changes may not be saved.')}}
+
+/* ---------- helpers ---------- */
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let PR=null;
+const U=id=>(PR&&PR.users.find(u=>u.id===id))||{id,name:'Someone',color:'#888',role:'collaborator'};
+const myId=()=>ui.me[PR.id]||PR.ownerId;
+const me=()=>U(myId());
+const can=p=>(PERMISSIONS[me().role]||[]).includes(p);
+const O=id=>PR.objects.find(o=>o.id===id);
+const P=id=>PR.products.find(p=>p.id===id);
+const L=id=>PR.layouts.find(l=>l.id===id)||PR.layouts[0];
+const uid=p=>p+Math.random().toString(36).slice(2,8);
+const photoSrc=pr=>pr.photo==='demo'?DEMO_PHOTO:pr.photo;
+function rel(t){const s=(Date.now()-t)/1000;if(s<60)return'just now';if(s<3600)return Math.floor(s/60)+' min ago';if(s<86400)return Math.floor(s/3600)+' h ago';const d=Math.floor(s/86400);return d===1?'yesterday':d+' days ago'}
+const av=(u,sm)=>`<span class="av ${sm?'s':''}" style="background:${u.color}" aria-hidden="true">${esc((u.name||'?')[0])}</span>`;
+const money=n=>'$'+Number(n||0).toLocaleString('en-US');
+const names=a=>a.length<=1?a.join(''):a.slice(0,-1).join(', ')+' and '+a[a.length-1];
+function log(text,ref){PR.history.push({at:Date.now(),by:myId(),text,ref})}
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove('show'),2600)}
+function done(k){if(!ui.done[k]){ui.done[k]=1}}
+
+/* Silence is never agreement: an item is only agreed when everyone has said the same thing. */
+function derived(o){
+  const given=PR.users.map(u=>o.positions[u.id]&&o.positions[u.id].status).filter(Boolean);
+  const waiting=PR.users.filter(u=>!o.positions[u.id]).map(u=>u.name);
+  if(given.includes('discuss'))return{status:'discuss',kind:'discuss',waiting};
+  const set=new Set(given);
+  if(set.size>1)return{status:'discuss',kind:'differ',waiting};
+  if(set.size===0)return{status:'none',kind:'none',waiting};
+  return{status:given[0],kind:waiting.length?'pending':'agreed',waiting};
+}
+const resolved=o=>derived(o).kind==='agreed';
+const shownStatus=d=>(d.kind==='agreed'||d.kind==='pending')?d.status:d.kind==='none'?'none':'discuss';
+function shortLabel(d){return d.kind==='differ'?'Needs discussion':d.kind==='none'?'No views yet':STATUS[d.status].label}
+function badge(o,big){
+  const d=derived(o),s=shownStatus(d);
+  if(d.kind==='agreed')return`<span class="chip s-${s}">${STATUS[s].label}</span>`;
+  if(d.kind==='differ'||d.kind==='discuss')return`<span class="chip s-discuss">Needs discussion</span>`;
+  if(d.kind==='none')return`<span class="chip outline s-none">No views yet</span>`;
+  return`<span class="chip outline s-${s}">${STATUS[s].label}</span>${big?` <span class="tiny">Waiting to hear from ${esc(names(d.waiting))}</span>`:''}`;
+}
+function proposer(o){const e=Object.entries(o.positions).filter(([,p])=>p.status!=='keep').sort((a,b)=>a[1].at-b[1].at)[0];return e?U(e[0]):null}
+
+/* proposed plan */
+function plan(lay,mode){
+  const out={};
+  for(const o of PR.objects){
+    let st,flag='';
+    if(lay.overrides[o.id]){st=lay.overrides[o.id];flag='layout'}
+    else{const d=derived(o);
+      if(d.kind==='agreed')st=d.status;
+      else if(mode==='final'){st=(PR.final&&PR.final.decisions[o.id])||'keep';flag='decided'}
+      else{const op=o.positions[PR.ownerId];st=op?op.status:'keep';if(st==='discuss')st='keep';flag='open'}}
+    out[o.id]={status:st,flag};
+  }
+  return out;
+}
+const REPLACES={bed:['bed','sofa'],sofa:['bed','sofa'],desk:['desk'],chair:['chair'],storage:['storage','dresser'],lamp:['lamp'],rug:['rug']};
+function placements(lay,pl){
+  const ids=[...lay.productIds];if(ui.preview&&!ids.includes(ui.preview))ids.push(ui.preview);
+  const used=new Set(),out=[];
+  for(const id of ids){const p=P(id);if(!p)continue;const b=PBOX[p.cat]||PBOX.other;const hOverW=b[3]/b[2];
+    let pos=lay.placements&&lay.placements[id],target=null;
+    if(!pos){const t=PR.objects.find(o=>!used.has(o.id)&&(REPLACES[p.cat]||[]).includes(o.cat)&&HIDE.has(pl[o.id].status));
+      if(t){used.add(t.id);target=t.id;const w=t.box[2];const h=w*hOverW*PR.ar;pos={x:t.box[0],y:Math.max(0,t.box[1]+t.box[3]-h),w}}
+      else{const q=pct(b);pos={x:q[0],y:q[1],w:q[2]}}}
+    else if(pos.replaces)used.add(pos.replaces);
+    out.push({p,pos,target:target||(pos&&pos.replaces)||null,isPrev:id===ui.preview&&!lay.productIds.includes(id)});
+  }
+  return out;
+}
+
+/* ---------- photo stage ---------- */
+function stage(mode,opt){
+  opt=opt||{};
+  let s=`<div class="stage" id="stage" style="aspect-ratio:${PR.ar}"><img class="ph" src="${photoSrc(PR)}" alt="${mode==='original'?'Original room photo':'Room photo'}">`;
+  if(mode==='edit'){
+    for(const o of PR.objects){const d=derived(o),st=shownStatus(d),b=o.box;
+      s+=`<button class="bx s-${st} ${d.kind!=='agreed'?'open':''} ${ui.sheet&&ui.sheet.id===o.id?'sel':''}" style="left:${b[0]}%;top:${b[1]}%;width:${b[2]}%;height:${b[3]}%" data-a="obj" data-id="${o.id}" aria-label="${esc(o.name)}: ${esc(shortLabel(d))}"><span class="pill">${esc(o.name)}${o.meaningful.length?' ♡':''}</span></button>`}
+  }else if(mode==='proposed'||mode==='final'){
+    const lay=opt.layout,pl=plan(lay,mode),pls=placements(lay,pl),replaced=new Set(pls.map(x=>x.target).filter(Boolean));
+    for(const o of PR.objects){const f=pl[o.id],b=o.box;
+      if(HIDE.has(f.status)){s+=`<div class="gh" style="left:${b[0]}%;top:${b[1]}%;width:${b[2]}%;height:${b[3]}%">${replaced.has(o.id)?'':`${esc(o.name)}<span>${STATUS[f.status].label}${f.flag==='open'?', not agreed':''}</span>`}</div>`}
+      else if(f.flag==='open')s+=`<span class="oflag" style="left:${b[0]}%;top:calc(${b[1]}% - 8px)">Not agreed yet</span>`;
+    }
+    const order=pls.slice().sort((a,b)=>(a.p.cat==='rug'?-1:0)-(b.p.cat==='rug'?-1:0)||a.pos.y-b.pos.y);
+    for(const x of order){const dr=ui.arrange&&can('editLayouts')&&!PR.final&&mode==='proposed';
+      s+=`<div class="tk ${x.isPrev?'prev':''} ${dr?'drag':''}" data-pid="${x.p.id}" style="left:${x.pos.x}%;top:${x.pos.y}%;width:${x.pos.w}%">${art(x.p.cat)}<span class="tag">${x.isPrev?'Preview':'New'}</span></div>`}
+  }
+  if(opt.scan){
+    if(opt.scan.step==='analyzing')s+=`<div class="scanveil"></div><div class="scanline"></div>`;
+    (opt.scan.objects||[]).forEach((o,i)=>{const b=o.box;s+=`<div class="bx s-scan" style="left:${b[0]}%;top:${b[1]}%;width:${b[2]}%;height:${b[3]}%;pointer-events:none"><span class="pill">${i+1}. ${esc(o.name)}</span></div>`});
+  }
+  return s+'</div>';
+}
+
+/* ---------- comments & reactions ---------- */
+function thread(target){
+  const list=PR.comments.filter(c=>c.target===target).sort((a,b)=>a.at-b.at);
+  return`<div class="thread">${list.length?list.map(c=>{const u=U(c.author);return`<div class="cmt">${av(u,1)}<div><div class="mt"><b>${esc(u.name)}</b><span>${rel(c.at)}</span></div><div class="bub">${esc(c.text)}</div></div></div>`}).join(''):`<p class="empty">No comments yet.</p>`}</div>
+  ${can('comment')?`<div class="composer"><label class="sr" for="cm">Write a comment</label><textarea id="cm" placeholder="Comment as ${esc(me().name)}…"></textarea><button class="btn primary small" style="height:42px" data-a="comment" data-t="${esc(target)}">Post</button></div>`:''}`;
+}
+const ccount=t=>PR.comments.filter(c=>c.target===t).length;
+function reactRow(kind,item){
+  return`<div class="reacts" role="group" aria-label="Reactions">${Object.entries(REACT).map(([k,l])=>{const who=PR.users.filter(u=>item.reactions[u.id]===k);const on=item.reactions[myId()]===k;
+    return`<button class="rb ${on?'on':''}" aria-pressed="${on}" data-a="react" data-k="${kind}" data-id="${item.id}" data-r="${k}">${l}${who.length?`<span class="who">${esc(who.map(u=>u.name).join(', '))}</span>`:''}</button>`}).join('')}</div>`;
+}
+
+/* ---------- screens ---------- */
+function renderHome(){
+  return`<div class="topbar"><div class="tt"><h1 style="font-size:1.35rem">Shared Space</h1><div>Redesign rooms together</div></div></div>
+  <div class="content">
+    <button class="scanhero" data-a="startScan"><div><h2>Scan a room</h2><p>Take a photo and we’ll find the furniture and belongings, so you can plan the space together.</p></div><div class="vf"><i></i><i></i><i></i><i></i>${ICON.cam}</div></button>
+    <h3 style="margin:22px 0 10px">Your rooms</h3>
+    ${S.projects.map(pr=>{PR=pr;const open=pr.objects.filter(o=>!resolved(o)).length;return`<button class="proj" data-a="openProj" data-id="${pr.id}"><img src="${photoSrc(pr)}" alt=""><div class="pb"><h3>${esc(pr.title)}</h3><div class="meta"><span>${esc(pr.purpose)}${pr.final?', finalized':open?`, ${open} still open`:''}</span><span class="stack-av">${pr.users.map(u=>av(u,1)).join('')}</span></div></div></button>`}).join('')}
+    <p class="tiny" style="text-align:center;margin-top:14px">Prototype. Rooms are saved on this device. <button class="link" data-a="reset">Reset demo</button></p>
+  </div>`;
+}
+function renderScan(){
+  const sc=ui.scan;
+  const head=`<div class="topbar"><button class="ib" data-a="${sc.step==='details'?'scanBack':'home'}" aria-label="Back">${ICON.back}</button><div class="tt"><h1>${sc.step==='start'?'Scan a room':sc.step==='analyzing'?'Scanning…':sc.step==='review'?'Check what we found':'Set up the project'}</h1></div></div>`;
+  if(sc.step==='start')return head+`<div class="content">
+    <div class="stage" style="aspect-ratio:3/4;display:grid;place-items:center;background:var(--surface2)"><div class="vf" style="width:140px;height:140px;color:var(--accent)"><i></i><i></i><i></i><i></i></div></div>
+    <ul class="tips"><li><b>1</b><span>Stand in the doorway or a corner so most of the room fits in the frame.</span></li><li><b>2</b><span>Turn on the lights and open the curtains.</span></li><li><b>3</b><span>Hold the phone sideways for a wider view.</span></li></ul>
+    ${sc.note?`<div class="banner warn" style="margin:0 0 10px">${esc(sc.note)}</div>`:''}
+    <div style="display:grid;gap:8px"><button class="btn primary block" data-a="camera">${ICON.cam}Open camera</button>${TOUCH?`<button class="btn block" data-a="camApp">${ICON.cam}Use the phone’s camera app</button>`:''}<button class="btn block" data-a="library">${ICON.img}Choose from your photos</button><button class="btn block" data-a="sampleScan">Try with a sample room</button></div>
+    <p class="tiny" style="margin-top:10px">Claude looks at the photo to find furniture and belongings. You can check and change everything before saving.</p></div>`;
+  if(sc.step==='camera')return`<div class="guide"></div><div class="camscreen"><div class="camtop"><button class="ib" data-a="camClose" aria-label="Close camera">×</button><div class="tt">Scan the room<small>Fit as much of the room in the frame as you can</small></div></div>
+    <div class="cambot"><span class="camhint">${cam.ready?'Hold steady, then take the photo':'Starting camera…'}</span><button class="shutter" data-a="snap" aria-label="Take photo" ${cam.ready?'':'disabled'}></button><button class="link" style="color:#fff" data-a="library">Upload a photo instead</button></div></div>`;
+  if(sc.step==='analyzing')return head+`<div class="content">${stageScan(sc)}<p style="margin-top:14px;font-weight:700">Finding furniture and belongings…</p><p class="tiny">This usually takes under a minute.</p><button class="btn block" style="margin-top:12px" data-a="stopScan">Stop and tag items myself</button></div>`;
+  if(sc.step==='review')return head+`<div class="content">
+    ${sc.note?`<div class="banner warn" style="margin:0 0 10px">${esc(sc.note)}</div>`:''}
+    ${stageScan(sc)}
+    <p class="tiny" style="margin:8px 0 12px">Tap the photo to tag anything that was missed.</p>
+    ${sc.objects.length?`<ul class="detected">${sc.objects.map((o,i)=>`<li><span class="num">${i+1}</span><input type="text" value="${esc(o.name)}" data-scanname="${i}" aria-label="Name of item ${i+1}"><select data-scancat="${i}" aria-label="Type of item ${i+1}">${Object.entries(OCATS).map(([k,v])=>`<option value="${k}" ${o.cat===k?'selected':''}>${v}</option>`).join('')}</select><button class="x" data-a="scanDel" data-i="${i}" aria-label="Remove ${esc(o.name)}">×</button></li>`).join('')}</ul>`:`<p class="empty">No items tagged yet.</p>`}
+    <button class="btn primary block" style="margin-top:14px" data-a="scanNext" ${sc.objects.length?'':'disabled'}>Looks right</button>
+    <button class="btn block" style="margin-top:8px" data-a="startScan">Retake photo</button></div>`;
+  return head+`<div class="content">
+    <img src="${sc.photo}" alt="" style="width:100%;border-radius:16px;aspect-ratio:16/9;object-fit:cover;display:block">
+    <p class="tiny" style="margin:6px 0 14px">${sc.objects.length} item${sc.objects.length===1?'':'s'} tagged</p>
+    <label class="field">Project name<input type="text" id="pjTitle" value="${esc(sc.title)}"></label>
+    <div class="field">New purpose for the room<div class="purp" role="group">${PURPOSES.map(p=>`<button data-a="purpose" data-v="${esc(p)}" aria-pressed="${sc.purpose===p}">${esc(p)}</button>`).join('')}</div></div>
+    <label class="field">Your name <span>Shown to people you invite</span><input type="text" id="pjName" value="${esc(sc.owner||'')}" placeholder="e.g. Maria"></label>
+    <button class="btn primary block" data-a="createProj">Create project</button></div>`;
+}
+function stageScan(sc){return`<div class="stage" id="scanStage" data-a="scanTap" style="aspect-ratio:${sc.ar};cursor:crosshair"><img class="ph" src="${sc.photo}" alt="Your room photo">${stage.inner(sc)}</div>`}
+stage.inner=sc=>{let s='';if(sc.step==='analyzing')s+=`<div class="scanveil"></div><div class="scanline"></div>`;(sc.objects||[]).forEach((o,i)=>{const b=o.box;s+=`<div class="bx s-scan" style="left:${b[0]}%;top:${b[1]}%;width:${b[2]}%;height:${b[3]}%;pointer-events:none"><span class="pill">${i+1}. ${esc(o.name)}</span></div>`});return s};
+
+function renderProject(){
+  const unresolved=PR.objects.filter(o=>!resolved(o)).length,m=me();
+  const body=ui.tab==='room'?tabRoom():ui.tab==='shortlist'?tabShortlist():ui.tab==='layouts'?tabLayouts():tabDecisions();
+  return`<div class="topbar"><button class="ib" data-a="home" aria-label="All rooms">${ICON.back}</button>
+    <div class="tt"><h1>${esc(PR.title)}</h1><div>${esc(PR.purpose)}${PR.final?', finalized':''}</div></div>
+    <button class="whochip" data-a="people" aria-label="Viewing as ${esc(m.name)}. Switch person">${av(m,1)}${esc(m.name)}</button>
+    ${can('invite')?`<button class="ib" data-a="invite" aria-label="Invite someone">${ICON.invite}</button>`:''}</div>
+  <div class="content" id="content">${ui.welcome?`<div class="banner" style="margin:0 0 12px"><b>${esc(U(PR.ownerId).name)} invited you to share your thoughts on this room.</b> Your views sit alongside everyone else’s, and nothing leaves the room without a conversation. <button class="link" data-a="dismissWelcome">Got it</button></div>`:''}${body}</div>
+  ${ui.tab==='shortlist'?(ui.compare.length>=2?`<div class="tray"><span>${ui.compare.length} pieces selected</span><span class="row"><button class="btn small" data-a="clearCmp">Clear</button><button class="btn small" data-a="openCompare">Compare</button></span></div>`:can('suggestProduct')?`<button class="fab" data-a="suggest">${ICON.plus}Suggest a piece</button>`:''):''}
+  <nav class="tabbar" aria-label="Project sections">${[['room','Room',ICON.room],['shortlist','Shortlist',ICON.list],['layouts','Layouts',ICON.lay],['decisions','Decisions',ICON.dec]].map(([k,l,i])=>`<button data-a="tab" data-id="${k}" ${ui.tab===k?'aria-current="page"':''}>${i}${l}${k==='decisions'&&unresolved?`<span class="bdg">${unresolved}</span>`:''}</button>`).join('')}</nav>`;
+}
+function tabRoom(){
+  const un=PR.objects.filter(o=>!resolved(o));
+  return`${stage('edit')}
+    <div class="legend">${Object.entries(STATUS).map(([k,v])=>`<span class="s-${k}"><i></i>${v.label}</span>`).join('')}<span><i style="background:none;border:1.5px dashed var(--muted)"></i>Not agreed yet</span></div>
+    <div class="stat"><div><strong>${PR.objects.length-un.length}</strong>agreed</div><div><strong>${un.length}</strong>still open</div></div>
+    <div class="sec"><div class="between" style="margin-bottom:8px"><h3>In this room</h3><span class="tiny">Tap to see everyone’s view</span></div>
+    <ul class="items">${PR.objects.map(o=>`<li><button class="it" data-a="obj" data-id="${o.id}"><span class="nm">${esc(o.name)}${o.meaningful.length?' ♡':''}<small>${ccount('obj:'+o.id)?ccount('obj:'+o.id)+' comment'+(ccount('obj:'+o.id)>1?'s':''):'No comments'}</small></span>${badge(o)}${ICON.chev}</button></li>`).join('')}</ul></div>
+    ${!PR.objects.length?`<p class="empty">Nothing tagged yet.</p>`:''}`;
+}
+function tabShortlist(){
+  return`<div style="margin-bottom:12px"><h2>Shared shortlist</h2><p class="tiny">Anyone can suggest pieces. Reactions show how people feel; they don’t decide anything.</p></div>
+  ${PR.products.length?PR.products.map(p=>{const u=U(p.suggestedBy),inC=ui.compare.includes(p.id),n=ccount('prod:'+p.id);return`<article class="pc ${inC?'cmp':''}">
+    <div class="top"><div class="thumb">${art(p.cat,12)}</div><div><h3>${esc(p.name)}</h3><div class="price">${money(p.price)}</div><div class="by">${esc(p.retailer)}</div><div class="by">${av(u,1)}Suggested by ${esc(u.id===myId()?'you':u.name)}, ${rel(p.at)}</div></div></div>
+    <div class="bot">${reactRow('prod',p)}
+      <div class="acts"><button class="btn small" data-a="viewInRoom" data-id="${p.id}">View in room</button><button class="btn small" data-a="arOpen" data-id="${p.id}">Try with camera</button><a class="btn small" href="${esc(p.url)}" target="_blank" rel="noopener">Visit store</a><button class="btn small" data-a="thread" data-t="prod:${p.id}">${n?n+' ':''}Comment${n===1?'':'s'}</button>
+      <label class="chk"><input type="checkbox" data-a="cmp" data-id="${p.id}" ${inC?'checked':''}>Compare</label></div></div></article>`}).join('')
+  :`<div class="card" style="text-align:center;padding:26px 16px"><h3>Nothing here yet</h3><p class="muted" style="font-size:.9rem">Suggest a piece you’ve found online. Everyone on the project can react to it and see it in the room.</p></div>`}
+  <div style="height:70px"></div>`;
+}
+function tabLayouts(){
+  const lay=L(ui.layout),isFinal=PR.final&&PR.final.layoutId===lay.id,mode=ui.view==='original'?'original':isFinal?'final':'proposed';
+  const pl=plan(lay,isFinal?'final':'proposed'),pls=placements(lay,pl),prev=ui.preview&&P(ui.preview);
+  const g={stay:[],store:[],remove:[]};
+  PR.objects.forEach(o=>{const f=pl[o.id];const tag=f.flag==='open'?' <span class="fl">not agreed yet</span>':f.flag==='layout'?' <span class="tiny">this layout</span>':'';const li=`<li>${esc(o.name)}${f.status==='repurpose'?' (repurposed)':''}${tag}</li>`;(f.status==='store'?g.store:f.status==='remove'?g.remove:g.stay).push(li)});
+  const total=pls.reduce((a,x)=>a+Number(x.p.price||0),0),un=PR.objects.filter(o=>!resolved(o));
+  const owner=can('editLayouts')&&!PR.final;
+  return`<div class="seg" role="group" aria-label="Choose layout">${PR.layouts.map(l=>`<button data-a="layout" data-id="${l.id}" aria-pressed="${l.id===lay.id}">${l.id}${PR.final&&PR.final.layoutId===l.id?' ✓':''}</button>`).join('')}${owner&&PR.layouts.length<3?`<button data-a="newLayout" aria-label="New layout">+</button>`:''}</div>
+    <div class="lname"><h2>${esc(lay.name)}</h2>${lay.desc?`<p class="muted" style="font-size:.88rem">${esc(lay.desc)}</p>`:''}</div>
+    <div class="ribbon ${isFinal?'final':''}">${isFinal?`<b>Final design</b><span>chosen by ${esc(U(PR.final.by).name)} ${rel(PR.final.at)}</span>`:`<b>Proposed, not final</b><span>${esc(U(PR.ownerId).name)} makes the final call</span>`}</div>
+    <div class="seg" role="group" aria-label="Before or after" style="margin-bottom:10px"><button data-a="view" data-v="original" aria-pressed="${ui.view==='original'}">Original</button><button data-a="view" data-v="proposed" aria-pressed="${ui.view!=='original'}">${isFinal?'Final':'Proposed'}</button></div>
+    ${prev?`<div class="banner" style="margin:0 0 10px">Previewing <b>${esc(prev.name)}</b>. Only a preview, nothing is saved. <span class="row" style="margin-top:6px">${owner&&!lay.productIds.includes(prev.id)?`<button class="btn small" data-a="toggleLP" data-id="${prev.id}">Add to layout ${lay.id}</button>`:''}<button class="btn small" data-a="stopPreview">Stop preview</button></span></div>`:''}
+    ${stage(mode,{layout:lay})}
+    ${mode==='original'?`<p class="tiny" style="margin-top:6px">The original photo is kept exactly as scanned.</p>`:owner?`<div class="between" style="margin-top:8px"><span class="tiny">${ui.arrange?'Drag the new pieces to arrange them.':'Dashed boxes show what’s leaving the room.'}</span><button class="btn small ${ui.arrange?'primary':''}" data-a="arrange">${ui.arrange?'Done arranging':'Arrange pieces'}</button></div>`:`<p class="tiny" style="margin-top:6px">Dashed boxes show what’s leaving the room.</p>`}
+    <button class="arcta" data-a="arOpen"><span class="ico">${ICON.ar}</span><span><b>See it in your room</b><small>Open the camera and place these pieces where they’d go</small></span>${ICON.chev}</button>
+    ${ui.xr?`<button class="arcta" data-a="xrStart"><span class="ico">${ICON.ar}</span><span><b>Floor AR, life size</b><small>Place true-to-size 3D pieces on your floor</small></span>${ICON.chev}</button>`:''}
+    ${(lay.snapshots||[]).length?`<div class="sec"><h3>Seen in the room</h3><div class="snaps">${lay.snapshots.slice().reverse().map(sn=>`<button data-a="snapOpen" data-id="${sn.id}"><img src="${sn.src}" alt="Snapshot by ${esc(U(sn.by).name)}">${esc(U(sn.by).name)}, ${rel(sn.at)}</button>`).join('')}</div></div>`:''}
+    <div class="sec">${reactRow('layout',lay)}<p style="margin-top:8px"><button class="btn small" data-a="thread" data-t="layout:${lay.id}">Comments on this layout${ccount('layout:'+lay.id)?' ('+ccount('layout:'+lay.id)+')':''}</button></p></div>
+    <div class="sec sumgrid">
+      <div class="card s-keep"><h3><i></i>Staying</h3><ul>${g.stay.join('')||'<li class="muted">Nothing</li>'}</ul></div>
+      <div class="card s-store"><h3><i></i>Saved for later</h3><ul>${g.store.join('')||'<li class="muted">Nothing</li>'}</ul></div>
+      <div class="card s-remove"><h3><i></i>Proposed removals</h3><ul>${g.remove.join('')||'<li class="muted">Nothing</li>'}</ul></div>
+      <div class="card" style="--c:var(--accent)"><h3><i></i>New additions</h3><ul>${pls.map(x=>`<li>${esc(x.p.name)} <span class="muted">${money(x.p.price)}</span>${x.isPrev?' <span class="fl">preview</span>':''}</li>`).join('')||'<li class="muted">None yet. Add pieces from the shortlist.</li>'}</ul>${pls.length?`<p class="tiny" style="margin-top:4px">Total ${money(total)}</p>`:''}</div>
+      <div class="card s-discuss"><h3><i></i>Still to decide</h3><ul>${un.map(o=>`<li><button class="link" data-a="obj" data-id="${o.id}">${esc(o.name)}</button></li>`).join('')||'<li class="muted">Everything is agreed</li>'}</ul></div>
+    </div>
+    ${owner&&PR.products.length?`<div class="sec"><h3>Pieces in this layout</h3><p class="tiny">Only you can change these. Everyone can react and comment.</p><div class="toggles">${PR.products.map(p=>`<button class="tg" data-a="toggleLP" data-id="${p.id}" aria-pressed="${lay.productIds.includes(p.id)}">${esc(p.name)}</button>`).join('')}</div></div>`:''}`;
+}
+function tabDecisions(){
+  const un=PR.objects.filter(o=>!resolved(o)),ag=PR.objects.filter(resolved),owner=U(PR.ownerId);
+  const minis=o=>`<div class="minis">${PR.users.map(u=>{const p=o.positions[u.id];return`<span>${av(u,1)}${p?STATUS[p.status].label:'hasn’t weighed in'}</span>`}).join('')}</div>`;
+  return`<h2>Decisions</h2><p class="tiny">Everything still open is listed here before the design is finalized.</p>
+  ${PR.final?`<div class="banner final"><b>Finalized.</b> ${esc(U(PR.final.by).name)} chose “${esc(L(PR.final.layoutId).name)}” ${rel(PR.final.at)}. ${can('finalize')?`<button class="link" data-a="reopen">Reopen the design</button>`:''}</div>`:''}
+  <div class="sec"><h3>Still to decide (${un.length})</h3><ul class="dl">${un.map(o=>`<li><div class="between"><b>${esc(o.name)}${o.meaningful.length?' ♡':''}</b>${badge(o)}</div>${minis(o)}<div><button class="btn small" data-a="obj" data-id="${o.id}">Open</button></div></li>`).join('')||'<li class="empty">Nothing left to decide.</li>'}</ul></div>
+  <div class="sec"><h3>Agreed (${ag.length})</h3><ul class="dl">${ag.map(o=>`<li><div class="between"><b>${esc(o.name)}</b>${badge(o)}</div></li>`).join('')||'<li class="empty">Nothing agreed yet.</li>'}</ul></div>
+  <div class="sec card"><h3>Finalizing</h3>${PR.final?`<p class="muted" style="font-size:.88rem">The design is final. Comments and reactions stay open.</p>`:can('finalize')?`<p class="muted" style="font-size:.88rem">You make the final call. ${un.length?`${un.length} item${un.length>1?'s are':' is'} still open; you’ll choose what happens to each, and they stay in the room unless you decide otherwise.`:'Everything has been agreed.'}</p><button class="btn primary block" style="margin-top:10px" data-a="finalize">Review and finalize</button>`:`<p class="muted" style="font-size:.88rem">${esc(owner.name)} makes the final call. Your views, notes and reactions are all visible to ${esc(owner.name)}.</p>`}</div>
+  <div class="sec"><h3>History</h3><p class="tiny" style="margin-bottom:8px">The original photo and every change are kept, so anything can be undone.</p><ul class="hist">${PR.history.slice().reverse().slice(0,14).map(h=>`<li>${av(U(h.by),1)}<span>${esc(U(h.by).name)}: ${esc(h.text)}</span><time>${rel(h.at)}</time></li>`).join('')}</ul></div>`;
+}
+
+/* ---------- sheets ---------- */
+function sheetObj(o){
+  const d=derived(o),mine=o.positions[myId()],pr=proposer(o),myMean=o.meaningful.find(m=>m.by===myId()),hist=PR.history.filter(h=>h.ref==='obj:'+o.id).slice(-3).reverse();
+  return`<div class="sh"><div><h2>${esc(o.name)}</h2><div style="margin-top:5px">${badge(o,true)}</div>${pr?`<p class="tiny" style="margin-top:4px">Change first proposed by ${esc(pr.name)}</p>`:''}</div><button class="x" data-a="close" aria-label="Close">×</button></div>
+  ${o.meaningful.map(m=>`<div class="meaning"><b>♡ Meaningful to ${esc(U(m.by).name)}</b>${esc(m.text)||'<span class="muted">No note added</span>'}</div>`).join('')}
+  <h3 class="sub">Where everyone stands</h3><ul class="stances">${PR.users.map(u=>{const p=o.positions[u.id];return`<li>${av(u)}<div><div class="n"><b>${esc(u.name)}${u.id===myId()?' (you)':''}</b>${p?`<span class="chip s-${p.status}">${STATUS[p.status].label}</span>`:`<span class="muted" style="font-size:.84rem">Hasn’t weighed in yet</span>`}</div>${p&&p.note?`<div class="nt">${esc(p.note)}</div>`:''}${p?`<div class="tiny">${rel(p.at)}</div>`:''}</div></li>`}).join('')}</ul>
+  ${d.kind==='differ'?`<p class="note">You see this one differently, and that’s okay. Both views stay side by side until you’ve talked it through.</p>`:''}
+  <h3 class="sub">Your view</h3>
+  ${PR.final?`<p class="muted" style="font-size:.88rem">The design is finalized. ${can('finalize')?'Reopen it from Decisions to make changes.':'It can be reopened if something needs to change.'}</p>`:`<label class="sr" for="posNote">Reason</label><textarea id="posNote" placeholder="Add a reason, if you like">${esc(mine?mine.note:'')}</textarea>
+  <div class="sbtns">${Object.keys(STATUS).map(k=>`<button class="sbtn s-${k} ${mine&&mine.status===k?'on':''}" data-a="setPos" data-s="${k}" aria-pressed="${!!(mine&&mine.status===k)}"><b>${STATUS[k].btn}</b><small>${STATUS[k].hint}</small></button>`).join('')}</div>
+  ${mine?`<p style="margin-top:8px"><button class="link" data-a="clearPos">Clear my view</button></p>`:''}`}
+  <h3 class="sub">Does this matter to you?</h3>
+  ${myMean?`<p class="muted" style="font-size:.88rem">You’ve marked this as meaningful. <button class="link" data-a="unMean">Remove mark</button></p>`:`<details><summary>Mark as meaningful to me</summary><div style="display:grid;gap:8px;margin-top:8px"><textarea id="meanNote" placeholder="What makes it meaningful? (optional)"></textarea><div><button class="btn small" data-a="saveMean">Save</button></div></div></details>`}
+  <h3 class="sub">Comments</h3>${thread('obj:'+o.id)}
+  ${hist.length?`<h3 class="sub">Recent changes</h3><ul class="hist">${hist.map(h=>`<li>${esc(U(h.by).name)}: ${esc(h.text)}<time>${rel(h.at)}</time></li>`).join('')}</ul>`:''}`;
+}
+function renderSheet(){
+  const sh=ui.sheet;if(!sh||ui.screen!=='project')return'';
+  let inner='';
+  if(sh.type==='obj')inner=sheetObj(O(sh.id));
+  else if(sh.type==='thread'){const[k,id]=sh.target.split(':');const t=k==='prod'?P(id).name:k==='layout'?'Layout '+id+': '+L(id).name:O(id).name;inner=`<div class="sh"><div><h2>${esc(t)}</h2><p class="tiny">Comments</p></div><button class="x" data-a="close" aria-label="Close">×</button></div>${thread(sh.target)}`}
+  else if(sh.type==='people'){inner=`<div class="sh"><div><h2>Who’s viewing</h2><p class="tiny">Demo: switch to see the project from each person’s side.</p></div><button class="x" data-a="close" aria-label="Close">×</button></div>
+    <ul class="items">${PR.users.map(u=>`<li><button class="it" data-a="role" data-id="${u.id}">${av(u)}<span class="nm">${esc(u.name)}<small>${u.role==='owner'?'Project owner':'Invited'}${u.relation&&u.role!=='owner'?', '+esc(u.relation):''}</small></span>${u.id===myId()?'<span class="chip s-keep">Viewing</span>':ICON.chev}</button></li>`).join('')}</ul>
+    ${PR.users.length<2?`<p class="tiny" style="margin-top:10px">Invite someone to collaborate, then switch to their view here.</p>`:''}`}
+  else if(sh.type==='invite'){const base=BASE_URL||location.href.split('#')[0];const col=PR.users.filter(u=>u.role==='collaborator');
+    inner=`<div class="sh"><div><h2>Invite someone</h2><p class="tiny">Share this room with someone who has a connection to it.</p></div><button class="x" data-a="close" aria-label="Close">×</button></div>
+    ${col.map(u=>`<div class="card" style="margin-bottom:8px;box-shadow:none;background:var(--surface2)"><div class="between"><span class="row">${av(u,1)}<b>${esc(u.name)}</b></span><button class="btn small" data-a="previewAs" data-id="${u.id}">Preview as ${esc(u.name)}</button></div><div class="row" style="margin-top:8px"><input type="text" readonly value="${esc(base+'#'+u.invite)}" aria-label="Invite link for ${esc(u.name)}" style="font-size:13px"><button class="btn small" data-a="share" data-v="${esc(base+'#'+u.invite)}" data-n="${esc(u.name)}">Share</button></div></div>`).join('')}
+    <label class="field" style="margin-top:12px">Their name<input type="text" id="invName" placeholder="e.g. Sam" maxlength="30"></label>
+    <label class="field">How they’re connected to the room <span>Optional</span><input type="text" id="invRel" placeholder="e.g. Adult child" maxlength="30"></label>
+    <button class="btn primary block" data-a="genInvite">Create invite link</button>
+    <p class="tiny" style="margin-top:10px">Demo: no account needed. Opening a link on this device switches to that person’s view.</p>`}
+  else if(sh.type==='suggest'){inner=`<div class="sh"><div><h2>Suggest a piece</h2><p class="tiny">It’ll appear on the shared shortlist with your name.</p></div><button class="x" data-a="close" aria-label="Close">×</button></div>
+    <label class="field">Product name<input type="text" id="sgName" placeholder="e.g. Oak bedside lamp"></label>
+    <div class="two"><label class="field">Price (USD)<input type="number" id="sgPrice" min="0" inputmode="decimal" placeholder="0"></label><label class="field">Type<select id="sgCat">${Object.entries(CATS).map(([k,v])=>`<option value="${k}">${v}</option>`).join('')}</select></label></div>
+    <label class="field">Store<input type="text" id="sgRet" placeholder="e.g. Fieldhouse"></label>
+    <label class="field">Link <span>Optional</span><input type="url" id="sgUrl" placeholder="https://" inputmode="url"></label>
+    <p class="tiny" id="sgErr" style="color:var(--discuss)"></p><button class="btn primary block" data-a="submitSuggest">Add to shortlist</button>`}
+  else if(sh.type==='compare'){const cmp=ui.compare.map(P).filter(Boolean);const rows=[['',p=>`<div class="thumb">${art(p.cat,12)}</div>`],['Piece',p=>`<b>${esc(p.name)}</b>`],['Price',p=>money(p.price)],['Store',p=>`<a href="${esc(p.url)}" target="_blank" rel="noopener">${esc(p.retailer)}</a>`],['Suggested by',p=>esc(U(p.suggestedBy).name)],['Reactions',p=>PR.users.map(u=>`${esc(u.name)}: ${p.reactions[u.id]?REACT[p.reactions[u.id]]:'<span class="muted">none</span>'}`).join('<br>')],['In layouts',p=>PR.layouts.filter(l=>l.productIds.includes(p.id)).map(l=>l.id).join(', ')||'<span class="muted">None</span>']];
+    inner=`<div class="sh"><div><h2>Compare</h2></div><button class="x" data-a="close" aria-label="Close">×</button></div><div class="scroller"><table class="ct"><tbody>${rows.map(([h,f])=>`<tr><th scope="row">${h}</th>${cmp.map(p=>`<td>${f(p)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`}
+  else if(sh.type==='snap'){const l=L(sh.lid),sn=(l.snapshots||[]).find(x=>x.id===sh.id);if(!sn){ui.sheet=null;return''}
+    inner=`<div class="sh"><div><h2>Seen in the room</h2><p class="tiny">${esc(l.name)}, saved by ${esc(U(sn.by).name)} ${rel(sn.at)}</p></div><button class="x" data-a="close" aria-label="Close">×</button></div><img src="${sn.src}" alt="Camera snapshot with new pieces placed" style="width:100%;border-radius:14px;display:block">${sn.by===myId()||can('editLayouts')?`<p style="margin-top:10px"><button class="link" data-a="snapDel" data-id="${sn.id}">Delete snapshot</button></p>`:''}`}
+  else if(sh.type==='finalize'){const un=PR.objects.filter(o=>!resolved(o));
+    inner=`<div class="sh"><div><h2>Review and finalize</h2><p class="tiny">You can reopen the design later.</p></div><button class="x" data-a="close" aria-label="Close">×</button></div>
+    <h3 class="sub" style="margin-top:4px">Layout</h3>${PR.layouts.map(l=>`<label class="row" style="margin-bottom:6px"><input type="radio" name="finLayout" value="${l.id}" ${l.id===ui.layout?'checked':''}> ${l.id}: ${esc(l.name)}</label>`).join('')}
+    ${un.length?`<h3 class="sub">Items still open</h3><p class="tiny">Each stays in the room unless you choose otherwise.</p>${un.map(o=>`<div class="card" style="box-shadow:none;background:var(--surface2);margin-top:8px"><div class="between"><b>${esc(o.name)}${o.meaningful.length?' ♡':''}</b>${badge(o)}</div><div class="minis" style="margin:6px 0">${PR.users.map(u=>{const p=o.positions[u.id];return`<span>${esc(u.name)}: ${p?STATUS[p.status].label:'hasn’t weighed in'}</span>`}).join('')}</div><label class="sr" for="fin-${o.id}">Final decision for ${esc(o.name)}</label><select id="fin-${o.id}" data-fin="${o.id}"><option value="keep">Keep in the room for now</option><option value="repurpose">Repurpose</option><option value="store">Save for later</option><option value="remove">Remove</option></select></div>`).join('')}`:''}
+    <button class="btn primary block" style="margin-top:14px" data-a="confirmFinal">Finalize design</button>`}
+  const anim=ui.sheetAnim;ui.sheetAnim=false;
+  return`<div class="sheetwrap"><button class="backdrop" data-a="close" aria-label="Close"></button><div class="sheet ${anim?'anim':''}" role="dialog" aria-modal="true"><div class="grab"></div>${inner}</div></div>`;
+}
+function renderAR(){const a=ui.ar,lay=L(a.layoutId);
+  return`<div class="arlayer" id="arlayer">${a.items.map((it,i)=>{const p=P(it.pid);return p?`<div class="art ${a.sel===i?'sel':''}" data-ari="${i}" style="left:${it.x}%;top:${it.y}%;width:${it.w}%">${art(p.cat)}<button class="rm" data-a="arRemove" data-i="${i}" aria-label="Remove ${esc(p.name)}">×</button></div>`:''}).join('')}</div>
+  <div class="camscreen" style="pointer-events:none"><div class="camtop" style="pointer-events:auto"><button class="ib" data-a="arClose" aria-label="Close camera">×</button><div class="tt">${esc(lay.name)}<small>${cam.ready?(a.items.length?'Drag to place, pinch or scroll to resize':'Pick pieces below to add them'):'Starting camera…'}</small></div></div>
+  <div class="cambot" style="pointer-events:auto"><div class="arch">${PR.products.map(p=>`<button data-a="arToggle" data-id="${p.id}" aria-pressed="${a.items.some(x=>x.pid===p.id)}">${esc(p.name)}</button>`).join('')||'<span class="camhint">Add pieces to the shortlist first</span>'}</div>
+  <div class="camrow"><span>${ui.xr?`<button class="btn small" data-a="xrStart">Floor AR</button>`:''}</span><button class="shutter" data-a="arSnap" aria-label="Save a snapshot" ${cam.ready?'':'disabled'}></button><span class="lbl">Save a snapshot for ${esc(names(PR.users.filter(u=>u.id!==myId()).map(u=>u.name)))||'later'}</span></div></div></div>`;
+}
+function renderSide(){
+  document.getElementById('side').innerHTML=`<h2>Shared Space prototype</h2><p class="muted">A mobile app for redesigning a room together. Try the demo:</p><ol>${DEMO_STEPS.map(([k,l])=>`<li class="${ui.done[k]?'done':''}"><span class="ck">${ui.done[k]?'✓':''}</span><span>${l}</span></li>`).join('')}</ol><p class="tiny">On a phone, “Take a photo” opens the camera.</p>`;
+}
+
+/* ---------- render ---------- */
+function render(){
+  PR=ui.pid?S.projects.find(p=>p.id===ui.pid):null;
+  if(ui.screen==='project'&&!PR)ui.screen='home';
+  const cEl=document.getElementById('content'),keep=cEl?cEl.scrollTop:0,sameTab=render._k===ui.screen+ui.tab+ui.pid;
+  if(ui.screen==='ar'&&(!PR||!ui.ar))ui.screen=PR?'project':'home';
+  let html=ui.screen==='home'?renderHome():ui.screen==='scan'?renderScan():ui.screen==='ar'?renderAR():renderProject();
+  if(ui.screen==='home')PR=null;
+  if(ui.screen==='project'){PR=S.projects.find(p=>p.id===ui.pid);html+=renderSheet()}
+  document.getElementById('app').innerHTML=html;
+  const c2=document.getElementById('content');if(c2&&sameTab)c2.scrollTop=keep;
+  render._k=ui.screen+ui.tab+ui.pid;
+  renderSide();save();
+}
+
+/* ---------- scanning ---------- */
+let samplerP=null,scanCtl=null;
+function sampler(){if(!samplerP)samplerP=(window.claude&&typeof window.claude.use==='function')?window.claude.use('sample').catch(()=>null):Promise.resolve(null);return samplerP}
+function downscale(src,max){return new Promise((res,rej)=>{const img=new Image();img.onload=()=>{let w=img.naturalWidth||1200,h=img.naturalHeight||750;const s=Math.min(1,max/Math.max(w,h));w=Math.round(w*s);h=Math.round(h*s);const c=document.createElement('canvas');c.width=w;c.height=h;const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,w,h);x.drawImage(img,0,0,w,h);const dataUrl=c.toDataURL('image/jpeg',.74);c.toBlob(b=>res({blob:b,dataUrl,w,h}),'image/jpeg',.82)};img.onerror=()=>rej(new Error('img'));img.src=src})}
+const SCAN_PROMPT=`You are the room scanner in an interior-design app. Look at this photo of a room and find the distinct furniture items and personal belongings someone might decide to keep, move or remove (for example: bed, desk, bookshelf, dresser, nightstand, chair, sofa, lamp, rug, mirror, wall photos or posters, plants, boxes).
+Return at most 12 items, biggest and most important first. Merge small clutter into one item such as "Photos and decorations". Skip walls, windows, doors, floors and ceilings.
+For each item give:
+- name: short, sentence case, e.g. "Desk", "Bedside table"
+- cat: one of bed, desk, shelf, dresser, table, chair, sofa, lamp, rug, decor, storage, other
+- x, y, w, h: a tight bounding box as percentages (0-100) of the image width and height, where x,y is the top-left corner
+Also give roomType: a short guess such as "bedroom" or "office".
+Respond with only JSON in this exact shape: {"roomType":"bedroom","objects":[{"name":"Desk","cat":"desk","x":10,"y":40,"w":20,"h":25}]}`;
+function normalize(data){
+  const list=(data&&Array.isArray(data.objects))?data.objects:[];
+  return list.slice(0,12).map(o=>{let x=+o.x,y=+o.y,w=+o.w,h=+o.h;if([x,y,w,h].some(v=>!isFinite(v)))return null;
+    if(Math.max(x,y,w,h)<=1.0001){x*=100;y*=100;w*=100;h*=100}
+    x=Math.max(0,Math.min(97,x));y=Math.max(0,Math.min(97,y));w=Math.max(3,Math.min(100-x,w));h=Math.max(3,Math.min(100-y,h));
+    const cat=OCATS[o.cat]?o.cat:'other';const name=String(o.name||OCATS[cat]).slice(0,40);return{name:name.charAt(0).toUpperCase()+name.slice(1),cat,box:[+x.toFixed(1),+y.toFixed(1),+w.toFixed(1),+h.toFixed(1)]}}).filter(Boolean);
+}
+const SCAN_ERR={not_granted:'Claude wasn’t given permission to look at the photo, so tag items yourself: tap each one on the photo.',rate_limited:'Too many scans in a row. Tag items yourself for now: tap each one on the photo.',image_rejected:'That photo couldn’t be read. Try another, or tap each item on the photo to tag it.',refused:'The photo couldn’t be scanned. Tap each item on the photo to tag it.'};
+async function runScan(src){
+  let img;try{img=await downscale(src,1280)}catch(e){toast('That photo couldn’t be opened. Try another one.');return}
+  ui.scan={step:'analyzing',photo:img.dataUrl,ar:img.w/img.h,objects:[],note:'',title:'',purpose:'Guest room',owner:''};render();
+  const fallback=note=>{if(!ui.scan)return;ui.scan.step='review';ui.scan.note=note;render()};
+  const sample=await sampler();
+  if(!sample)return fallback('Automatic detection isn’t available here, so tag items yourself: tap each one on the photo.');
+  try{const lim=await sample.limits();if(!lim||!lim.images)return fallback('Automatic detection isn’t available here, so tag items yourself: tap each one on the photo.')}catch(e){return fallback('Automatic detection isn’t available here, so tag items yourself: tap each one on the photo.')}
+  scanCtl=new AbortController();
+  try{
+    const data=await sample.json(SCAN_PROMPT,{images:[img.blob],signal:scanCtl.signal});
+    if(!ui.scan||ui.scan.step!=='analyzing')return;
+    ui.scan.objects=normalize(data);ui.scan.roomType=String((data&&data.roomType)||'room').slice(0,30);ui.scan.step='review';
+    ui.scan.note=ui.scan.objects.length?'':'Nothing was found in this photo. Tap each item to tag it.';done('scan');render();
+  }catch(e){if(e&&e.code==='cancelled')return;fallback(SCAN_ERR[e&&e.code]||'The scan didn’t finish. Tap each item on the photo to tag it.')}
+}
+function readFile(f){if(!f)return;const r=new FileReader();r.onload=()=>runScan(r.result);r.readAsDataURL(f)}
+document.getElementById('camIn').addEventListener('change',e=>{readFile(e.target.files[0]);e.target.value=''});
+document.getElementById('libIn').addEventListener('change',e=>{readFile(e.target.files[0]);e.target.value=''});
+document.addEventListener('input',e=>{if(!ui.scan)return;const n=e.target.dataset.scanname,c=e.target.dataset.scancat;if(n!=null)ui.scan.objects[+n].name=e.target.value;if(c!=null)ui.scan.objects[+c].cat=e.target.value});
+document.addEventListener('change',e=>{if(ui.scan&&e.target.dataset.scancat!=null){ui.scan.objects[+e.target.dataset.scancat].cat=e.target.value}});
+
+/* ---------- actions ---------- */
+const val=id=>{const e=document.getElementById(id);return e?e.value.trim():''};
+const openSheet=s=>{ui.sheet=s;ui.sheetAnim=true};
+const ACT={
+  home:()=>{closeCamera();ui.screen='home';ui.sheet=null;ui.scan=null;ui.welcome=null;if(scanCtl)scanCtl.abort()},
+  openProj:el=>{ui.pid=el.dataset.id;ui.screen='project';ui.tab='room';ui.sheet=null;ui.preview=null;ui.compare=[];ui.layout='A';ui.arrange=false;done('open')},
+  reset:()=>{if(!confirm('Reset the demo? This restores the sample project and removes rooms you scanned.'))return false;S={projects:[seedDemo()]};ui=defUI();toast('Demo reset')},
+  startScan:()=>{ui.screen='scan';ui.scan={step:'start'}},
+  camera:()=>{ui.scan={step:'camera'};cam.ready=false;render();openCamera().then(()=>{if(ui.scan&&ui.scan.step==='camera'){cam.ready=true;render()}else closeCamera()}).catch(e=>{closeCamera();ui.scan={step:'start',note:camErr(e)};render()});return false},
+  camApp:()=>{document.getElementById('camIn').click();return false},
+  camClose:()=>{closeCamera();ui.scan={step:'start'}},
+  snap:()=>{const v=document.getElementById('camv');if(!v.videoWidth)return false;const c=document.createElement('canvas');c.width=v.videoWidth;c.height=v.videoHeight;c.getContext('2d').drawImage(v,0,0);const d=c.toDataURL('image/jpeg',.9);flash();closeCamera();runScan(d);return false},
+  arOpen:el=>{const lay=L(ui.layout);let ids=el.dataset.id?[el.dataset.id]:lay.productIds.slice();if(!ids.length&&PR.products[0])ids=[PR.products[0].id];
+    ui.ar={layoutId:lay.id,items:ids.map((id,i)=>arDefault(id,i,ids.length)),sel:null};ui.screen='ar';ui.sheet=null;cam.ready=false;render();
+    openCamera().then(()=>{if(ui.screen==='ar'){cam.ready=true;render()}else closeCamera()}).catch(e=>{closeCamera();ui.screen='project';ui.tab='layouts';render();toast(camErr(e))});done('preview');return false},
+  arClose:()=>{closeCamera();ui.screen='project';ui.ar=null},
+  arToggle:el=>{const id=el.dataset.id,a=ui.ar,i=a.items.findIndex(x=>x.pid===id);if(i>=0){a.items.splice(i,1);a.sel=null}else{a.items.push(arDefault(id,a.items.length,a.items.length+1));a.sel=a.items.length-1}},
+  arRemove:el=>{ui.ar.items.splice(+el.dataset.i,1);ui.ar.sel=null},
+  arSnap:()=>{composeAR().then(src=>{flash();const l=L(ui.ar.layoutId);l.snapshots=l.snapshots||[];l.snapshots.push({id:uid('s'),by:myId(),at:Date.now(),src});if(l.snapshots.length>4)l.snapshots.shift();log('Saved a camera snapshot of Layout '+l.id,'layout:'+l.id);save();toast('Snapshot saved to “'+l.name+'”')}).catch(()=>toast('The snapshot couldn’t be saved. Try again.'));return false},
+  snapOpen:el=>openSheet({type:'snap',lid:ui.layout,id:el.dataset.id}),
+  snapDel:el=>{const l=L(ui.sheet.lid);l.snapshots=(l.snapshots||[]).filter(x=>x.id!==el.dataset.id);ui.sheet=null;log('Deleted a camera snapshot','layout:'+l.id)},
+  xrStart:()=>{const lay=L(ui.ar?ui.ar.layoutId:ui.layout);let ids=ui.ar?ui.ar.items.map(x=>x.pid):lay.productIds.slice();if(!ids.length)ids=PR.products.map(p=>p.id);if(!ids.length){toast('Add pieces to the shortlist first');return false}startXR(ids);return false},
+  library:()=>{document.getElementById('libIn').click();return false},
+  sampleScan:()=>{runScan(DEMO_PHOTO);return false},
+  stopScan:()=>{if(scanCtl)scanCtl.abort();ui.scan.step='review';ui.scan.note='Scan stopped. Tap each item on the photo to tag it.'},
+  scanTap:(el,e)=>{if(!ui.scan||ui.scan.step!=='review')return false;const r=el.getBoundingClientRect();const x=(e.clientX-r.left)/r.width*100,y=(e.clientY-r.top)/r.height*100;const w=20,h=Math.min(30,20*ui.scan.ar);
+    ui.scan.objects.push({name:'New item',cat:'other',box:[+Math.max(0,Math.min(100-w,x-w/2)).toFixed(1),+Math.max(0,Math.min(100-h,y-h/2)).toFixed(1),w,h]});render();
+    const ins=document.querySelectorAll('[data-scanname]');const last=ins[ins.length-1];if(last){last.focus();last.select()}return false},
+  scanDel:el=>{ui.scan.objects.splice(+el.dataset.i,1)},
+  scanNext:()=>{ui.scan.objects=ui.scan.objects.filter(o=>o.name.trim());if(!ui.scan.objects.length)return;ui.scan.step='details';ui.scan.title=ui.scan.title||'Redesigning the '+(ui.scan.roomType&&ui.scan.roomType!=='room'?ui.scan.roomType:'room')},
+  scanBack:()=>{ui.scan.title=val('pjTitle');ui.scan.owner=val('pjName');ui.scan.step='review'},
+  purpose:el=>{ui.scan.title=val('pjTitle');ui.scan.owner=val('pjName');ui.scan.purpose=el.dataset.v},
+  createProj:()=>{const sc=ui.scan,t=Date.now(),name=val('pjName')||'You',title=val('pjTitle')||'My room';const oid=uid('u-');
+    const pr={id:uid('proj-'),title,purpose:sc.purpose,photo:sc.photo,ar:sc.ar,ownerId:oid,createdAt:t,
+      users:[{id:oid,name,role:'owner',relation:'Project owner',color:COLORS[0]}],
+      objects:sc.objects.map((o,i)=>({id:'o'+i+'-'+Math.random().toString(36).slice(2,5),name:o.name.trim(),cat:o.cat,box:o.box,positions:{},meaningful:[]})),
+      products:[],layouts:[{id:'A',name:'First idea',desc:'',productIds:[],overrides:{},reactions:{},placements:{}},{id:'B',name:'Another option',desc:'',productIds:[],overrides:{},reactions:{},placements:{}}],
+      comments:[],final:null,history:[{at:t,by:oid,text:'Scanned the room and created the project'}]};
+    S.projects.unshift(pr);ui.pid=pr.id;ui.screen='project';ui.tab='room';ui.scan=null;ui.layout='A';ui.sheet=null;toast('Project created. Tap any item to start.')},
+  tab:el=>{closeCamera();ui.tab=el.dataset.id;ui.sheet=null;ui.arrange=false;if(ui.tab==='decisions')done('unresolved');if(ui.tab==='layouts'&&ui.view!=='original')done('preview')},
+  obj:el=>{openSheet({type:'obj',id:el.dataset.id})},
+  close:()=>{ui.sheet=null},
+  people:()=>openSheet({type:'people'}),
+  role:el=>{ui.me[PR.id]=el.dataset.id;ui.sheet=null;ui.welcome=null;ui.arrange=false;done('switch');toast('Now viewing as '+me().name)},
+  setPos:el=>{if(!can('setPosition')||PR.final)return;const o=O(ui.sheet.id),s=el.dataset.s;o.positions[myId()]={status:s,note:val('posNote'),at:Date.now()};log('Marked the '+o.name+' as '+STATUS[s].label,'obj:'+o.id);done('status');
+    const d=derived(o);toast(d.kind==='agreed'?'Everyone agrees: '+STATUS[d.status].label:d.kind==='differ'?'Your view is shared. This one needs discussion.':'Your view is shared')},
+  clearPos:()=>{const o=O(ui.sheet.id);delete o.positions[myId()];log('Cleared their view on the '+o.name,'obj:'+o.id)},
+  saveMean:()=>{const o=O(ui.sheet.id);o.meaningful=o.meaningful.filter(m=>m.by!==myId());o.meaningful.push({by:myId(),text:val('meanNote'),at:Date.now()});log('Noted the '+o.name+' is meaningful to them','obj:'+o.id);toast('Marked as meaningful to you')},
+  unMean:()=>{const o=O(ui.sheet.id);o.meaningful=o.meaningful.filter(m=>m.by!==myId());log('Removed their meaningful mark on the '+o.name,'obj:'+o.id)},
+  comment:el=>{const t=el.dataset.t,text=val('cm');if(!text){document.getElementById('cm').focus();return false}PR.comments.push({id:uid('c'),target:t,author:myId(),text,at:Date.now()});log('Commented: “'+(text.length>40?text.slice(0,40)+'…':text)+'”',t);done('comment');toast('Comment posted')},
+  react:el=>{const item=el.dataset.k==='prod'?P(el.dataset.id):L(el.dataset.id),r=el.dataset.r,mid=myId();if(item.reactions[mid]===r)delete item.reactions[mid];else{item.reactions[mid]=r;done('react');log('Reacted “'+REACT[r]+'” to '+(el.dataset.k==='prod'?item.name:'Layout '+item.id),el.dataset.k+':'+item.id)}},
+  thread:el=>openSheet({type:'thread',target:el.dataset.t}),
+  viewInRoom:el=>{ui.preview=el.dataset.id;ui.tab='layouts';ui.view='proposed';done('preview');if(L(ui.layout).productIds.includes(ui.preview))toast('Already part of layout '+ui.layout)},
+  stopPreview:()=>{ui.preview=null},
+  cmp:el=>{const id=el.dataset.id;if(ui.compare.includes(id))ui.compare=ui.compare.filter(x=>x!==id);else if(ui.compare.length>=3)toast('You can compare up to three pieces');else ui.compare.push(id)},
+  clearCmp:()=>{ui.compare=[]},
+  openCompare:()=>openSheet({type:'compare'}),
+  suggest:()=>openSheet({type:'suggest'}),
+  submitSuggest:()=>{const name=val('sgName'),ret=val('sgRet');if(!name||!ret){document.getElementById('sgErr').textContent='Add a product name and store to continue.';return false}
+    let url=val('sgUrl');if(url&&!/^https?:\/\//i.test(url))url='https://'+url;
+    const p={id:uid('p-'),name,price:Math.max(0,Number(val('sgPrice'))||0),retailer:ret,url:url||'https://example.com/search?q='+encodeURIComponent(name),cat:val('sgCat')||'other',suggestedBy:myId(),at:Date.now(),reactions:{}};
+    PR.products.push(p);log('Suggested '+name,'prod:'+p.id);ui.sheet=null;done('suggest');toast('Added to the shared shortlist')},
+  layout:el=>{ui.layout=el.dataset.id;ui.arrange=false},
+  view:el=>{ui.view=el.dataset.v;ui.arrange=false;if(ui.view==='proposed')done('preview')},
+  arrange:()=>{ui.arrange=!ui.arrange;if(!ui.arrange)toast('Arrangement saved')},
+  newLayout:()=>{const id='ABC'[PR.layouts.length];PR.layouts.push({id,name:'Option '+id,desc:'',productIds:[],overrides:{},reactions:{},placements:{}});ui.layout=id;log('Added Layout '+id)},
+  toggleLP:el=>{if(!can('editLayouts')||PR.final)return;const l=L(ui.layout),id=el.dataset.id;if(l.productIds.includes(id)){l.productIds=l.productIds.filter(x=>x!==id);delete l.placements[id]}else{l.productIds.push(id);if(ui.preview===id)ui.preview=null}log((l.productIds.includes(id)?'Added ':'Removed ')+P(id).name+(l.productIds.includes(id)?' to':' from')+' Layout '+l.id,'layout:'+l.id)},
+  invite:()=>openSheet({type:'invite'}),
+  genInvite:()=>{const name=val('invName');if(!name){document.getElementById('invName').focus();return false}
+    const slug=name.toLowerCase().replace(/[^a-z0-9]+/g,'').slice(0,12)||'guest';
+    PR.users.push({id:uid('u-'),name,role:'collaborator',relation:val('invRel')||'Invited',color:COLORS[PR.users.length%COLORS.length],invite:'join-'+slug+'-'+Math.random().toString(36).slice(2,6)});
+    log('Invited '+name+' to the project');toast('Invite link created for '+name)},
+  share:el=>{const v=el.dataset.v,n=el.dataset.n;if(navigator.share){navigator.share({title:PR.title,text:'Help me plan what happens to the room',url:v}).catch(()=>{})}else if(navigator.clipboard){navigator.clipboard.writeText(v).then(()=>toast('Link copied for '+n)).catch(()=>toast('Select the link to copy it'))}return false},
+  previewAs:el=>{ui.me[PR.id]=el.dataset.id;ui.sheet=null;ui.welcome=true;ui.tab='room';done('switch');toast('Previewing as '+me().name)},
+  dismissWelcome:()=>{ui.welcome=null},
+  finalize:()=>{done('unresolved');openSheet({type:'finalize'})},
+  confirmFinal:()=>{const r=document.querySelector('input[name=finLayout]:checked'),decisions={};document.querySelectorAll('[data-fin]').forEach(s=>decisions[s.dataset.fin]=s.value);
+    PR.final={layoutId:r?r.value:ui.layout,at:Date.now(),by:myId(),decisions};ui.layout=PR.final.layoutId;ui.sheet=null;ui.tab='layouts';ui.view='proposed';ui.preview=null;log('Finalized the design with Layout '+PR.final.layoutId);toast('Design finalized')},
+  reopen:()=>{PR.final=null;log('Reopened the design for changes');toast('Design reopened')}
+};
+document.addEventListener('click',e=>{const el=e.target.closest('[data-a]');if(!el)return;if(el.closest('.tk.drag'))return;const fn=ACT[el.dataset.a];if(!fn)return;PR=ui.pid?S.projects.find(p=>p.id===ui.pid):null;if(fn(el,e)!==false)render()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&ui.sheet){ui.sheet=null;render()}});
+
+/* drag new pieces (owner, arrange mode) */
+let drag=null;
+document.addEventListener('pointerdown',e=>{const t=e.target.closest('.tk.drag');if(!t)return;e.preventDefault();const st=document.getElementById('stage').getBoundingClientRect(),r=t.getBoundingClientRect();drag={t,id:t.dataset.pid,st,dx:e.clientX-r.left,dy:e.clientY-r.top,w:parseFloat(t.style.width)};t.setPointerCapture(e.pointerId);t.classList.add('dragging')});
+document.addEventListener('pointermove',e=>{if(!drag)return;const x=Math.max(-drag.w/2,Math.min(100-drag.w/2,(e.clientX-drag.dx-drag.st.left)/drag.st.width*100)),y=Math.max(-5,Math.min(95,(e.clientY-drag.dy-drag.st.top)/drag.st.height*100));drag.x=x;drag.y=y;drag.t.style.left=x+'%';drag.t.style.top=y+'%'});
+document.addEventListener('pointerup',()=>{if(!drag)return;const d=drag;drag=null;d.t.classList.remove('dragging');if(d.x==null)return;PR=S.projects.find(p=>p.id===ui.pid);const l=L(ui.layout);l.placements[d.id]={x:+d.x.toFixed(1),y:+d.y.toFixed(1),w:d.w};log('Arranged '+P(d.id).name+' in Layout '+l.id,'layout:'+l.id);render()});
+
+/* ---------- camera ---------- */
+const TOUCH=matchMedia('(pointer:coarse)').matches;
+const cam={stream:null,ready:false};
+async function openCamera(){
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)throw{name:'NotSupported'};
+  if(cam.stream)return;
+  cam.stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1080}},audio:false});
+  const v=document.getElementById('camv');v.srcObject=cam.stream;v.style.display='block';try{await v.play()}catch(e){}
+}
+function closeCamera(){if(cam.stream){cam.stream.getTracks().forEach(t=>t.stop());cam.stream=null}cam.ready=false;const v=document.getElementById('camv');if(v){v.srcObject=null;v.style.display='none'}}
+function camErr(e){const n=e&&e.name;
+  if(n==='NotAllowedError'||n==='SecurityError')return'The camera is blocked here. If you declined, allow camera access in your browser settings. Some apps don’t let embedded pages use the camera, so you can upload a photo instead.';
+  if(n==='NotFoundError'||n==='OverconstrainedError')return'No camera was found on this device. Upload a photo instead.';
+  if(n==='NotReadableError')return'The camera is in use by another app. Close it and try again.';
+  return'The camera can’t be opened in this browser. Upload a photo instead.'}
+function flash(){const f=document.createElement('div');f.className='flash';document.getElementById('phone').appendChild(f);setTimeout(()=>f.remove(),400)}
+window.addEventListener('pagehide',closeCamera);
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&cam.stream&&ui.screen!=='ar'&&!(ui.scan&&ui.scan.step==='camera'))closeCamera()});
+
+/* ---------- live camera AR ---------- */
+const AW={bed:62,sofa:56,chair:28,storage:36,lamp:13,rug:70,desk:40,other:22};
+function arDefault(pid,i,n){const p=P(pid),c=p?p.cat:'other';return{pid,x:n>1?Math.round(22+56*i/Math.max(1,n-1)):50,y:c==='rug'?80:c==='lamp'?52:64,w:AW[c]||22}}
+const arPtr=new Map();let arG=null;
+function arBase(){if(!arG)return;const it=ui.ar.items[arG.i];arG.start={x:it.x,y:it.y,w:it.w};arG.pts=new Map([...arPtr].map(([k,v])=>[k,{...v}]))}
+function dist(m){const v=[...m.values()];return v.length<2?0:Math.hypot(v[0].x-v[1].x,v[0].y-v[1].y)}
+function centroid(m){const v=[...m.values()];return{x:v.reduce((a,b)=>a+b.x,0)/v.length,y:v.reduce((a,b)=>a+b.y,0)/v.length}}
+document.addEventListener('pointerdown',e=>{if(ui.screen!=='ar'||!ui.ar)return;if(e.target.closest('.rm'))return;const layer=e.target.closest('#arlayer');if(!layer)return;
+  const el=e.target.closest('.art');
+  if(el){const i=+el.dataset.ari;if(ui.ar.sel!==i){ui.ar.sel=i;document.querySelectorAll('.art').forEach(a=>a.classList.toggle('sel',a===el))}arG={i,el,rect:layer.getBoundingClientRect()}}
+  else if(!arG){if(ui.ar.sel!=null){ui.ar.sel=null;document.querySelectorAll('.art').forEach(a=>a.classList.remove('sel'))}return}
+  e.preventDefault();try{layer.setPointerCapture(e.pointerId)}catch(_){}arPtr.set(e.pointerId,{x:e.clientX,y:e.clientY});arBase()});
+document.addEventListener('pointermove',e=>{if(!arG||!arPtr.has(e.pointerId))return;arPtr.set(e.pointerId,{x:e.clientX,y:e.clientY});const it=ui.ar.items[arG.i];if(!it)return;
+  const c0=centroid(arG.pts),c1=centroid(arPtr);it.x=Math.max(0,Math.min(100,arG.start.x+(c1.x-c0.x)/arG.rect.width*100));it.y=Math.max(0,Math.min(100,arG.start.y+(c1.y-c0.y)/arG.rect.height*100));
+  if(arPtr.size>=2&&arG.pts.size>=2){const d0=dist(arG.pts);if(d0>0)it.w=Math.max(5,Math.min(140,arG.start.w*dist(arPtr)/d0))}
+  arG.el.style.left=it.x+'%';arG.el.style.top=it.y+'%';arG.el.style.width=it.w+'%'});
+const arUp=e=>{if(!arPtr.has(e.pointerId))return;arPtr.delete(e.pointerId);if(arPtr.size===0){arG=null;save()}else arBase()};
+document.addEventListener('pointerup',arUp);document.addEventListener('pointercancel',arUp);
+document.addEventListener('wheel',e=>{if(ui.screen!=='ar'||!ui.ar||ui.ar.sel==null||!e.target.closest('#arlayer'))return;e.preventDefault();const it=ui.ar.items[ui.ar.sel];it.w=Math.max(5,Math.min(140,it.w*(1-e.deltaY*.0012)));const el=document.querySelector(`.art[data-ari="${ui.ar.sel}"]`);if(el)el.style.width=it.w+'%'},{passive:false});
+const PRODUCT_CSS='.nWood{fill:#d2b48a}.nSheet{fill:#fff;stroke:rgba(0,0,0,.12)}.nBlanket{fill:#9cbca8}.nFabric{fill:#c9b18c}.rug{fill:#b9c7c2}.weave{fill:#c8a874}.metal{fill:#5d646a}.shade{fill:#f0d9a8}';
+function svgImg(cat){const b=PBOX[cat]||PBOX.other;const s=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="${b.join(' ')}" width="${b[2]*2}" height="${b[3]*2}"><style>${PRODUCT_CSS}</style>${PDRAW[cat]||PDRAW.other}</svg>`;
+  return new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(s)})}
+async function composeAR(){
+  const v=document.getElementById('camv'),layer=document.getElementById('arlayer');if(!v.videoWidth||!layer)throw new Error('no video');
+  const lr=layer.getBoundingClientRect(),W=lr.width,H=lr.height,k=1000/Math.max(W,H);
+  const c=document.createElement('canvas');c.width=Math.round(W*k);c.height=Math.round(H*k);const x=c.getContext('2d');
+  const vw=v.videoWidth,vh=v.videoHeight,sc=Math.max(W/vw,H/vh),sw=W/sc,sh=H/sc;x.drawImage(v,(vw-sw)/2,(vh-sh)/2,sw,sh,0,0,c.width,c.height);
+  x.shadowColor='rgba(0,0,0,.4)';x.shadowBlur=14*k;x.shadowOffsetY=8*k;
+  for(let i=0;i<ui.ar.items.length;i++){const p=P(ui.ar.items[i].pid);const el=layer.querySelector(`.art[data-ari="${i}"] svg`);if(!p||!el)continue;const r=el.getBoundingClientRect();const img=await svgImg(p.cat);x.drawImage(img,(r.left-lr.left)*k,(r.top-lr.top)*k,r.width*k,r.height*k)}
+  return c.toDataURL('image/jpeg',.72);
+}
+
+/* ---------- WebXR floor AR (life-size 3D pieces) ---------- */
+let XR=null;
+async function detectXR(){try{ui.xr=!!(navigator.xr&&await navigator.xr.isSessionSupported('immersive-ar'))}catch(e){ui.xr=false}if(ui.xr)render()}
+function loadThree(){return window.THREE?Promise.resolve():new Promise((res,rej)=>{const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';s.onload=res;s.onerror=rej;document.head.appendChild(s)})}
+function model(cat){const T=THREE,g=new T.Group(),mat=c=>new T.MeshStandardMaterial({color:c,roughness:.85});
+  const box=(w,h,d,c,x,y,z)=>{const m=new T.Mesh(new T.BoxGeometry(w,h,d),mat(c));m.position.set(x,y,z);g.add(m)};
+  if(cat==='bed'){box(1.6,.3,2.05,0xd2b48a,0,.15,0);box(1.54,.22,1.95,0xffffff,0,.41,.03);box(1.58,.06,1.3,0x9cbca8,0,.55,.35);box(1.6,1,.08,0xd2b48a,0,.5,-1.02);box(.6,.12,.34,0xffffff,-.4,.58,-.76);box(.6,.12,.34,0xffffff,.4,.58,-.76)}
+  else if(cat==='sofa'){box(2,.42,.9,0xc9b18c,0,.21,0);box(2,.45,.2,0xc9b18c,0,.62,-.35);box(.2,.26,.9,0xbfa67f,-.9,.55,0);box(.2,.26,.9,0xbfa67f,.9,.55,0)}
+  else if(cat==='chair'){box(.8,.42,.8,0xc9b18c,0,.21,0);box(.8,.5,.15,0xc9b18c,0,.67,-.32);box(.12,.22,.8,0xbfa67f,-.34,.53,0);box(.12,.22,.8,0xbfa67f,.34,.53,0)}
+  else if(cat==='storage'){box(1.1,.45,.4,0xd2b48a,0,.225,0);[-.36,0,.36].forEach(x=>box(.32,.3,.02,0xc8a874,x,.22,.205))}
+  else if(cat==='lamp'){const p=new T.Mesh(new T.CylinderGeometry(.015,.015,1.55,12),mat(0x5d646a));p.position.y=.78;g.add(p);const b=new T.Mesh(new T.CylinderGeometry(.16,.16,.03,24),mat(0x5d646a));b.position.y=.015;g.add(b);const s=new T.Mesh(new T.CylinderGeometry(.14,.22,.28,24,1,true),new T.MeshStandardMaterial({color:0xf0d9a8,side:T.DoubleSide,emissive:0x664400,emissiveIntensity:.35}));s.position.y=1.6;g.add(s)}
+  else if(cat==='rug'){const r=new T.Mesh(new T.CylinderGeometry(1,1,.01,48),mat(0xb9c7c2));r.scale.set(1,1,.7);r.position.y=.005;g.add(r)}
+  else if(cat==='desk'){box(1.2,.04,.6,0xd2b48a,0,.73,0);[[-.56,-.26],[.56,-.26],[-.56,.26],[.56,.26]].forEach(([x,z])=>box(.04,.71,.04,0xb89a74,x,.355,z))}
+  else box(.5,.5,.5,0xd2b48a,0,.25,0);
+  return g}
+function renderXRO(){const ov=document.getElementById('xro');if(!XR)return;const p=P(XR.pids[XR.cur]);
+  ov.innerHTML=`<div class="bar xtop"><button data-x="end">Exit AR</button><span class="msg">${XR.found?`Tap to place ${esc(p?p.name:'')}`:'Move your phone slowly and point at the floor'}</span></div>
+  <div class="bar xbot"><div class="xch">${XR.pids.map((id,i)=>`<button data-x="pick" data-i="${i}" aria-pressed="${i===XR.cur}">${esc(P(id).name)}</button>`).join('')}</div><div class="xrow"><button data-x="rot" ${XR.placed.length?'':'disabled'}>Rotate</button><button data-x="undo" ${XR.placed.length?'':'disabled'}>Undo</button></div></div>`}
+(function(){const ov=document.getElementById('xro');
+  ov.addEventListener('beforexrselect',e=>{if(e.target.closest('button'))e.preventDefault()});
+  ov.addEventListener('click',e=>{const b=e.target.closest('[data-x]');if(!b||!XR)return;const a=b.dataset.x;
+    if(a==='end')XR.session.end();else if(a==='pick'){XR.cur=+b.dataset.i}else if(a==='undo'){const m=XR.placed.pop();if(m)XR.scene.remove(m)}else if(a==='rot'){const m=XR.placed[XR.placed.length-1];if(m)m.rotation.y+=Math.PI/4}
+    renderXRO()})})();
+async function startXR(pids){
+  const ov=document.getElementById('xro');
+  try{await loadThree()}catch(e){toast('The 3D viewer couldn’t load. Use the camera view instead.');return}
+  const T=THREE;
+  let session;
+  try{session=await navigator.xr.requestSession('immersive-ar',{requiredFeatures:['hit-test'],optionalFeatures:['dom-overlay'],domOverlay:{root:ov}})}
+  catch(e){toast('Floor AR couldn’t start here. Use the camera view instead.');return}
+  closeCamera();
+  const renderer=new T.WebGLRenderer({antialias:true,alpha:true});renderer.setPixelRatio(window.devicePixelRatio);renderer.setSize(innerWidth,innerHeight);renderer.xr.enabled=true;
+  const scene=new T.Scene(),camera=new T.PerspectiveCamera(70,innerWidth/innerHeight,.01,40);
+  scene.add(new T.HemisphereLight(0xffffff,0x887766,1.1));const dl=new T.DirectionalLight(0xffffff,.6);dl.position.set(1,3,2);scene.add(dl);
+  const ret=new T.Mesh(new T.RingGeometry(.12,.16,40).rotateX(-Math.PI/2),new T.MeshBasicMaterial({color:0xffffff}));ret.matrixAutoUpdate=false;ret.visible=false;scene.add(ret);
+  XR={session,scene,placed:[],cur:0,pids,found:false};ov.style.display='flex';renderXRO();
+  renderer.xr.setReferenceSpaceType('local');await renderer.xr.setSession(session);
+  const hs=await session.requestHitTestSource({space:await session.requestReferenceSpace('viewer')});
+  session.addEventListener('select',()=>{if(!XR||!ret.visible)return;const p=P(XR.pids[XR.cur]);if(!p)return;const m=model(p.cat);const pos=new T.Vector3(),q=new T.Quaternion(),sc=new T.Vector3();ret.matrix.decompose(pos,q,sc);m.position.copy(pos);
+    try{const cp=new T.Vector3();renderer.xr.getCamera(camera).getWorldPosition(cp);m.rotation.y=Math.atan2(cp.x-pos.x,cp.z-pos.z)}catch(_){}
+    scene.add(m);XR.placed.push(m);renderXRO()});
+  session.addEventListener('end',()=>{renderer.setAnimationLoop(null);try{hs.cancel()}catch(_){}renderer.dispose();ov.style.display='none';ov.innerHTML='';const n=XR?XR.placed.length:0;XR=null;if(n)toast('Placed '+n+' piece'+(n>1?'s':'')+' in AR');if(ui.screen==='ar'){openCamera().then(()=>{cam.ready=true;render()}).catch(()=>{})}});
+  renderer.setAnimationLoop((t,frame)=>{if(!frame)return;const hits=frame.getHitTestResults(hs);if(hits.length){const pose=hits[0].getPose(renderer.xr.getReferenceSpace());ret.visible=true;ret.matrix.fromArray(pose.transform.matrix)}else ret.visible=false;
+    if(XR&&XR.found!==ret.visible){XR.found=ret.visible;renderXRO()}renderer.render(scene,camera)});
+}
+
+function readHash(){const h=(location.hash||'').slice(1);if(!h)return;for(const pr of S.projects){const u=pr.users.find(x=>x.invite===h);if(u){ui.pid=pr.id;ui.screen='project';ui.tab='room';ui.me[pr.id]=u.id;ui.welcome=true;ui.sheet=null;done('open');return}}}
+window.addEventListener('hashchange',()=>{readHash();render()});
+load();readHash();render();sampler();detectXR();
+</script>
+</body>
+</html>

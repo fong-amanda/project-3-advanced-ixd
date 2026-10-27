@@ -1,7 +1,16 @@
 // Replace "#" with your URL. Copy a line to add another version.
 // Cards still set to "#" show as faded with "Link coming".
 
-export const team = [];
+export const team = {
+  iterations: [
+       {
+        title: "Shared Space",
+        description: "October 27, 2026 - P3.1: (GROUP) Concept Prototypes",
+        href: "/SharedSpace.html",
+      },
+
+    ],
+  };
 
 export const people = [
   {

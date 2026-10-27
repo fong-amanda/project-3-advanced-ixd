@@ -2,7 +2,6 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="robots" content="noindex, nofollow">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Keepers</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -215,10 +214,87 @@ body.split::before{display:none}
 .phone .screen{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain}
 .phone .app{min-height:100%;max-width:none}
 .phone .top{top:0;padding-top:18px}
-.phone .tabs{position:absolute;padding-bottom:6px}
+.phone .tabs{position:sticky;bottom:0;padding-bottom:6px}
+.phone main{padding-bottom:24px}
 .phone .scrim{position:absolute}
 .phone .sheet{max-height:88%}
 .phone > .banner{position:absolute;top:12px;width:calc(100% - 20px)}
+.addbar{grid-template-columns:1fr 1fr}
+.scanstrip{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.sp{position:relative;aspect-ratio:4/3;border-radius:14px;overflow:hidden;background:var(--surface-2);border:1px solid var(--line)}
+.sp img{width:100%;height:100%;object-fit:cover}
+.spx{position:absolute;top:6px;right:6px;width:36px;height:36px;border-radius:50%;border:0;background:rgba(0,0,0,.6);color:#fff;font-size:1.2rem;line-height:1}
+.addp{border:2px dashed var(--line);background:var(--surface);color:var(--muted);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;font-size:.9rem;padding:8px}
+.addp svg{width:28px;height:28px}
+.found{display:flex;flex-direction:column;gap:10px}
+.frow{display:grid;grid-template-columns:72px 1fr 48px;gap:10px;align-items:center;padding:10px;border:1px solid var(--line);border-radius:14px;background:var(--surface)}
+.frow img{width:72px;height:72px;border-radius:10px;object-fit:cover;background:var(--surface-2)}
+.frow .fields{display:flex;flex-direction:column;gap:6px;min-width:0}
+.frow input{min-height:42px;padding:8px 10px}
+.frow .fields input:last-child{font-size:.88rem}
+.frow.off{opacity:.5}
+.scanwait{display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;padding:36px 10px}
+.spinner{width:44px;height:44px;border-radius:50%;border:4px solid var(--line);border-top-color:var(--accent)}
+@media (prefers-reduced-motion: no-preference){.spinner{animation:spin 1s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}}
+.err{color:var(--danger);font-size:.92rem}
+.viewfinder{position:relative;height:min(52vh,460px);background:#0d1210;border-radius:18px;overflow:hidden}
+.viewfinder video{width:100%;height:100%;object-fit:cover;display:block}
+.viewfinder .corners{position:absolute;inset:16px;pointer-events:none;border-radius:10px;
+  background:linear-gradient(#fff,#fff) top left/28px 3px,linear-gradient(#fff,#fff) top left/3px 28px,linear-gradient(#fff,#fff) top right/28px 3px,linear-gradient(#fff,#fff) top right/3px 28px,linear-gradient(#fff,#fff) bottom left/28px 3px,linear-gradient(#fff,#fff) bottom left/3px 28px,linear-gradient(#fff,#fff) bottom right/28px 3px,linear-gradient(#fff,#fff) bottom right/3px 28px;background-repeat:no-repeat;opacity:.85}
+.viewfinder .vf-msg{position:absolute;left:0;right:0;bottom:12px;text-align:center;color:#fff;font-size:.88rem;text-shadow:0 1px 3px rgba(0,0,0,.6)}
+.viewfinder .flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none}
+@media (prefers-reduced-motion: no-preference){.viewfinder .flash.go{animation:flash .35s ease-out}@keyframes flash{0%{opacity:.8}100%{opacity:0}}}
+.camrow{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.thumbs{display:flex;gap:6px;flex:1;min-width:0}
+.thumbs .tb{position:relative;width:48px;height:48px;border-radius:10px;overflow:hidden;border:1px solid var(--line);flex-shrink:0}
+.thumbs .tb img{width:100%;height:100%;object-fit:cover}
+.thumbs .tb button{position:absolute;inset:0;opacity:0;border:0}
+.thumbs .slot{width:48px;height:48px;border-radius:10px;border:1.5px dashed var(--line);flex-shrink:0}
+.shutter{width:72px;height:72px;border-radius:50%;border:4px solid var(--ink);background:var(--surface);padding:4px;flex-shrink:0}
+.shutter span{display:block;width:100%;height:100%;border-radius:50%;background:var(--accent)}
+.shutter:disabled{opacity:.4}
+.camspacer{width:72px;flex-shrink:0}
+.vf-demo{position:absolute;inset:0;overflow:hidden}
+.vf-demo img{width:100%;height:100%;object-fit:cover;display:block}
+@media (prefers-reduced-motion: no-preference){.vf-demo img{animation:drift 7s ease-in-out infinite alternate}@keyframes drift{from{transform:scale(1.04) translate(0,0)}to{transform:scale(1.09) translate(-2%,-1.5%)}}}
+.vf-top{position:absolute;top:12px;left:12px;right:12px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.vf-top .sim{border-color:#fff;color:#fff;background:rgba(0,0,0,.35)}
+.vf-scene{color:#fff;font-weight:700;font-size:.9rem;background:rgba(0,0,0,.35);padding:3px 10px;border-radius:999px}
+.vf-nav{position:absolute;top:50%;transform:translateY(-50%);width:44px;height:44px;border-radius:50%;border:0;background:rgba(0,0,0,.45);color:#fff;font-size:1.3rem;display:flex;align-items:center;justify-content:center}
+.vf-nav.l{left:10px}.vf-nav.r{right:10px}
+.keptsec{display:flex;flex-direction:column;gap:8px;padding:12px;border-radius:16px;background:var(--keep-soft);border:1px solid var(--line)}
+.keptsec .tray{padding-bottom:4px}
+.tray button.kept{flex-direction:row;align-items:center;gap:10px;background:var(--surface);color:var(--ink);border-color:var(--keep);text-align:left}
+.tray button.kept img{width:40px;height:40px;border-radius:8px;object-fit:cover;flex-shrink:0}
+.tray button.kept span{display:flex;flex-direction:column;line-height:1.2}
+.tray button.kept.placed{opacity:.6;border-style:dashed}
+.keptsec .btn{min-height:40px;padding:6px 14px;font-size:.9rem}
+.ar{position:fixed;inset:0;z-index:25;background:#0d1210;display:flex;flex-direction:column}
+.phone .ar{position:absolute}
+.ar-stage{position:relative;flex:1;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none}
+.ar-stage video,.ar-stage .ar-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.ar-floor{position:absolute;left:-40%;right:-40%;bottom:-10%;height:62%;transform:perspective(500px) rotateX(64deg);transform-origin:bottom;pointer-events:none;
+  background-image:linear-gradient(rgba(255,255,255,.35) 1.5px,transparent 1.5px),linear-gradient(90deg,rgba(255,255,255,.35) 1.5px,transparent 1.5px);background-size:60px 60px;
+  -webkit-mask-image:linear-gradient(to top,#000 40%,transparent);mask-image:linear-gradient(to top,#000 40%,transparent);opacity:.8}
+.ar-obj{position:absolute;width:120px;transform-origin:50% 100%;cursor:grab;touch-action:none}
+.ar-shadow{position:absolute;left:8%;right:8%;bottom:-8px;height:18px;border-radius:50%;background:radial-gradient(rgba(0,0,0,.45),transparent 70%)}
+.ar-card{position:relative;background:#fff;border-radius:12px;padding:5px;box-shadow:0 6px 14px rgba(0,0,0,.25);display:flex;flex-direction:column;gap:3px;color:#22302A}
+.ar-card img{width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:8px;display:block;pointer-events:none}
+.ar-card .emo{font-size:64px;line-height:1.2;text-align:center}
+.ar-card span{font-size:12px;font-weight:700;text-align:center;line-height:1.2;padding:0 2px 2px;font-family:var(--sans)}
+.ar-obj.sel .ar-card{outline:3px solid var(--accent);outline-offset:2px}
+.ar-top{position:absolute;top:calc(env(safe-area-inset-top,0px) + 12px);left:12px;right:12px;display:flex;justify-content:space-between;align-items:center;gap:8px;pointer-events:none}
+.ar-top > *{pointer-events:auto}
+.ar-top .sim{border-color:#fff;color:#fff;background:rgba(0,0,0,.4)}
+.ar-top .btn{min-height:42px;padding:6px 14px;background:rgba(0,0,0,.5);color:#fff;border-color:rgba(255,255,255,.5)}
+.ar-hint{position:absolute;left:12px;right:12px;top:calc(env(safe-area-inset-top,0px) + 66px);text-align:center;color:#fff;font-size:.88rem;text-shadow:0 1px 3px rgba(0,0,0,.7);pointer-events:none;margin:0}
+.ar-panel{background:var(--bg);padding:12px 14px calc(12px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:10px;border-radius:18px 18px 0 0;margin-top:-14px;position:relative}
+.ar-panel .tray button{flex-direction:row;align-items:center;gap:8px}
+.ar-panel .tray button img{width:34px;height:34px;border-radius:7px;object-fit:cover}
+.ar-panel .tray button.on{opacity:.55;border-style:dashed}
+.ar-tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.ar-tools .btn{min-height:44px;padding:6px 14px}
+.arshot{width:100%;border-radius:16px;border:1px solid var(--line);display:block}
 </style>
 </head>
 <body>
@@ -243,6 +319,7 @@ const I = {
   mic:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>',
   home:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11l8-7 8 7v9H4z"/><path d="M10 20v-6h4v6"/></svg>',
   key:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M17 6l3 3M15 8l2 2"/></svg>',
+  scan:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3"/><path d="M4 12h16"/></svg>',
   spark:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5L18 18M6 18l2.5-2.5M15.5 8.5L18 6"/></svg>'
 };
 
@@ -621,9 +698,9 @@ function statusTag(i){
 /* --- parent: items --- */
 function viewItems(){
   const items = S.items;
-  const add = `<div class="addbar"><button class="btn primary block" id="add-item">${I.camera} Add item</button></div>`;
+  const add = `<div class="addbar"><button class="btn primary" id="scan-room">${I.scan} Scan room</button><button class="btn" id="add-item">${I.camera} Add item</button></div>`;
   if (!items.length){
-    return add + `<div class="empty"><div class="art">${I.camera}</div><h2>Start with one thing</h2><p class="muted">Photograph something from the room. ${esc(childName())} will see it on their phone and choose what happens to it.</p><button class="btn" id="load-demo">${I.spark} Load demo room</button></div>`;
+    return add + `<div class="empty"><div class="art">${I.camera}</div><h2>Start with the room</h2><p class="muted">Scan the room with your camera and Keepers will find and name the things it sees, or add items one at a time. ${esc(childName())} will see each one on their phone and choose what happens to it.</p><button class="btn" id="load-demo">${I.spark} Load demo room</button></div>`;
   }
   const waiting = items.filter(i => !i.decision).length;
   return add + `<p class="muted small" style="margin-bottom:12px">${items.length} item${items.length===1?"":"s"} · ${waiting} waiting for ${esc(childName())}</p>
@@ -635,6 +712,7 @@ function viewItems(){
 }
 function bindItems(){
   const a = $("#add-item"); if (a) a.onclick = () => sheetAddItem();
+  const sc = $("#scan-room"); if (sc) sc.onclick = () => sheetScan();
   const d = $("#load-demo"); if (d) d.onclick = async () => { try { await loadDemo(S.code); } catch(e){ handleWriteError(e); } };
   qa("[data-item]").forEach(b => b.onclick = () => sheetItemDetail(b.dataset.item));
 }
@@ -773,7 +851,7 @@ function openSheet(html, onBind){
   const f = layer.querySelector("input,button:not(.iconbtn)"); f && f.focus();
 }
 function escClose(e){ if (e.key==="Escape") closeSheet(); }
-function closeSheet(){ stopRecording(true); layer.innerHTML = ""; document.removeEventListener("keydown", escClose); }
+function closeSheet(){ closeAR(); stopCamera(); scan = null; stopRecording(true); layer.innerHTML = ""; document.removeEventListener("keydown", escClose); }
 
 function sheetCreateRoom(name){
   openSheet(`<header><h2>Start a room</h2><button class="btn quiet" data-close>Cancel</button></header>
@@ -963,6 +1041,500 @@ function compressImage(file){
   });
 }
 
+/* ---------- scan the room ---------- */
+const MAXSCAN = 4;
+let scan = null, cocoModel = null;
+const COCO_SKIP = new Set(["person","cat","dog","bird","horse","sheep","cow","elephant","bear","zebra","giraffe","car","bus","truck","train","airplane","boat","motorcycle","traffic light","fire hydrant","stop sign","parking meter","toilet","sink","refrigerator","oven","microwave","toaster"]);
+const COCO_NAMES = {"teddy bear":"Stuffed animal","tv":"TV","cell phone":"Phone","sports ball":"Ball","potted plant":"Plant","dining table":"Table","hair drier":"Hair dryer","wine glass":"Glass","baseball bat":"Baseball bat","baseball glove":"Baseball glove","tennis racket":"Tennis racket"};
+function friendly(c){ return COCO_NAMES[c] || (c.charAt(0).toUpperCase() + c.slice(1)); }
+function sheetScan(){ closeSheet(); scan = { photos: [], results: null, busy:false, error:null, method:null, busyText:"", demo: !!opts.forcedRole, demoIdx: 0 }; renderScan(); }
+function renderScan(){
+  if (!scan) return;
+  const ph = scan.photos;
+  let body;
+  if (scan.busy){
+    body = `<div class="scanwait" role="status"><div class="spinner" aria-hidden="true"></div><p><strong>Looking for items…</strong></p><p class="muted small">${esc(scan.busyText)}</p></div>`;
+  } else if (scan.results){
+    const n = scan.results.filter(r => r.include).length;
+    body = `<p class="muted">Found ${scan.results.length} item${scan.results.length===1?"":"s"}. Check the names, untick anything you don’t want to ask about, then add them.</p>
+      <div class="found">${scan.results.map((r,k) => `<div class="frow ${r.include?"":"off"}">
+        <img src="${r.crop}" alt="">
+        <div class="fields"><label class="sr" for="sn-${k}">Item name</label><input type="text" id="sn-${k}" data-sn="${k}" value="${esc(r.name)}" maxlength="80"><label class="sr" for="sd-${k}">Note</label><input type="text" id="sd-${k}" data-sd="${k}" value="${esc(r.note)}" placeholder="Add a note (optional)" maxlength="160"></div>
+        <button class="check" role="checkbox" aria-checked="${r.include}" aria-label="Include ${esc(r.name)}" data-inc="${k}">${I.check}</button>
+      </div>`).join("")}</div>
+      <p class="small muted">${scan.method==="demo" ? '<span class="sim">Prototype: simulated</span> Demo camera scan, so these items and names are preset.' : scan.method==="claude" ? "Names suggested by Claude from your photos. Edit any that aren’t quite right." : "Found with basic on-device detection, so names may be general. Edit them before adding."}</p>
+      ${scan.error?`<p class="err">${esc(scan.error)}</p>`:""}
+      <button class="btn primary block" id="s-add" ${n?"":"disabled"}>Add ${n} item${n===1?"":"s"}</button>
+      <button class="btn block" id="s-again">Scan again</button>`;
+  } else {
+    const slots = Array.from({length: MAXSCAN}, (_, k) => ph[k]
+      ? `<div class="tb"><img src="${ph[k].url}" alt="Shot ${k+1}"><button data-rm="${k}" aria-label="Remove shot ${k+1}"></button></div>`
+      : `<div class="slot" aria-hidden="true"></div>`).join("");
+    const full = ph.length >= MAXSCAN;
+    if (true){
+      const ready = scan.demo || scan.camReady;
+      const vf = scan.demo
+        ? `<div class="vf-demo"><img id="s-demo" src="${demoSceneUrl(scan.demoIdx)}" alt="Demo camera view: ${esc(DEMO_SCENES[scan.demoIdx].label)}"></div>
+           <div class="vf-top"><span class="sim">Demo camera: simulated</span><span class="vf-scene">${esc(DEMO_SCENES[scan.demoIdx].label)}</span></div>
+           <button class="vf-nav l" id="s-prev" aria-label="Look left">‹</button><button class="vf-nav r" id="s-next" aria-label="Look right">›</button>`
+        : `<video id="s-video" playsinline muted autoplay></video>`;
+      body = `${scan.camError ? `<p class="muted small">${esc(scan.camError)} Using the demo camera instead.</p>` : ""}<div class="viewfinder">${vf}<div class="corners"></div><div class="flash" id="s-flash"></div>
+          <p class="vf-msg">${ready ? (full ? "That’s enough shots. Tap Find items." : ph.length ? "Turn to the next wall or shelf and tap again." : "Point at a shelf, closet, or wall and tap the button.") : "Starting the camera…"}</p></div>
+        <div class="camrow"><div class="thumbs" aria-label="${ph.length} of ${MAXSCAN} shots">${slots}</div>
+          <button class="shutter" id="s-snap" aria-label="Capture this view" ${(!ready || full) ? "disabled" : ""}><span></span></button></div>
+        ${ph.length ? `<p class="small muted">Tap a shot to remove it.</p>` : ""}
+        ${scan.error?`<p class="err">${esc(scan.error)}</p>`:""}
+        <button class="btn primary block" id="s-go" ${ph.length?"":"disabled"}>${I.scan} Find items${ph.length ? " in "+ph.length+" shot"+(ph.length===1?"":"s") : ""}</button>
+        ${scan.demo ? (scan.camError ? "" : `<button class="btn quiet block" id="s-real" type="button">Use my real camera</button>`) : `<button class="btn quiet block" id="s-demo-on" type="button">Use the demo camera instead</button>`}`;
+    } else {
+      body = `<p class="muted">${esc(scan.camError)} You can choose photos of the room instead, up to ${MAXSCAN}.</p>
+        <input type="file" id="s-file" accept="image/*" multiple class="sr" tabindex="-1">
+        <div class="scanstrip">${ph.map((p,k) => `<div class="sp"><img src="${p.url}" alt="Room photo ${k+1}"><button class="spx" data-rm="${k}" aria-label="Remove photo ${k+1}">×</button></div>`).join("")}
+        ${!full ? `<button class="sp addp" id="s-pick" type="button">${I.camera}<span>${ph.length ? "Add another photo" : "Choose photos"}</span></button>` : ""}</div>
+        ${scan.error?`<p class="err">${esc(scan.error)}</p>`:""}
+        <button class="btn primary block" id="s-go" ${ph.length?"":"disabled"}>${I.scan} Find items</button>`;
+    }
+  }
+  const html = `<header><h2>Scan the room</h2><button class="btn quiet" data-close>Cancel</button></header><div class="stack">${body}</div>`;
+  const host = $(".scan-sheet");
+  if (!host) openSheet(`<div class="scan-sheet">${html}</div>`, bindScan);
+  else { host.innerHTML = html; bindScan(); }
+}
+function bindScan(){
+  const c = $("[data-close]"); if (c) c.onclick = closeSheet;
+  const pick = $("#s-pick"), file = $("#s-file");
+  if (pick) pick.onclick = () => file.click();
+  if (file) file.onchange = async e => {
+    const files = [...(e.target.files || [])].slice(0, MAXSCAN - scan.photos.length);
+    scan.error = null;
+    for (const f of files){ try { const p = await loadScanPhoto(f); if (scan) scan.photos.push(p); } catch(err){ if (scan) scan.error = "One of those photos couldn’t be read."; } }
+    renderScan();
+  };
+  qa("[data-rm]").forEach(b => b.onclick = () => { scan.photos.splice(+b.dataset.rm, 1); renderScan(); });
+  const vid = $("#s-video");
+  const pv = $("#s-prev"), nx = $("#s-next");
+  if (pv) pv.onclick = () => { scan.demoIdx = (scan.demoIdx + DEMO_SCENES.length - 1) % DEMO_SCENES.length; renderScan(); };
+  if (nx) nx.onclick = () => { scan.demoIdx = (scan.demoIdx + 1) % DEMO_SCENES.length; renderScan(); };
+  const dOn = $("#s-demo-on"); if (dOn) dOn.onclick = () => { stopCamera(); scan.demo = true; renderScan(); };
+  const real = $("#s-real"); if (real) real.onclick = () => { scan.demo = false; scan.camError = null; renderScan(); };
+  if (vid && !scan.demo){
+    if (scan.stream){ vid.srcObject = scan.stream; vid.play().catch(() => {}); }
+    else if (!scan.camStarting) startCamera();
+  }
+  const snap = $("#s-snap"); if (snap) snap.onclick = captureFrame;
+  const go = $("#s-go"); if (go) go.onclick = runScan;
+  qa("[data-sn]").forEach(i => i.oninput = () => { scan.results[+i.dataset.sn].name = i.value; });
+  qa("[data-sd]").forEach(i => i.oninput = () => { scan.results[+i.dataset.sd].note = i.value; });
+  qa("[data-inc]").forEach(b => b.onclick = () => { const r = scan.results[+b.dataset.inc]; r.include = !r.include; renderScan(); });
+  const add = $("#s-add"); if (add) add.onclick = addScanned;
+  const again = $("#s-again"); if (again) again.onclick = () => { scan.results = null; scan.photos = []; scan.error = null; scan.camError = null; renderScan(); };
+}
+async function startCamera(){
+  if (!scan) return;
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){ scan.camError = "This browser can’t open the camera here."; scan.demo = true; renderScan(); return; }
+  scan.camStarting = true;
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" }, width: { ideal: 1920 }, height: { ideal: 1440 } }, audio: false });
+    if (!scan || scan.demo){ stream.getTracks().forEach(t => t.stop()); if (scan) scan.camStarting = false; return; }
+    scan.stream = stream; scan.camReady = true; scan.camStarting = false;
+    renderScan();
+  } catch(e){
+    if (!scan) return;
+    scan.camStarting = false;
+    scan.camError = (e && (e.name === "NotAllowedError" || e.name === "SecurityError")) ? "Camera access is turned off for this page." : "The camera couldn’t start.";
+    scan.demo = true;
+    renderScan();
+  }
+}
+function stopCamera(){
+  if (scan && scan.stream){ scan.stream.getTracks().forEach(t => t.stop()); scan.stream = null; scan.camReady = false; }
+}
+function captureFrame(){
+  if (scan && scan.demo){
+    if (scan.photos.length >= MAXSCAN) return;
+    const k = scan.demoIdx, cv = demoSceneCanvas(k);
+    const f = $("#s-flash"); if (f){ f.classList.remove("go"); void f.offsetWidth; f.classList.add("go"); }
+    cv.toBlob(blob => {
+      if (!blob || !scan) return;
+      scan.photos.push({canvas:cv, url: demoSceneUrl(k), blob, demoScene:k});
+      const taken = new Set(scan.photos.map(p => p.demoScene));
+      for (let i = 1; i <= DEMO_SCENES.length; i++){ const n = (k + i) % DEMO_SCENES.length; if (!taken.has(n)){ scan.demoIdx = n; break; } }
+      scan.error = null; renderScan();
+    }, "image/jpeg", 0.85);
+    return;
+  }
+  const v = $("#s-video"); if (!v || !v.videoWidth || !scan || scan.photos.length >= MAXSCAN) return;
+  const sc = Math.min(1, 1600 / Math.max(v.videoWidth, v.videoHeight));
+  const cv = document.createElement("canvas"); cv.width = Math.round(v.videoWidth*sc); cv.height = Math.round(v.videoHeight*sc);
+  cv.getContext("2d").drawImage(v, 0, 0, cv.width, cv.height);
+  const f = $("#s-flash"); if (f){ f.classList.remove("go"); void f.offsetWidth; f.classList.add("go"); }
+  const url = cv.toDataURL("image/jpeg", 0.6);
+  cv.toBlob(blob => { if (!blob || !scan) return; scan.photos.push({canvas:cv, url, blob}); scan.error = null; renderScan(); }, "image/jpeg", 0.85);
+}
+function loadScanPhoto(file){
+  return new Promise((res, rej) => {
+    const u = URL.createObjectURL(file); const img = new Image();
+    img.onload = () => {
+      const sc = Math.min(1, 1600 / Math.max(img.width, img.height));
+      const cv = document.createElement("canvas"); cv.width = Math.round(img.width*sc); cv.height = Math.round(img.height*sc);
+      cv.getContext("2d").drawImage(img, 0, 0, cv.width, cv.height);
+      URL.revokeObjectURL(u);
+      const url = cv.toDataURL("image/jpeg", 0.6);
+      cv.toBlob(blob => blob ? res({canvas:cv, url, blob}) : rej(new Error("blob")), "image/jpeg", 0.85);
+    };
+    img.onerror = () => { URL.revokeObjectURL(u); rej(new Error("img")); };
+    img.src = u;
+  });
+}
+function normBox(b){
+  if (!Array.isArray(b) || b.length !== 4) return [0,0,1000,1000];
+  let [x1,y1,x2,y2] = b.map(v => Math.max(0, Math.min(1000, Number(v) || 0)));
+  if (x2 < x1) [x1,x2] = [x2,x1];
+  if (y2 < y1) [y1,y2] = [y2,y1];
+  if (x2 - x1 < 15 || y2 - y1 < 15) return [0,0,1000,1000];
+  return [x1,y1,x2,y2];
+}
+async function detectWithClaude(photos){
+  const c = window.claude; if (!c || typeof c.use !== "function") return null;
+  const sample = await c.use("sample"); if (!sample) return null;
+  let lim = null; try { lim = await sample.limits(); } catch(e){}
+  if (!lim || !lim.images) return null;
+  const list = photos.slice(0, lim.images.maxCount);
+  const prompt = `${list.length===1 ? "This is a photo" : "These are "+list.length+" photos"} of a bedroom that a parent is clearing out after their adult child moved away. The parent wants to ask their child what to do with each belonging.
+
+List the distinct belongings worth asking about: keepsakes, trophies, books, clothes, stuffed animals, posters and wall art, sports gear, instruments, electronics, decor, and movable furniture. Group many small similar things into one item (for example "Wall of photo prints" or "Stack of yearbooks"). Skip walls, floors, windows, doors, light fixtures, outlets, and anything you can't make out. List at most 12 items in total.
+
+Reply with only a JSON array like:
+[{"photo":0,"name":"Soccer trophies","note":"About six trophies on the top shelf","box":[120,80,430,300]}]
+
+photo is the 0-based index of the photo the item appears in. name is 1 to 4 words in sentence case. note is one short sentence describing it. box is the item's bounding box in that photo as [left, top, right, bottom] on a 0 to 1000 scale, where 0,0 is the top-left corner. If nothing stands out, reply with [].`;
+  const out = await sample.json(prompt, { images: list.map(p => p.blob), modelTier: "default" });
+  const arr = Array.isArray(out) ? out : (out && Array.isArray(out.items) ? out.items : []);
+  return arr.map(o => ({
+    photo: Number.isInteger(o && o.photo) && o.photo >= 0 && o.photo < list.length ? o.photo : 0,
+    name: String((o && o.name) || "").trim().slice(0, 60),
+    note: String((o && o.note) || "").trim().slice(0, 140),
+    box: normBox(o && o.box)
+  })).filter(o => o.name);
+}
+function loadScript(src){ return new Promise((res, rej) => { const s = document.createElement("script"); s.src = src; s.onload = res; s.onerror = () => rej(new Error("script")); document.head.appendChild(s); }); }
+async function detectOnDevice(photos){
+  if (!window.cocoSsd){
+    if (!window.tf) await loadScript("https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.20.0/dist/tf.min.js");
+    await loadScript("https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js");
+  }
+  if (!cocoModel) cocoModel = await window.cocoSsd.load();
+  const out = [];
+  for (let k = 0; k < photos.length; k++){
+    const cv = photos[k].canvas;
+    const preds = await cocoModel.detect(cv, 20, 0.45);
+    preds.forEach(p => {
+      if (COCO_SKIP.has(p.class)) return;
+      const [x,y,w,h] = p.bbox;
+      out.push({ photo:k, name: friendly(p.class), note:"", score:p.score, box:[x/cv.width*1000, y/cv.height*1000, (x+w)/cv.width*1000, (y+h)/cv.height*1000] });
+    });
+  }
+  out.sort((a,b) => b.score - a.score);
+  return out.slice(0, 12);
+}
+function cropBox(p, box){
+  const cv = p.canvas, W = cv.width, H = cv.height;
+  let [x1,y1,x2,y2] = box.map(v => v/1000);
+  const px = (x2-x1)*0.06 + 0.01, py = (y2-y1)*0.06 + 0.01;
+  x1 = Math.max(0, x1-px); y1 = Math.max(0, y1-py); x2 = Math.min(1, x2+px); y2 = Math.min(1, y2+py);
+  const sw = Math.max(8, (x2-x1)*W), sh = Math.max(8, (y2-y1)*H);
+  let max = 900, q = 0.75, out = "";
+  for (let i = 0; i < 5; i++){
+    const sc = Math.min(1, max / Math.max(sw, sh));
+    const c = document.createElement("canvas"); c.width = Math.max(1, Math.round(sw*sc)); c.height = Math.max(1, Math.round(sh*sc));
+    c.getContext("2d").drawImage(cv, x1*W, y1*H, sw, sh, 0, 0, c.width, c.height);
+    out = c.toDataURL("image/jpeg", q);
+    if (out.length < 170000) break;
+    max = Math.round(max*0.8); q = Math.max(0.5, q-0.06);
+  }
+  return out;
+}
+function scanErrText(e){
+  const code = e && e.code;
+  if (code === "not_granted") return "Keepers needs your OK to use Claude to look at photos. Tap Find items again and choose Allow, or add items one at a time.";
+  if (code === "sampling_disabled" || code === "images_unavailable") return "Photo scanning isn’t available here. Add items one at a time instead.";
+  if (code === "invalid_json") return "The scan came back garbled. Tap Find items to try again.";
+  return "The scan didn’t work. Check your connection and try again, or add items one at a time.";
+}
+async function runScan(){
+  if (!scan || !scan.photos.length) return;
+  stopCamera();
+  scan.busy = true; scan.error = null; scan.busyText = "Finding and naming the things in your photos. This can take up to a minute."; renderScan();
+  let found = null, method = null, lastErr = null;
+  if (scan.photos.every(p => p.demoScene != null)){
+    await new Promise(r => setTimeout(r, 1400));
+    if (!scan) return;
+    scan.busy = false; scan.method = "demo";
+    scan.results = [];
+    scan.photos.forEach(p => DEMO_SCENES[p.demoScene].items.forEach(it => scan.results.push({ name: it.name, note: it.note, include: true, crop: cropBox(p, itemBox(it)) })));
+    renderScan(); return;
+  }
+  try { const r = await detectWithClaude(scan.photos); if (r){ found = r; method = "claude"; } } catch(e){ lastErr = e; }
+  if (!scan) return;
+  if (!found && !(lastErr && lastErr.code === "not_granted")){
+    try { scan.busyText = "Using on-device detection. The first scan downloads a small model."; renderScan(); found = await detectOnDevice(scan.photos); method = "device"; }
+    catch(e){ lastErr = lastErr || e; }
+  }
+  if (!scan) return;
+  scan.busy = false;
+  if (!found){ scan.error = scanErrText(lastErr); renderScan(); return; }
+  if (!found.length){ scan.error = "No items stood out in these photos. Try closer photos of shelves or the closet, or add items one at a time."; renderScan(); return; }
+  scan.method = method;
+  scan.results = found.map(f => ({ name: f.name, note: f.note || "", include: true, crop: cropBox(scan.photos[f.photo] || scan.photos[0], f.box) }));
+  renderScan();
+}
+async function addScanned(){
+  const list = scan.results.filter(r => r.include && r.name.trim());
+  if (!list.length){ scan.error = "Give each item you’re adding a name."; renderScan(); return; }
+  const b = $("#s-add"); b.disabled = true; b.textContent = "Adding…";
+  const t = Date.now();
+  try {
+    for (let k = 0; k < list.length; k++){
+      const r = list[k];
+      await store.setItem(S.code, rid(), { name: r.name.trim().slice(0,80), desc: r.note.trim(), photo: r.crop, hasVoice:false, addedById: actor(), createdAt: t+k, decision:null, comment:"", replies:[], done:false, scanned:true });
+    }
+    const n = list.length; closeSheet();
+    notifyPlain("Added "+n+" item"+(n===1?"":"s")+". "+childName()+" can review "+(n===1?"it":"them")+" now.");
+  } catch(e){ b.disabled = false; b.textContent = "Add items"; handleWriteError(e); }
+}
+
+/* ---------- AR preview ---------- */
+let ar = null;
+const AR_EMOJI = { bed:"🛏️", desk:"🖥️", chair:"🪑", shelf:"📚", dresser:"🗄️", sofa:"🛋️" };
+function arScaleAt(y){ return 0.45 + 0.85 * Math.max(0, Math.min(1, (y - 0.4) / 0.6)); }
+function emptyRoomCanvas(){
+  if (demoCache.empty) return demoCache.empty.canvas;
+  const W = 900, H = 1400, cv = document.createElement("canvas"); cv.width = W; cv.height = H; const g = cv.getContext("2d");
+  const bx1 = 190, bx2 = 710, by1 = 230, by2 = 760;
+  g.fillStyle = "#E9E3D8"; g.fillRect(0,0,W,H);
+  g.fillStyle = "#EFEAE1"; g.fillRect(bx1, by1, bx2-bx1, by2-by1);
+  g.fillStyle = "#DED6C8"; g.beginPath(); g.moveTo(0,0); g.lineTo(bx1,by1); g.lineTo(bx1,by2); g.lineTo(0,1050); g.closePath(); g.fill();
+  g.fillStyle = "#E3DCCF"; g.beginPath(); g.moveTo(W,0); g.lineTo(bx2,by1); g.lineTo(bx2,by2); g.lineTo(W,1050); g.closePath(); g.fill();
+  g.fillStyle = "#F4F1EC"; g.beginPath(); g.moveTo(0,0); g.lineTo(W,0); g.lineTo(bx2,by1); g.lineTo(bx1,by1); g.closePath(); g.fill();
+  g.fillStyle = "#B8946C"; g.beginPath(); g.moveTo(bx1,by2); g.lineTo(bx2,by2); g.lineTo(W,1050); g.lineTo(W,H); g.lineTo(0,H); g.lineTo(0,1050); g.closePath(); g.fill();
+  g.strokeStyle = "rgba(90,60,30,.25)"; g.lineWidth = 3;
+  for (let i = 0; i <= 10; i++){ const t = i/10; g.beginPath(); g.moveTo(bx1 + (bx2-bx1)*t, by2); g.lineTo(-450 + (W+900)*t, H); g.stroke(); }
+  g.fillStyle = "#CFE2EE"; g.fillRect(360, 330, 180, 220); g.strokeStyle = "#FFFFFF"; g.lineWidth = 12; g.strokeRect(360, 330, 180, 220); g.beginPath(); g.moveTo(450,330); g.lineTo(450,550); g.moveTo(360,440); g.lineTo(540,440); g.stroke();
+  g.fillStyle = "#CDBFA8"; g.beginPath(); g.moveTo(40,250); g.lineTo(150,310); g.lineTo(150,790); g.lineTo(40,870); g.closePath(); g.fill();
+  g.fillStyle = "#FFFFFF"; g.fillRect(bx1, by2-14, bx2-bx1, 14);
+  const grad = g.createRadialGradient(W/2, H*0.55, H*0.3, W/2, H*0.55, H*0.85); grad.addColorStop(0,"rgba(0,0,0,0)"); grad.addColorStop(1,"rgba(0,0,0,.25)"); g.fillStyle = grad; g.fillRect(0,0,W,H);
+  demoCache.empty = { canvas: cv, url: cv.toDataURL("image/jpeg", 0.75) };
+  return cv;
+}
+function arObjFromPiece(pc, plan){
+  const d = pieceDims(pc);
+  return { id: rid(), kind: pc.kind, itemId: pc.itemId || null, label: pieceLabel(pc), photo: pc.kind==="keep" ? keepPhoto(pc) : null,
+    x: Math.max(0.08, Math.min(0.92, (pc.x + d.w/2) / plan.w)), y: 0.5 + 0.46 * Math.min(1, (pc.y + d.h) / plan.l),
+    s: Math.max(0.6, Math.min(1.4, Math.sqrt(d.w*d.h) / 2.4)) };
+}
+function openAR(){
+  const plan = S.plan || defaultPlan();
+  ar = { stream:null, demo: !!opts.forcedRole, camError:null, sel:null, objs: (plan.pieces||[]).map(pc => arObjFromPiece(pc, plan)), busy:false };
+  const el = document.createElement("div"); el.className = "ar"; el.id = "ar"; el.setAttribute("role","dialog"); el.setAttribute("aria-label","AR preview");
+  layer.appendChild(el);
+  renderAR(true);
+  if (!ar.demo) startARCamera();
+}
+function closeAR(){
+  if (!ar) return;
+  if (ar.stream) ar.stream.getTracks().forEach(t => t.stop());
+  const el = layer.querySelector("#ar"); if (el) el.remove();
+  ar = null;
+}
+async function startARCamera(){
+  try {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) throw new Error("none");
+    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" } }, audio: false });
+    if (!ar || ar.demo){ stream.getTracks().forEach(t => t.stop()); return; }
+    ar.stream = stream; renderAR(true);
+  } catch(e){ if (!ar) return; ar.demo = true; ar.camError = "Camera isn’t available, so this uses a sample room."; renderAR(true); }
+}
+function arObjHtml(o){
+  const k = arScaleAt(o.y) * o.s;
+  const face = o.photo ? `<img src="${o.photo}" alt="">` : `<div class="emo" aria-hidden="true">${AR_EMOJI[o.kind] || "📦"}</div>`;
+  return `<div class="ar-obj ${ar.sel===o.id?"sel":""}" data-ao="${o.id}" style="left:${o.x*100}%;top:${o.y*100}%;z-index:${Math.round(o.y*1000)};transform:translate(-50%,-100%) scale(${k.toFixed(3)})"><div class="ar-shadow"></div><div class="ar-card">${face}<span>${esc(o.label)}</span></div></div>`;
+}
+function renderAR(full){
+  const el = layer.querySelector("#ar"); if (!el || !ar) return;
+  const plan = S.plan || defaultPlan();
+  const kept = keptItems();
+  const inScene = new Set(ar.objs.map(o => o.itemId).filter(Boolean));
+  const sel = ar.objs.find(o => o.id === ar.sel);
+  const panel = `
+    ${ar.camError ? `<p class="small muted" style="margin:0">${esc(ar.camError)}</p>` : ""}
+    <div class="tray" role="group" aria-label="Kept items">${kept.length ? kept.map(i => `<button class="kept ${inScene.has(i.id)?"on":""}" data-arkeep="${i.id}">${i.photo?`<img src="${i.photo}" alt="">`:""}${esc(i.name)}</button>`).join("") : `<span class="small muted">No kept items yet.</span>`}
+      ${Object.entries(FURN).map(([k,f]) => `<button data-arfurn="${k}">${AR_EMOJI[k]} ${f.label}</button>`).join("")}</div>
+    <div class="ar-tools">${sel ? `<strong class="small" style="flex:1;min-width:0">${esc(sel.label)}</strong><button class="btn" id="ar-sm">Smaller</button><button class="btn" id="ar-bg">Bigger</button><button class="btn" id="ar-rm" style="color:var(--danger)">Remove</button>` : `<span class="small muted" style="flex:1">Tap an item to add it, then drag it around the room.</span>`}</div>
+    <button class="btn primary block" id="ar-shot" ${ar.busy?"disabled":""}>${ar.busy ? "Sharing…" : "Capture and share with "+esc(childName())}</button>`;
+  if (full){
+    const bg = ar.demo ? `<img class="ar-bg" src="${(emptyRoomCanvas(), demoCache.empty.url)}" alt="Sample empty bedroom">` : `<video id="ar-video" playsinline muted autoplay></video>`;
+    el.innerHTML = `<div class="ar-stage" id="ar-stage">${bg}<div class="ar-floor"></div><div id="ar-objs"></div>
+      <div class="ar-top"><span class="sim">AR preview: simulated${ar.demo ? ", sample room" : ""}</span><button class="btn" id="ar-close">Done</button></div>
+      <p class="ar-hint">Items don’t stay pinned if you move the phone. Hold still while you arrange.</p></div>
+      <div class="ar-panel" id="ar-panel"></div>`;
+    const v = el.querySelector("#ar-video"); if (v && ar.stream){ v.srcObject = ar.stream; v.play().catch(() => {}); }
+    el.querySelector("#ar-close").onclick = closeAR;
+    bindARStage();
+  }
+  el.querySelector("#ar-objs").innerHTML = ar.objs.map(arObjHtml).join("");
+  el.querySelector("#ar-panel").innerHTML = panel;
+  bindARPanel();
+}
+function bindARPanel(){
+  const el = layer.querySelector("#ar");
+  el.querySelectorAll("[data-arkeep]").forEach(b => b.onclick = () => {
+    const it = S.items.find(i => i.id === b.dataset.arkeep); if (!it) return;
+    const ex = ar.objs.find(o => o.itemId === it.id); if (ex){ ar.sel = ex.id; renderAR(); return; }
+    const [w,h] = keepSize(it.name);
+    const o = { id: rid(), kind:"keep", itemId: it.id, label: it.name, photo: it.photo, x: 0.3 + Math.random()*0.4, y: 0.6 + Math.random()*0.18, s: Math.max(0.6, Math.min(1.4, Math.sqrt(w*h)/2.4)) };
+    ar.objs.push(o); ar.sel = o.id; renderAR();
+  });
+  el.querySelectorAll("[data-arfurn]").forEach(b => b.onclick = () => {
+    const f = FURN[b.dataset.arfurn];
+    const o = { id: rid(), kind: b.dataset.arfurn, label: f.label, photo: null, x: 0.3 + Math.random()*0.4, y: 0.6 + Math.random()*0.18, s: Math.max(0.6, Math.min(1.4, Math.sqrt(f.w*f.h)/2.4)) };
+    ar.objs.push(o); ar.sel = o.id; renderAR();
+  });
+  const sel = () => ar.objs.find(o => o.id === ar.sel);
+  const sm = el.querySelector("#ar-sm"); if (sm) sm.onclick = () => { const o = sel(); if (o){ o.s = Math.max(0.3, o.s*0.8); renderAR(); } };
+  const bg = el.querySelector("#ar-bg"); if (bg) bg.onclick = () => { const o = sel(); if (o){ o.s = Math.min(3, o.s*1.25); renderAR(); } };
+  const rm = el.querySelector("#ar-rm"); if (rm) rm.onclick = () => { ar.objs = ar.objs.filter(o => o.id !== ar.sel); ar.sel = null; renderAR(); };
+  const shot = el.querySelector("#ar-shot"); if (shot) shot.onclick = captureAR;
+}
+function bindARStage(){
+  const stage = layer.querySelector("#ar-stage");
+  let drag = null;
+  stage.addEventListener("pointerdown", e => {
+    const t = e.target.closest("[data-ao]");
+    if (!t){ if (ar.sel && !e.target.closest(".ar-top")){ ar.sel = null; renderAR(); } return; }
+    const o = ar.objs.find(x => x.id === t.dataset.ao); if (!o) return;
+    const r = stage.getBoundingClientRect();
+    drag = { o, el: t, ox: e.clientX/r.width - o.x, oy: e.clientY/r.height - o.y, r };
+    stage.setPointerCapture(e.pointerId); e.preventDefault();
+  });
+  stage.addEventListener("pointermove", e => {
+    if (!drag) return;
+    const o = drag.o, r = drag.r;
+    o.x = Math.max(0.04, Math.min(0.96, e.clientX/r.width - drag.ox));
+    o.y = Math.max(0.42, Math.min(0.99, e.clientY/r.height - drag.oy));
+    const k = arScaleAt(o.y) * o.s;
+    drag.el.style.left = o.x*100 + "%"; drag.el.style.top = o.y*100 + "%"; drag.el.style.zIndex = Math.round(o.y*1000);
+    drag.el.style.transform = `translate(-50%,-100%) scale(${k.toFixed(3)})`;
+  });
+  const end = () => { if (!drag) return; ar.sel = drag.o.id; drag = null; renderAR(); };
+  stage.addEventListener("pointerup", end); stage.addEventListener("pointercancel", end);
+  // trackpad / mouse wheel resize
+  stage.addEventListener("wheel", e => { const o = ar.objs.find(x => x.id === ar.sel); if (!o) return; e.preventDefault(); o.s = Math.max(0.3, Math.min(3, o.s * (e.deltaY < 0 ? 1.08 : 0.92))); renderAR(); }, { passive:false });
+}
+function loadImg(src){ return new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = src; }); }
+function drawCover(g, src, sw, sh, W, H){
+  const sc = Math.max(W/sw, H/sh), dw = sw*sc, dh = sh*sc;
+  g.drawImage(src, (W-dw)/2, (H-dh)/2, dw, dh);
+}
+async function captureAR(){
+  const stage = layer.querySelector("#ar-stage"); if (!stage || !ar) return;
+  ar.busy = true; renderAR();
+  try {
+    const r = stage.getBoundingClientRect();
+    const W = Math.round(Math.min(720, r.width)), H = Math.round(W * r.height / r.width), f = W / r.width;
+    const cv = document.createElement("canvas"); cv.width = W; cv.height = H; const g = cv.getContext("2d");
+    const v = stage.querySelector("#ar-video");
+    if (v && v.videoWidth) drawCover(g, v, v.videoWidth, v.videoHeight, W, H);
+    else { const bgc = emptyRoomCanvas(); drawCover(g, bgc, bgc.width, bgc.height, W, H); }
+    const objs = ar.objs.slice().sort((a,b) => a.y - b.y);
+    for (const o of objs){
+      const k = arScaleAt(o.y) * o.s * f, cw = 120*k, x = o.x*W, y = o.y*H;
+      const imgH = cw - 10*k, labelH = 22*k, ch = 5*k + imgH + 3*k + labelH;
+      const left = x - cw/2, top = y - ch;
+      g.fillStyle = "rgba(0,0,0,.28)"; g.beginPath(); g.ellipse(x, y + 2*k, cw*0.42, 9*k, 0, 0, Math.PI*2); g.fill();
+      g.save(); g.shadowColor = "rgba(0,0,0,.25)"; g.shadowBlur = 14*k; g.shadowOffsetY = 6*k;
+      g.fillStyle = "#fff"; g.beginPath(); g.roundRect ? g.roundRect(left, top, cw, ch, 12*k) : g.rect(left, top, cw, ch); g.fill(); g.restore();
+      if (o.photo){ try { const im = await loadImg(o.photo); g.save(); g.beginPath(); g.roundRect ? g.roundRect(left+5*k, top+5*k, cw-10*k, imgH, 8*k) : g.rect(left+5*k, top+5*k, cw-10*k, imgH); g.clip(); drawCoverAt(g, im, left+5*k, top+5*k, cw-10*k, imgH); g.restore(); } catch(e){} }
+      else { g.font = (60*k) + "px 'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji',sans-serif"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(AR_EMOJI[o.kind] || "📦", x, top + 5*k + imgH/2); }
+      g.fillStyle = "#22302A"; g.font = `bold ${12*k}px Atkinson Hyperlegible, Arial, sans-serif`; g.textAlign = "center"; g.textBaseline = "middle";
+      g.fillText(o.label.length > 18 ? o.label.slice(0,17)+"…" : o.label, x, top + 5*k + imgH + 3*k + labelH/2);
+    }
+    let q = 0.75, out = cv.toDataURL("image/jpeg", q);
+    while (out.length > 170000 && q > 0.35){ q -= 0.1; out = cv.toDataURL("image/jpeg", q); }
+    if (out.length > 170000){ const c2 = document.createElement("canvas"); c2.width = Math.round(W*0.7); c2.height = Math.round(H*0.7); c2.getContext("2d").drawImage(cv, 0, 0, c2.width, c2.height); out = c2.toDataURL("image/jpeg", 0.6); }
+    const upd = { arShot: out, arShotAt: Date.now() };
+    if (S.plan){ upd.plan = JSON.parse(JSON.stringify(S.plan)); upd.planSavedAt = Date.now(); }
+    await store.updateRoom(S.code, upd);
+    S.planDirty = false;
+    closeAR();
+    notifyPlain("AR preview shared. "+childName()+" can see it in Room plan.");
+  } catch(e){ if (ar){ ar.busy = false; renderAR(); } handleWriteError(e); }
+}
+function drawCoverAt(g, im, x, y, w, h){
+  const sc = Math.max(w/im.width, h/im.height), dw = im.width*sc, dh = im.height*sc;
+  g.drawImage(im, x + (w-dw)/2, y + (h-dh)/2, dw, dh);
+}
+
+/* ---------- demo camera scenes ---------- */
+const DW = 1200, DH = 900;
+const em = (e, x, y, s) => ({e, x, y, s});
+const DEMO_SCENES = [
+  { label: "Bookshelf", wall: "#E8E1D3", floor: "#C9B596",
+    draw(g){ g.fillStyle = "#8B6A4E"; g.fillRect(230, 110, 720, 610); g.fillStyle = "#6E523B"; [300, 480, 700].forEach(y => g.fillRect(230, y, 720, 22)); g.fillStyle = "#F3EBDD"; g.fillRect(255, 130, 670, 168); g.fillRect(255, 322, 670, 156); g.fillRect(255, 502, 670, 196);
+      ["#B84A3A","#3F6E99","#4E7D5E","#C9822B","#6B4E8A","#2F4F4F"].forEach((c,i) => { g.fillStyle = c; g.fillRect(640 + i*44, 340, 38, 138); }); },
+    items: [
+      { name: "Soccer trophies", note: "Three trophies on the top shelf", parts: [em("🏆",360,225,120), em("🏆",470,225,120), em("🏆",580,225,120)] },
+      { name: "Yearbooks", note: "Six yearbooks on the middle shelf", rect: [630,330,910,480] },
+      { name: "Box of school papers", note: "Report cards and art projects", parts: [em("📦",420,610,150)] },
+      { name: "Snow globe", note: "Small snow globe from a trip", parts: [em("🔮",760,620,100)] }
+    ] },
+  { label: "Bed corner", wall: "#DCE3EA", floor: "#B9A58A",
+    draw(g){ g.fillStyle = "#2D3A4A"; g.fillRect(140, 110, 320, 330); g.fillStyle = "#E3A33A"; g.fillRect(170, 150, 260, 90); g.fillStyle = "#F4EFE6"; g.font = "bold 64px Arial"; g.textAlign = "center"; g.fillText("TOUR", 300, 330); g.font = "28px Arial"; g.fillText("2014", 300, 390);
+      g.fillStyle = "#7C8DA6"; g.fillRect(520, 470, 640, 330); g.fillStyle = "#F2F2F2"; g.fillRect(560, 430, 260, 90); g.fillStyle = "#5B6B84"; g.fillRect(520, 560, 640, 240); },
+    items: [
+      { name: "Band poster", note: "Tour poster above the bed", rect: [140,110,460,440] },
+      { name: "Stuffed animals", note: "A teddy bear and a bunny on the pillow", parts: [em("🧸",700,470,140), em("🐰",850,480,120)] },
+      { name: "Acoustic guitar", note: "Leaning against the wall", parts: [em("🎸",320,660,280)] }
+    ] },
+  { label: "Desk", wall: "#E6E0EC", floor: "#C4B194",
+    draw(g){ g.fillStyle = "#9C7A5B"; g.fillRect(180, 540, 840, 40); g.fillRect(210, 580, 30, 200); g.fillRect(960, 580, 30, 200); g.fillStyle = "#CFC3DA"; g.fillRect(600, 150, 360, 220); g.fillStyle = "#B7A7C6"; g.fillRect(620, 170, 320, 180); },
+    items: [
+      { name: "Desk lamp", note: "Still works", parts: [em("💡",320,460,150)] },
+      { name: "Old laptop", note: "Probably won’t turn on", parts: [em("💻",590,480,170)] },
+      { name: "Framed photo", note: "Photo from the 8th grade trip", parts: [em("🖼️",860,470,130)] },
+      { name: "Bulletin board", note: "Covered in ticket stubs and photos", rect: [600,150,960,370] }
+    ] },
+  { label: "Closet", wall: "#E9E4DA", floor: "#BFAE92",
+    draw(g){ g.fillStyle = "#CDBFA8"; g.fillRect(200, 90, 800, 690); g.fillStyle = "#B6A68C"; g.fillRect(220, 110, 760, 650); g.fillStyle = "#7A6A55"; g.fillRect(230, 190, 740, 10); },
+    items: [
+      { name: "Old clothes", note: "T-shirts, a dress, and a winter coat", parts: [em("👕",380,330,170), em("👗",560,340,180), em("🧥",750,330,170)] },
+      { name: "Sneakers", note: "Two pairs on the closet floor", parts: [em("👟",420,690,110), em("👟",560,690,110)] },
+      { name: "School backpack", note: "Still has a few notebooks in it", parts: [em("🎒",820,670,150)] }
+    ] }
+];
+const demoCache = {};
+function demoSceneCanvas(k){
+  if (demoCache[k] && demoCache[k].canvas) return demoCache[k].canvas;
+  const sc = DEMO_SCENES[k], cv = document.createElement("canvas"); cv.width = DW; cv.height = DH;
+  const g = cv.getContext("2d");
+  g.fillStyle = sc.wall; g.fillRect(0, 0, DW, DH);
+  g.fillStyle = sc.floor; g.fillRect(0, 780, DW, DH - 780);
+  g.fillStyle = "rgba(0,0,0,.06)"; g.fillRect(0, 770, DW, 10);
+  sc.draw(g);
+  g.textAlign = "center"; g.textBaseline = "middle";
+  sc.items.forEach(it => (it.parts || []).forEach(p => { g.font = p.s + "px 'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji',sans-serif"; g.fillText(p.e, p.x, p.y); }));
+  const grad = g.createRadialGradient(DW/2, DH/2, DH*0.35, DW/2, DH/2, DH*0.85); grad.addColorStop(0, "rgba(0,0,0,0)"); grad.addColorStop(1, "rgba(0,0,0,.22)");
+  g.fillStyle = grad; g.fillRect(0, 0, DW, DH);
+  demoCache[k] = { canvas: cv, url: cv.toDataURL("image/jpeg", 0.7) };
+  return cv;
+}
+function demoSceneUrl(k){ demoSceneCanvas(k); return demoCache[k].url; }
+function itemBox(it){
+  let x1, y1, x2, y2;
+  if (it.rect){ [x1,y1,x2,y2] = it.rect; }
+  else { x1 = Math.min(...it.parts.map(p => p.x - p.s*0.58)); y1 = Math.min(...it.parts.map(p => p.y - p.s*0.58)); x2 = Math.max(...it.parts.map(p => p.x + p.s*0.58)); y2 = Math.max(...it.parts.map(p => p.y + p.s*0.58)); }
+  return [x1/DW*1000, y1/DH*1000, x2/DW*1000, y2/DH*1000];
+}
+
 /* ---------- demo data ---------- */
 function placeholder(emoji, bg, label){
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400"><rect width="400" height="400" fill="${bg}"/><circle cx="200" cy="185" r="120" fill="#ffffff" opacity=".35"/><text x="200" y="230" font-size="140" text-anchor="middle">${emoji}</text><text x="200" y="365" font-size="22" text-anchor="middle" fill="#22302A" opacity=".55" font-family="Arial">Sample photo</text></svg>`;
@@ -998,18 +1570,20 @@ function viewPlan(){
   const r = role();
   if (r === "child"){
     const p = S.room.plan;
+    if (!p && S.room.arShot) return `<div class="stack"><h2>How ${esc(S.room.name)} could look</h2><img class="arshot" src="${S.room.arShot}" alt="AR preview from ${esc(parentName())}"><span class="small muted">AR preview from ${esc(parentName())}</span></div>`;
     if (!p) return `<div class="empty"><div class="art">${I.plan}</div><h2>No plan yet</h2><p class="muted">When ${esc(parentName())} plans what the room becomes, you’ll see it here.</p></div>`;
     lsSet("keepers-plan-seen-"+S.code, String(S.room.planSavedAt||0));
     const [lo,hi] = costRange(p);
     return `<div class="stack">
       <div><h2>${esc(S.room.name)} is becoming a ${esc(p.type.toLowerCase())}</h2><p class="muted small">${p.w} × ${p.l} ft · saved by ${esc(parentName())}</p></div>
+      ${S.room.arShot ? `<div class="stack"><strong>How it could look</strong><img class="arshot" src="${S.room.arShot}" alt="AR preview of the new room from ${esc(parentName())}"><span class="small muted">AR preview from ${esc(parentName())}</span></div>` : ""}
       <div class="planwrap">${planSvg(p, false)}</div>
       <div class="cost"><span>Estimated new furniture <span class="sim">Prototype: simulated</span></span><strong>${money(lo)}–${money(hi)}</strong></div>
     </div>`;
   }
   if (!S.plan){
     return `<div class="stack">
-      <div class="empty" style="padding-bottom:6px"><div class="art">${I.plan}</div><h2>What will this room become?</h2><p class="muted">Plan the new layout now, or come back once everything’s sorted. Items marked “Keep at home” can be placed in the plan.</p></div>
+      <div class="empty" style="padding-bottom:6px"><div class="art">${I.plan}</div><h2>What will this room become?</h2><p class="muted">Plan the new layout now, or come back once everything’s sorted. ${keptItems().length ? "You have "+keptItems().length+" kept item"+(keptItems().length===1?"":"s")+" ready to place in the new room." : "Items marked “Keep at home” can be placed in the plan."}</p></div>
       <button class="btn primary block" id="p-start">Plan the new room</button>
     </div>`;
   }
@@ -1029,26 +1603,38 @@ function viewPlan(){
       <label class="field" for="p-l">Length (ft)<input id="p-l" type="number" inputmode="decimal" min="6" max="30" step="0.5" value="${p.l}"></label>
     </div>
     <div>
-      <div class="row" style="justify-content:space-between;margin-bottom:6px"><strong>Tap to add, then drag to place</strong></div>
+      <div class="keptsec">
+        <div class="row" style="justify-content:space-between;flex-wrap:wrap"><strong>Kept from ${esc(S.room.name)}</strong>${kept.filter(i => !placedKeep.has(i.id)).length > 1 ? `<button class="btn" id="p-addall">Place all ${kept.filter(i => !placedKeep.has(i.id)).length}</button>` : ""}</div>
+        ${kept.length ? `<div class="tray" role="group" aria-label="Kept items">${kept.map(i => `<button class="kept ${placedKeep.has(i.id)?"placed":""}" data-addkeep="${i.id}" ${placedKeep.has(i.id)?"disabled":""}>${i.photo?`<img src="${i.photo}" alt="">`:""}<span>${esc(i.name)}<small>${placedKeep.has(i.id)?"In the plan":"Tap to place"}</small></span></button>`).join("")}</div>
+          <p class="small muted">${placedKeep.size} of ${kept.length} kept item${kept.length===1?"":"s"} placed.</p>`
+        : `<p class="small muted">Nothing is marked “Keep at home” yet. When ${esc(childName())} chooses Keep at home for an item, it shows up here so you can find it a spot.</p>`}
+      </div>
+    </div>
+    <div>
+      <div class="row" style="justify-content:space-between;margin-bottom:6px"><strong>New furniture</strong><span class="small muted">Tap to add, then drag</span></div>
       <div class="tray" role="group" aria-label="Furniture">
         ${Object.entries(FURN).map(([k,f]) => `<button data-add="${k}">${f.label}<small>${f.w}×${f.h} ft</small></button>`).join("")}
-        ${kept.map(i => `<button class="kept" data-addkeep="${i.id}" ${placedKeep.has(i.id)?"disabled":""}>${esc(i.name)}<small>${placedKeep.has(i.id)?"Placed":"Kept item"}</small></button>`).join("")}
       </div>
-      ${!kept.length ? `<p class="small muted">Items ${esc(childName())} marks “Keep at home” will show up here too.</p>` : ""}
     </div>
     <div class="planwrap" id="planwrap">${planSvg(p, true)}</div>
-    <div class="seltools">${sel ? `<span class="small"><strong>${esc(pieceLabel(sel))}</strong> selected</span><button class="btn" id="p-rot">Rotate</button><button class="btn" id="p-rm" style="color:var(--danger)">Remove</button>` : `<span class="small muted">Tap a piece to rotate or remove it.</span>`}</div>
+    <button class="btn block" id="p-ar">${I.camera} See it in the room <span class="sim">AR preview</span></button>
+    ${S.room.arShot ? `<div class="stack"><strong>Your shared AR preview</strong><img class="arshot" src="${S.room.arShot}" alt="AR preview of the new room"></div>` : ""}
+    <div class="seltools">${sel ? `<span class="small"><strong>${esc(pieceLabel(sel))}</strong> selected</span><button class="btn" id="p-rot">Rotate</button>${sel.kind==="keep" ? `<button class="btn" id="p-smaller" aria-label="Make smaller">Smaller</button><button class="btn" id="p-bigger" aria-label="Make bigger">Bigger</button>` : ""}<button class="btn" id="p-rm" style="color:var(--danger)">Remove</button>` : `<span class="small muted">Tap a piece to rotate or remove it.</span>`}</div>
     <div class="cost"><span>Estimated new furniture <span class="sim">Prototype: simulated</span></span><strong>${money(lo)}–${money(hi)}</strong></div>
     <button class="btn primary block" id="p-save">${S.planDirty ? "Save plan" : (S.room.plan ? "Plan saved" : "Save plan")}</button>
     ${S.room.plan ? `<p class="small muted" style="text-align:center">${esc(childName())} can see the saved plan.</p>` : ""}
   </div>`;
 }
+const KEEP_SIZES = [[/guitar|instrument|keyboard/i,[1.5,3.5]],[/shelf|bookcase/i,[3,1]],[/desk|table/i,[4,2]],[/dresser/i,[5,1.7]],[/chair|stool/i,[2,2]],[/\bbed\b/i,[5,6.7]],[/lamp|globe|clock|plant|frame|photo|figurine/i,[1,1]],[/poster|print|board|art|painting|mirror/i,[3,0.5]],[/clothes|coat|dress|shirt/i,[3,2]],[/stuffed|teddy|bear|bunny/i,[1.5,1.5]],[/rug|mat/i,[5,3]],[/box|bin|papers|yearbook|book|trophy|trophies|backpack|sneaker|shoe/i,[2,1.5]]];
+function keepSize(name){ for (const [re, wh] of KEEP_SIZES) if (re.test(name||"")) return wh.slice(); return [2,2]; }
+function keepPiece(it, p){ const [w,h] = keepSize(it ? it.name : ""); return {id:rid(), kind:"keep", itemId: it ? it.id : null, label: it ? it.name : "Kept item", w, h, x:0, y:0, rot:0}; }
+function keepPhoto(pc){ const it = S.items.find(i => i.id===pc.itemId); return it && it.photo ? it.photo : null; }
 function pieceLabel(p){
   if (p.kind==="keep"){ const it = S.items.find(i => i.id===p.itemId); return it ? it.name : (p.label||"Kept item"); }
   return FURN[p.kind] ? FURN[p.kind].label : p.kind;
 }
 function pieceDims(p){
-  const base = p.kind==="keep" ? {w:2, h:2} : FURN[p.kind];
+  const base = p.kind==="keep" ? {w: p.w || 2, h: p.h || 2} : FURN[p.kind];
   return (p.rot % 180 === 0) ? {w:base.w, h:base.h} : {w:base.h, h:base.w};
 }
 function planSvg(p, editable){
@@ -1063,6 +1649,18 @@ function planSvg(p, editable){
     const keep = pc.kind==="keep";
     const label = pieceLabel(pc);
     const fs = Math.max(0.32, Math.min(0.55, d.w/ (label.length*0.55)));
+    const photo = keep ? keepPhoto(pc) : null;
+    if (photo && d.w >= 0.8 && d.h >= 0.8){
+      const strip = Math.min(0.55, d.h*0.38), lfs = Math.max(0.26, Math.min(0.42, d.w/(label.length*0.55)));
+      return `<g class="pc" data-pc="${pc.id}" transform="translate(${pad+pc.x} ${pad+pc.y})" style="cursor:${editable?"grab":"default"}">
+        <clipPath id="cp-${pc.id}"><rect width="${d.w}" height="${d.h}" rx="0.15"/></clipPath>
+        <rect width="${d.w}" height="${d.h}" rx="0.15" fill="var(--keep-soft)"/>
+        <image href="${photo}" width="${d.w}" height="${d.h}" preserveAspectRatio="xMidYMid slice" clip-path="url(#cp-${pc.id})" style="pointer-events:none"/>
+        <rect y="${d.h-strip}" width="${d.w}" height="${strip}" fill="var(--surface)" opacity=".88" clip-path="url(#cp-${pc.id})" style="pointer-events:none"/>
+        <text x="${d.w/2}" y="${d.h-strip/2}" font-size="${lfs}" text-anchor="middle" dominant-baseline="central" fill="var(--ink)" font-family="Atkinson Hyperlegible, Arial, sans-serif" style="pointer-events:none">${esc(label.length>16?label.slice(0,15)+"…":label)}</text>
+        <rect width="${d.w}" height="${d.h}" rx="0.15" fill="transparent" stroke="${isSel?"var(--accent)":"var(--keep)"}" stroke-width="${isSel?0.14:0.08}"/>
+      </g>`;
+    }
     return `<g class="pc" data-pc="${pc.id}" transform="translate(${pad+pc.x} ${pad+pc.y})" style="cursor:${editable?"grab":"default"}">
       <rect width="${d.w}" height="${d.h}" rx="0.15" fill="${keep?"var(--keep-soft)":"var(--surface-2)"}" stroke="${isSel?"var(--accent)":(keep?"var(--keep)":"var(--muted)")}" stroke-width="${isSel?0.12:0.06}"/>
       <text x="${d.w/2}" y="${d.h/2}" font-size="${fs}" text-anchor="middle" dominant-baseline="central" fill="var(--ink)" font-family="Atkinson Hyperlegible, Arial, sans-serif" style="pointer-events:none">${esc(label.length>16?label.slice(0,15)+"…":label)}</text>
@@ -1087,6 +1685,7 @@ function clampPiece(pc, p){
 function markDirty(){ S.planDirty = true; }
 function bindPlan(){
   if (role()!=="parent") return;
+  const arb = $("#p-ar"); if (arb) arb.onclick = openAR;
   const st = $("#p-start"); if (st){ st.onclick = () => { S.plan = defaultPlan(); markDirty(); render(); }; return; }
   const p = S.plan; if (!p) return;
   qa("[data-type]").forEach(b => b.onclick = () => { p.type = b.dataset.type==="__custom" ? (ROOM_TYPES.includes(p.type) ? "Custom room" : p.type) : b.dataset.type; markDirty(); render(); });
@@ -1100,9 +1699,24 @@ function bindPlan(){
   });
   qa("[data-addkeep]").forEach(b => b.onclick = () => {
     const it = S.items.find(i => i.id===b.dataset.addkeep);
-    const pc = {id:rid(), kind:"keep", itemId:b.dataset.addkeep, label: it ? it.name : "Kept item", x:(p.w-2)/2, y:(p.l-2)/2, rot:0};
+    const pc = keepPiece(it, p); const d = pieceDims(pc); pc.x = (p.w-d.w)/2; pc.y = (p.l-d.h)/2;
     clampPiece(pc,p); p.pieces.push(pc); S.sel = pc.id; markDirty(); render();
   });
+  const all = $("#p-addall"); if (all) all.onclick = () => {
+    const placed = new Set(p.pieces.filter(x => x.kind==="keep").map(x => x.itemId));
+    let cx = 0.4, cy = 0, rowH = 0, bottom = p.l - 0.4;
+    keptItems().filter(i => !placed.has(i.id)).forEach(it => {
+      const pc = keepPiece(it, p); const d = pieceDims(pc);
+      if (cx + d.w > p.w - 0.4){ cx = 0.4; bottom -= rowH + 0.3; rowH = 0; }
+      pc.x = cx; pc.y = Math.max(0, bottom - d.h); clampPiece(pc, p);
+      cx += d.w + 0.3; rowH = Math.max(rowH, d.h);
+      p.pieces.push(pc);
+    });
+    S.sel = null; markDirty(); render();
+  };
+  const resize = f => () => { const pc = p.pieces.find(x => x.id===S.sel); if (!pc || pc.kind!=="keep") return; pc.w = Math.max(0.5, Math.min(10, Math.round((pc.w||2)*f*4)/4)); pc.h = Math.max(0.5, Math.min(10, Math.round((pc.h||2)*f*4)/4)); clampPiece(pc,p); markDirty(); render(); };
+  const sm = $("#p-smaller"); if (sm) sm.onclick = resize(0.8);
+  const bg = $("#p-bigger"); if (bg) bg.onclick = resize(1.25);
   const rot = $("#p-rot"); if (rot) rot.onclick = () => { const pc = p.pieces.find(x => x.id===S.sel); if (!pc) return; pc.rot = (pc.rot+90)%360; clampPiece(pc,p); markDirty(); render(); };
   const rm = $("#p-rm"); if (rm) rm.onclick = () => { p.pieces = p.pieces.filter(x => x.id!==S.sel); S.sel=null; markDirty(); render(); };
   $("#p-save").onclick = async () => {
