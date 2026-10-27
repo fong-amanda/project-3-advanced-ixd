@@ -1,0 +1,899 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow">
+
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fridge Post</title>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#ECECEA; --paper:#FFFFFF; --soft:#F3F3F1; --white:#FFFFFF; --ink:#161616; --ink-2:#4A4A48; --ink-3:#7A7A77; --line:#ECECE9;
+    --note:#FBEFC4; --note-pink:#FAD6DB; --note-blue:#DCE8F7; --blue:#2F5BEA;
+    --r:20px; --shadow:none;
+    --sans:"Figtree",system-ui,sans-serif; --mono:"IBM Plex Mono",ui-monospace,monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);font-family:var(--sans);color:var(--ink);-webkit-font-smoothing:antialiased;font-size:15px}
+  button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;padding:0;min-height:44px}
+  button:focus-visible,input:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+  input{font:inherit;color:inherit}
+  .hidden{display:none !important}
+  .mono{font-family:var(--mono);font-weight:500;text-transform:uppercase;letter-spacing:.05em}
+
+  .views{position:sticky;top:0;z-index:40;display:flex;justify-content:center;gap:4px;padding:14px 0 6px;background:linear-gradient(var(--bg) 70%,rgba(232,232,229,0))}
+  .views button{min-height:36px;height:36px;padding:0 16px;border-radius:999px;font-size:14px;font-weight:500;color:var(--ink-2)}
+  .views button.on{background:var(--ink);color:#fff}
+  .board{display:grid;grid-template-columns:390px minmax(560px,1fr) 390px;gap:36px;padding:16px 36px 48px;align-items:start;max-width:1640px;margin:0 auto}
+  .col-label{font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);margin:0 0 10px}
+  body[data-view="maya"] .board,body[data-view="mom"] .board,body[data-view="fridge"] .board{grid-template-columns:1fr;justify-items:center}
+  body[data-view="maya"] #fridgeSec,body[data-view="maya"] #mom,body[data-view="mom"] #fridgeSec,body[data-view="mom"] #maya,body[data-view="fridge"] #maya,body[data-view="fridge"] #mom{display:none}
+  body[data-view="fridge"] #fridgeSec{width:100%;max-width:760px}
+  body[data-view="fridge"] .display{left:11%;width:78%;top:36%}
+  body[data-view="maya"] #maya,body[data-view="mom"] #mom{width:390px}
+  @media (max-width:1400px){.board{grid-template-columns:1fr;justify-items:center}}
+  @media (max-width:520px){.board{padding:8px 0 32px} .phone{width:100vw;height:calc(100vh - 70px);border-radius:0;padding:0;box-shadow:none} .screen{border-radius:0} .island,.homebar{display:none} .col-label{display:none}}
+
+  /* ============ phone chrome ============ */
+  .phone{width:390px;height:844px;background:#111;border-radius:48px;padding:12px;box-shadow:0 20px 50px rgba(0,0,0,.25)}
+  .screen{background:var(--paper);border-radius:38px;height:100%;overflow:hidden;position:relative}
+  .island{position:absolute;top:12px;left:50%;transform:translateX(-50%);width:110px;height:32px;background:#111;border-radius:20px;z-index:20}
+  .status{position:absolute;top:14px;left:28px;right:28px;display:flex;justify-content:space-between;font-size:14px;font-weight:600;z-index:19;pointer-events:none}
+  .status.light{color:#fff}
+  .homebar{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);width:134px;height:5px;border-radius:3px;background:var(--ink);opacity:.85;z-index:20}
+  .lock .homebar,.lockbar{background:#fff}
+  .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:12px 18px;border-radius:999px;font-size:14px;display:flex;gap:14px;align-items:center;opacity:0;transition:opacity .2s;pointer-events:none;z-index:50}
+  .toast.show{opacity:1;pointer-events:auto}
+  .toast button{min-height:0;color:#F8E39A;font-weight:600}
+
+  /* ============ home screen (Maya) ============ */
+  .lock{position:absolute;inset:0;z-index:12;color:#fff;background:radial-gradient(120% 90% at 20% 15%,#C9D7E6 0%,#8FA3BF 35%,#5B6E8C 70%,#2E3A52 100%);display:flex;flex-direction:column;padding:62px 20px 0;transition:transform .35s ease,opacity .35s}
+  .lock.away{transform:translateY(-6%);opacity:0;pointer-events:none}
+  .lock .date,.lock .time{display:none}
+  .hrow{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:6px}
+  .wlabel{font-size:12px;text-align:center;margin:6px 0 14px;text-shadow:0 1px 4px rgba(0,0,0,.35)}
+  .widget{grid-column:1/-1;width:100%;height:168px;border-radius:22px;position:relative;overflow:hidden;background:#fff;box-shadow:0 8px 24px rgba(0,0,0,.14);text-align:left;color:#fff;transform:none;padding:0;margin:0;min-height:0}
+  .widget .inner{position:absolute;inset:0;border-radius:0;overflow:hidden;background:var(--paper)}
+  .widget .magnetdot{display:none}
+  .widget .react{position:absolute;left:12px;top:12px;height:32px;padding:0 10px;border-radius:999px;background:#fff;display:flex;align-items:center;font-size:16px;line-height:1;z-index:2;transform:rotate(-4deg)}
+  .widget .inner .who{font-size:13px}
+  .wquick{height:168px;border-radius:22px;background:rgba(255,255,255,.92);backdrop-filter:blur(14px);color:var(--ink);padding:14px;display:flex;flex-direction:column;gap:8px}
+  .wquick .wt{font-size:13px;font-weight:600;color:var(--ink-2);margin-bottom:2px}
+  .wquick button{flex:1;min-height:0;border-radius:12px;background:var(--note);font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink)}
+  .wquick button:nth-child(3){background:var(--note-pink)}
+  .icons{height:168px;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:10px 14px;align-items:center;justify-items:center}
+  .icons .ic,.irow .ic,.dock .ic{width:60px;height:60px;border-radius:14px;display:grid;place-items:center}
+  .icons .ic span,.irow .ic span{display:block}
+  .ilabel{font-size:11px;text-align:center;margin-top:5px;text-shadow:0 1px 4px rgba(0,0,0,.35)}
+  .irow{display:flex;justify-content:space-between;padding:0 6px;margin-top:4px}
+  .search{margin:auto auto 0;background:rgba(255,255,255,.3);backdrop-filter:blur(10px);border-radius:999px;padding:7px 16px;font-size:13px;color:#fff}
+  .dock{margin:14px -6px 0;background:rgba(255,255,255,.28);backdrop-filter:blur(16px);border-radius:32px;padding:14px 18px 36px;display:flex;justify-content:space-between}
+  .lock .quick{display:none}
+  .lock .bottom{display:none}
+  /* ============ shared "post" visuals (widget, home, pile) ============ */
+  .post{position:relative;overflow:hidden;background:var(--white)}
+  .post img.full{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+  .post .notebg{position:absolute;inset:0;display:grid;place-items:center;padding:20px 22px;font-family:var(--mono);font-weight:500;font-size:15px;text-transform:uppercase;letter-spacing:.05em;line-height:1.5;color:var(--ink);text-align:center}
+  .post .notebg.y{background:var(--note)} .post .notebg.p{background:var(--note-pink)} .post .notebg.w{background:#fff}
+  .post .notebg img{width:100%;height:100%;object-fit:contain}
+  .post .who{position:absolute;left:12px;bottom:12px;font-size:13px;color:#fff;text-shadow:0 1px 6px rgba(0,0,0,.35);display:flex;gap:6px;align-items:baseline}
+  .post .who .av{display:none}
+  .post .who .t{opacity:.8}
+  .post .notebg~.who{color:var(--ink-2);text-shadow:none}
+  .post .ago{display:none}
+  .post .sticky{position:absolute;right:12px;bottom:12px;max-width:52%;background:var(--note);color:var(--ink);padding:9px 11px;font-family:var(--mono);font-weight:500;font-size:11px;text-transform:uppercase;letter-spacing:.05em;line-height:1.4;transform:rotate(2deg)}
+  .post .emptyp{position:absolute;inset:0;display:grid;place-items:center;font-size:14px;color:var(--ink-3)}
+  /* ============ the app (both phones) ============ */
+  .app{position:absolute;inset:0;display:flex;flex-direction:column;background:var(--paper)}
+  .app header{padding:60px 22px 6px;display:flex;justify-content:space-between;align-items:center}
+  .app header h1{font-size:28px;font-weight:600;letter-spacing:-.025em;margin:0}
+  .icon-btn{width:44px;height:44px;border-radius:50%;background:transparent;display:grid;place-items:center;color:var(--ink-2)}
+  .icon-btn.text{width:auto;padding:0 6px;font-weight:500;font-size:15px;color:var(--ink-2);white-space:nowrap}
+  .scroll{flex:1;overflow-y:auto;padding:0 0 170px;scrollbar-width:none}
+  .scroll::-webkit-scrollbar{display:none}
+  .sect{font-size:13px;font-weight:500;color:var(--ink-3);margin:0 22px 10px}
+  .sect-row{display:flex;justify-content:space-between;align-items:baseline;margin:26px 22px 8px}
+  .sect-row .sect{margin:0}
+  .sect-row button{min-height:32px;height:32px;padding:0;font-size:14px;font-weight:500;color:var(--blue)}
+  /* hero: large print, edge to edge with a small inset, latest post */
+  .now{position:relative;margin:6px 16px 0;background:#fff;padding:10px 10px 12px;border-radius:4px;box-shadow:0 0 0 1px var(--line),0 6px 18px rgba(0,0,0,.05);transform:rotate(-.8deg)}
+  .now .post{height:300px;border-radius:2px}
+  .now .post.isnote{height:200px}
+  .now .magnetdot{position:absolute;top:-11px;left:50%;transform:translateX(-50%);width:24px;height:24px;border-radius:50%;background:#D4453E;box-shadow:0 2px 4px rgba(0,0,0,.25);z-index:2}
+  .now .meta{display:flex;justify-content:space-between;align-items:baseline;padding:10px 4px 0;font-size:13px;color:var(--ink-3)}
+  .now .meta b{font-weight:600;color:var(--ink)}
+  .reacts{display:flex;gap:8px;margin:12px 22px 0;align-items:center;flex-wrap:wrap;min-height:44px}
+  .reacts .rbtn{min-height:40px;height:40px;padding:0 14px;border-radius:999px;background:var(--soft);font-size:18px;line-height:1;display:flex;align-items:center;gap:6px}
+  .reacts .rbtn.on{background:var(--ink);color:#fff}
+  .reacts .rbtn.plus{font-size:20px;color:var(--ink-2);width:40px;padding:0}
+  .reacts .rchip{height:36px;padding:0 10px;border-radius:999px;background:var(--soft);font-size:17px;display:flex;align-items:center}
+  .reacts .from{font-size:13px;color:var(--ink-3);margin-left:2px}
+  .epick{display:flex;gap:6px;margin:8px 22px 0;flex-wrap:wrap}
+  .epick button{width:44px;height:44px;border-radius:50%;background:var(--soft);font-size:22px;line-height:1}
+  .epick button.on{background:var(--ink)}
+  /* this week: an overlapping pile of prints, horizontal */
+  .week{display:flex;gap:0;padding:6px 22px 10px;overflow-x:auto;scrollbar-width:none}
+  .week::-webkit-scrollbar{display:none}
+  .week .mini{flex:none;width:118px;background:#fff;padding:5px 5px 18px;border-radius:2px;box-shadow:0 0 0 1px var(--line),0 4px 12px rgba(0,0,0,.06);transform:rotate(var(--r,0deg));position:relative;margin-right:-14px}
+  .week .mini:last-child{margin-right:0}
+  .week .mini .post{height:112px;border-radius:1px}
+  .week .mini .post .notebg{font-size:10px;padding:8px;letter-spacing:.04em}
+  .week .mini .lbl{position:absolute;left:7px;right:7px;bottom:4px;display:flex;justify-content:space-between;gap:6px;font-size:10.5px;color:var(--ink-3)}
+  .week .mini .lbl b{flex:none;font-weight:600;color:var(--ink-2)}
+  .week .mini .lbl span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .week .mini .rx{position:absolute;right:-6px;top:-8px;height:24px;padding:0 6px;border-radius:999px;background:#fff;box-shadow:0 0 0 1px var(--line);display:flex;align-items:center;font-size:13px;line-height:1;transform:rotate(5deg)}
+  .empty{color:var(--ink-3);font-size:14px;padding:4px 22px}
+  /* coming up: plain rows, hairlines, big numerals */
+  .upcoming{margin:0 22px}
+  .upcoming .ev{display:flex;gap:14px;align-items:center;padding:12px 0;border-top:1px solid var(--line);min-height:56px}
+  .upcoming .ev:first-child{border-top:0}
+  .upcoming .ev .d{width:40px;flex:none;line-height:1}
+  .upcoming .ev .d b{display:block;font-size:22px;font-weight:600;letter-spacing:-.02em}
+  .upcoming .ev .d span{font-size:11px;color:var(--ink-3)}
+  .upcoming .ev .t{flex:1;min-width:0;font-size:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .upcoming .ev .t img{height:26px;display:block}
+  .upcoming .ev .tagw{font-size:13px;color:var(--ink-3);flex:none;background:none;padding:0;font-family:var(--sans);text-transform:none;letter-spacing:0}
+  .upcoming .ev .tagw.me{box-shadow:none}
+  .upcoming.compact .ev{padding:10px 0;min-height:48px}
+  .upcoming.compact .ev .d b{font-size:19px}
+  .upcoming.compact .ev .t{font-size:15px}
+  /* pinned notes: paper, lined, blue ink */
+  .notes-pins{display:flex;gap:0;padding:4px 22px 6px;overflow-x:auto;scrollbar-width:none}
+  .notes-pins::-webkit-scrollbar{display:none}
+  .notes-pins .pinned{flex:none;width:132px;min-height:96px;background:var(--note);padding:12px 12px;font-family:var(--mono);font-size:11.5px;text-transform:uppercase;letter-spacing:.04em;line-height:1.5;color:var(--ink);transform:rotate(var(--r,0deg));margin-right:-10px;background-image:repeating-linear-gradient(transparent 0 23px,rgba(0,0,0,.05) 23px 24px)}
+  .notes-pins .pinned:nth-child(even){background-color:var(--note-pink)}
+  .notes-pins .pinned img{height:40px;display:block;mix-blend-mode:multiply}
+  /* composer: one primary action */
+  .composer{position:absolute;left:0;right:0;bottom:0;padding:16px 22px 30px;background:linear-gradient(180deg,rgba(255,255,255,0),var(--paper) 35%);z-index:5;display:flex;flex-direction:column;align-items:center;gap:6px}
+  .phrases{display:none}
+  .bar{display:none}
+  .primary-cta{width:100%;height:54px;border-radius:999px;background:var(--ink);color:#fff;font-weight:600;font-size:16px;display:flex;align-items:center;justify-content:center;gap:10px}
+  .primary-cta svg{stroke:#fff}
+  .secondary-cta{min-height:36px;height:36px;font-size:15px;font-weight:500;color:var(--ink-2)}
+  /* note sheet */
+  .notesheet .line{width:100%;border:0;border-bottom:1px solid var(--line);background:none;font-size:18px;padding:12px 0;outline:none}
+  .notesheet .sug{display:flex;gap:6px;flex-wrap:wrap;margin-top:14px}
+  .notesheet .sug button{min-height:36px;height:36px;font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.05em;background:var(--note);padding:0 11px;color:var(--ink);border-radius:4px}
+  .notesheet .handlink{display:block;margin:18px auto 0;min-height:36px;font-size:14px;font-weight:500;color:var(--blue)}
+  .notesheet .padwrap{margin-top:12px}
+  /* sheets */
+  .sheet{position:absolute;left:0;right:0;bottom:0;max-height:88%;background:#fff;border-radius:28px 28px 0 0;box-shadow:0 0 0 1px var(--line);z-index:30;transform:translateY(105%);transition:transform .3s ease;display:flex;flex-direction:column;overflow:hidden}
+  .sheet.open{transform:translateY(0)}
+  .sheet .head{display:flex;justify-content:space-between;align-items:center;padding:18px 22px 8px}
+  .sheet .head h2{font-size:20px;font-weight:600;margin:0;letter-spacing:-.01em}
+  .sheet .head p{margin:2px 0 0;font-size:13px;color:var(--ink-3)}
+  .sheet .body{overflow-y:auto;padding:8px 22px 36px;scrollbar-width:none}
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;align-content:start}
+  .grid button{aspect-ratio:1;overflow:hidden;border-radius:6px;background:var(--soft);min-height:0}
+  .grid img{width:100%;height:100%;object-fit:cover;display:block}
+  .grid .camtile{grid-column:1/-1;aspect-ratio:auto;height:88px;display:flex;align-items:center;justify-content:center;gap:10px;background:var(--ink) !important;color:#fff;border-radius:3px;margin-bottom:4px}
+  .camtile svg{stroke:#fff}
+  .camtile b{font-size:12px;font-weight:600}
+  .scrim{position:absolute;inset:0;background:rgba(0,0,0,.18);z-index:29;opacity:0;pointer-events:none;transition:opacity .3s}
+  .scrim.on{opacity:1;pointer-events:auto}
+
+  /* photo compose (full screen) */
+  .compose{position:absolute;inset:0;background:#fff;z-index:31;display:flex;flex-direction:column;transform:translateY(105%);transition:transform .3s ease}
+  .compose.open{transform:translateY(0)}
+  .compose .top{padding:58px 18px 10px;display:flex;justify-content:space-between;align-items:center}
+  .compose .top h2{font-size:18px;font-weight:600;margin:0}
+  .compose .frame{margin:4px 22px 0;background:#fff;padding:8px 8px 8px;border-radius:3px;box-shadow:0 0 0 1px var(--line);position:relative;transform:rotate(-.6deg)}
+  .compose .frame .post{height:360px;border-radius:3px}
+  .compose .frame canvas{position:absolute;inset:8px;width:calc(100% - 16px);height:360px;touch-action:none;cursor:crosshair}
+  .compose .capbar{margin:18px 22px 0;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--line);padding:4px 0 10px}
+  .compose .capbar input{flex:1;min-width:0;border:0;background:none;font-size:15px;outline:none}
+  .compose .capbar input{font-size:18px;padding:8px 0}
+  .compose .capbar button{height:36px;min-height:36px;padding:0 4px;font-size:14px;font-weight:500;color:var(--blue)}
+  .compose .sug{display:flex;gap:6px;flex-wrap:wrap;margin:12px 22px 0}
+  .compose .sug button{min-height:34px;height:34px;font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.05em;background:var(--note);padding:0 10px;color:var(--ink);border-radius:4px}
+  .compose .sug button.on{outline:2px solid var(--ink)}
+  .compose .capbar button.on{color:var(--ink);text-decoration:underline;text-underline-offset:4px}
+  .compose .phrases{margin:8px 22px 0}
+  .compose .phrases button{height:40px}
+  .compose .phrases button.on{outline:2px solid var(--ink)}
+  .compose .acts{margin-top:auto;padding:12px 22px 36px}
+  .compose .acts .primary{width:100%;height:52px;border-radius:999px;background:var(--ink);color:#fff;font-weight:600;font-size:16px}
+
+  /* camera screen: viewfinder → shutter → flash → preview */
+  .camscreen{position:absolute;inset:0;background:#000;z-index:32;display:flex;flex-direction:column;transform:translateY(105%);transition:transform .3s ease}
+  .camscreen.open{transform:translateY(0)}
+  .camscreen .vf{position:relative;flex:1;margin:58px 12px 0;border-radius:28px;overflow:hidden;background:#111}
+  .camscreen .vf img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scale(1.02);animation:drift 6s ease-in-out infinite alternate}
+  @keyframes drift{from{transform:scale(1.02) translate(0,0)}to{transform:scale(1.06) translate(-1.5%,1%)}}
+  .camscreen .grid9{position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.18) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.18) 1px,transparent 1px);background-size:33.4% 33.4%;pointer-events:none}
+  .camscreen .vf .close{position:absolute;top:12px;left:12px;background:rgba(0,0,0,.45);color:#fff;border-radius:999px;padding:0 14px;height:36px;min-height:36px;font-size:14px;backdrop-filter:blur(8px)}
+  .camscreen .flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none}
+  .camscreen .flash.go{animation:flash .45s ease-out}
+  @keyframes flash{0%{opacity:0}10%{opacity:1}100%{opacity:0}}
+  .camscreen .snap{position:absolute;inset:0;object-fit:cover;width:100%;height:100%;opacity:0;pointer-events:none;transform-origin:50% 50%}
+  .camscreen .snap.go{animation:snap .55s ease-in forwards}
+  @keyframes snap{0%{opacity:1;transform:scale(1)}60%{opacity:1;transform:scale(.92)}100%{opacity:0;transform:scale(.3) translateY(60%)}}
+  .camscreen .ctrls{height:150px;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:0 28px 22px}
+  .camscreen .thumb{width:48px;height:48px;border-radius:10px;overflow:hidden;box-shadow:0 0 0 2px rgba(255,255,255,.6);justify-self:start}
+  .camscreen .thumb img{width:100%;height:100%;object-fit:cover;display:block}
+  .camscreen .shutterbtn{width:76px;height:76px;border-radius:50%;background:#fff;box-shadow:0 0 0 4px #000,0 0 0 7px #fff;transition:transform .08s}
+  .camscreen .shutterbtn:active{transform:scale(.9)}
+  .camscreen .flip{justify-self:end;width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,.16);display:grid;place-items:center}
+  .compose .top .retake{color:var(--blue)}
+
+  /* handwriting sheet */
+  .padwrap{position:relative;height:200px;border-radius:3px;background:var(--note);background-image:repeating-linear-gradient(transparent 0 31px,rgba(0,0,0,.06) 31px 32px);overflow:hidden}
+  .padwrap canvas{display:block;width:100%;height:100%;touch-action:none}
+  .padwrap .ph{position:absolute;inset:0;display:grid;place-items:center;color:#A9A9A5;font-family:var(--mono);font-size:12px;text-transform:uppercase;letter-spacing:.06em;pointer-events:none}
+  .rowbtns{display:flex;gap:8px;margin-top:12px}
+  .rowbtns button{flex:1;height:50px;border-radius:999px;background:var(--soft);font-weight:500}
+  .rowbtns button.primary{background:var(--ink);color:#fff;font-weight:600}
+  .rowbtns button:disabled{opacity:.35;cursor:default}
+
+  /* settings sheet */
+  .setrow{display:flex;justify-content:space-between;align-items:center;padding:14px 0;border-top:1px solid var(--line);font-size:16px}
+  .setrow:first-child{border-top:0}
+  .setrow small{display:block;font-size:13px;color:var(--ink-3)}
+  .swatches{display:flex;gap:10px}
+  .swatch{width:40px;height:40px;min-height:40px;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(0,0,0,.1)}
+  .swatch.on{box-shadow:0 0 0 2px var(--paper),0 0 0 4px var(--ink)}
+  .toggle{appearance:none;width:52px;height:30px;border-radius:15px;background:#D9D9D6;position:relative;margin:0;cursor:pointer;flex:none}
+  .toggle::after{content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#fff;transition:left .15s}
+  .toggle:checked{background:var(--ink)} .toggle:checked::after{left:25px}
+  .toggle:checked::before{content:"";position:absolute;left:11px;top:11px;width:5px;height:9px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)}
+  .albums .album{display:flex;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--line)}
+  .albums .stack{width:48px;height:48px;position:relative;flex:none}
+  .albums .stack img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:3px;background:#fff;padding:2px;box-shadow:0 1px 2px rgba(0,0,0,.15)}
+  .albums .stack img:nth-child(2){transform:rotate(-6deg)} .albums .stack img:nth-child(3){transform:rotate(5deg)}
+  .albums .meta{flex:1;min-width:0} .albums .meta b{display:block;font-size:15px;font-weight:600} .albums .meta span{font-size:13px;color:var(--ink-3)}
+  .albums .play{height:40px;min-height:40px;padding:0 14px;border-radius:999px;background:var(--soft);font-size:14px;font-weight:600}
+  .albums .play.on{background:var(--ink);color:#fff}
+  .pickgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:8px}
+  .pickgrid button{aspect-ratio:1;border-radius:6px;overflow:hidden;position:relative;min-height:0;background:#ddd}
+  .pickgrid img{width:100%;height:100%;object-fit:cover;display:block}
+  .pickgrid button::after{content:"";position:absolute;right:6px;top:6px;width:22px;height:22px;border-radius:50%;border:2px solid #fff;background:rgba(0,0,0,.25)}
+  .pickgrid button.on::after{background:var(--ink);border-color:#fff;box-shadow:0 0 0 2px var(--ink)}
+  .inline-field{display:flex;gap:8px;margin-top:10px}
+  .inline-field input{flex:1;min-width:0;padding:12px 0;border:0;border-bottom:1px solid var(--line);background:none;font-size:17px}
+
+  /* ============ fridge (unchanged) ============ */
+  .fridge{position:relative;margin:0 auto;width:100%;max-width:640px;aspect-ratio:3/4;background:linear-gradient(90deg,#F2EDE2 0%,#FBF8F0 45%,#F4EFE4 100%);border-radius:80px 80px 26px 26px;box-shadow:0 30px 60px rgba(0,0,0,.18), inset 0 0 0 1px rgba(0,0,0,.05), inset 0 -18px 30px rgba(0,0,0,.05)}
+  .divider{position:absolute;left:0;right:0;top:27%;height:9px;background:linear-gradient(180deg,#F7F7F7,#B9B9B9 50%,#E8E8E8);box-shadow:0 2px 3px rgba(0,0,0,.18)}
+  .handle{position:absolute;left:10%;width:27%;height:16px;border-radius:9px;background:linear-gradient(180deg,#FAFAFA,#C4C4C4 55%,#EFEFEF);box-shadow:0 3px 5px rgba(0,0,0,.22), inset 0 0 0 1px rgba(0,0,0,.08)}
+  .handle::before,.handle::after{content:"";position:absolute;top:3px;width:12px;height:10px;border-radius:3px;background:#D8D8D8;box-shadow:inset 0 1px 2px rgba(0,0,0,.25)}
+  .handle::before{left:6px} .handle::after{right:6px}
+  .handle.a{top:18%} .handle.b{top:33%}
+  .sticker{position:absolute;box-shadow:0 2px 4px rgba(0,0,0,.14)}
+  .heartmag{width:54px;height:48px;background:#D4453E;clip-path:path("M27 46 L5 24 A12 12 0 0 1 27 10 A12 12 0 0 1 49 24 Z");transform:rotate(-12deg);box-shadow:none;filter:drop-shadow(0 2px 3px rgba(0,0,0,.2))}
+  .receipt{right:9%;bottom:9%;width:20%;aspect-ratio:3/5;background:#FBFAF6;transform:rotate(3deg);padding:8% 6%;font-family:var(--mono);font-size:7px;line-height:1.5;color:#444;text-transform:uppercase;letter-spacing:.04em}
+  .receipt::before{content:"";position:absolute;top:-10px;left:50%;transform:translateX(-50%);width:34%;height:16px;background:#7A2E3A;border-radius:3px 3px 0 0;box-shadow:0 2px 3px rgba(0,0,0,.2)}
+  .receipt b{display:block;font-family:var(--sans);font-weight:600;font-size:11px;letter-spacing:0;text-transform:none;margin-bottom:6px}
+  .receipt i{display:block;font-style:normal;border-bottom:1px dotted #bbb;padding:2px 0}
+  .photo-mag{left:9%;bottom:12%;width:17%;aspect-ratio:4/5;background:#fff;padding:4px 4px 14px;transform:rotate(-5deg)}
+  .photo-mag div{width:100%;height:100%;background:linear-gradient(135deg,#d9d2c2,#b8ac92)}
+  .photo-mag::before{content:"";position:absolute;top:-7px;left:50%;transform:translateX(-50%);width:14px;height:14px;border-radius:50%;background:#2E6DB4;box-shadow:0 1px 2px rgba(0,0,0,.3)}
+  .mag{position:absolute;border-radius:50%;box-shadow:0 1px 2px rgba(0,0,0,.2)}
+  .display{position:absolute;left:9%;top:40%;width:58%;aspect-ratio:16/10;container-type:size;background:#F7F7F5;border-radius:10px;overflow:hidden;box-shadow:0 2px 4px rgba(0,0,0,.15),0 14px 30px rgba(0,0,0,.18);border:7px solid #1A1A1A;user-select:none}
+  .display[data-frame="white"]{border-color:#F6F3EC;box-shadow:0 2px 4px rgba(0,0,0,.12),0 14px 30px rgba(0,0,0,.16), inset 0 0 0 1px rgba(0,0,0,.06)}
+  .display[data-frame="wood"]{border-color:#B98A5C;border-image:linear-gradient(135deg,#D3A978,#A8743F 50%,#C99A6A) 1}
+  .display[data-frame="pink"]{border-color:#F2C7CC}
+  .display[data-frame="blue"]{border-color:#C9DDF3}
+  .display .stage{position:absolute;inset:0;display:grid;grid-template-rows:1fr auto;padding:10px 12px 8px;gap:4px;background:#F7F7F5}
+  .hero{position:relative;min-height:0;overflow:hidden;cursor:pointer;touch-action:none;user-select:none}
+  .hero img{-webkit-user-drag:none;pointer-events:none}
+  .pile{position:absolute;inset:0}
+  .pcard{position:absolute;left:50%;top:50%;height:84%;aspect-ratio:1/0.98;width:auto;background:#fff;padding:5px 5px 18px;border-radius:2px;box-shadow:0 1px 2px rgba(0,0,0,.1),0 10px 24px rgba(0,0,0,.14);transform:translate(-50%,-50%) rotate(var(--r,0deg));transition:transform .35s ease,opacity .35s;display:flex;flex-direction:column}
+  .pcard.back{box-shadow:0 1px 2px rgba(0,0,0,.08),0 6px 14px rgba(0,0,0,.08);opacity:.95}
+  .pcard .ph{flex:1;min-height:0;overflow:hidden;background:#eee;border-radius:1px;display:grid;place-items:center}
+  .pcard .ph img{width:100%;height:100%;object-fit:cover;display:block}
+  .pcard .ph.note{background:var(--note);font-family:var(--mono);font-size:clamp(9px,1.6cqw,16px);text-transform:uppercase;letter-spacing:.05em;text-align:center;padding:8px;line-height:1.3}
+  .pcard .ph.note.pink{background:var(--note-pink)}
+  .pcard .ph.ink{background:#fff} .pcard .ph.ink img{object-fit:contain;mix-blend-mode:multiply}
+  .pcard .cap{position:absolute;left:6px;right:6px;bottom:3px;display:flex;justify-content:space-between;font-size:7.5px;color:var(--ink-3)}
+  .pcard .cap b{font-weight:600;color:var(--ink-2)}
+  .pcard .sticky{position:absolute;right:4px;top:4px;max-width:58%;background:var(--note-blue);color:var(--ink);padding:6px 8px 7px;font-family:var(--mono);font-size:7.5px;text-transform:uppercase;letter-spacing:.05em;line-height:1.35;box-shadow:0 2px 6px rgba(0,0,0,.15);transform:rotate(3deg);border-radius:2px}
+  .pcard .sticky::before{content:"";position:absolute;right:8px;top:-6px;width:7px;height:12px;border:1.5px solid #8a8a86;border-radius:4px;background:transparent}
+  .pcard .rchips{position:absolute;left:-8px;top:-8px;background:#fff;border-radius:999px;padding:2px 6px;font-size:10px;line-height:1.4;box-shadow:0 1px 3px rgba(0,0,0,.15);transform:rotate(-4deg)}
+  .hero .empty-state{position:absolute;inset:0;display:grid;place-items:center;font-size:13px;color:var(--ink-3);text-align:center}
+  .dots{position:absolute;bottom:4px;left:0;right:0;display:flex;justify-content:center;gap:4px}
+  .dots i{width:4px;height:4px;border-radius:50%;background:rgba(0,0,0,.18)} .dots i.on{background:var(--ink)}
+  .display .albumtag{position:absolute;right:10px;top:8px;background:#fff;color:var(--ink-2);border-radius:999px;padding:4px 9px;font-size:8px;font-family:var(--mono);text-transform:uppercase;letter-spacing:.06em;z-index:3}
+  .display.asleep .strip,.display.asleep .dots,.display.asleep .albumtag{opacity:0;pointer-events:none;transition:opacity .4s}
+  .strip{display:flex;align-items:center;gap:6px;min-height:34px}
+  .dreacts{display:flex;gap:4px;align-items:center}
+  .dreacts button{height:28px;min-height:28px;min-width:28px;padding:0 7px;border-radius:999px;background:var(--white);display:flex;align-items:center;justify-content:center;font-size:13px;line-height:1}
+  .dreacts button.on{background:var(--ink);color:#fff}
+  .dreacts button.plus{font-size:16px;color:var(--ink-2)}
+  .dreacts .epk{display:flex;gap:3px}
+  .dreacts .epk button{font-size:13px;min-width:26px;height:26px;min-height:26px;padding:0 5px}
+  .spacer{flex:1}
+  .dbtn{height:26px;min-height:26px;padding:0 10px;border-radius:999px;background:var(--ink);color:var(--white);font-weight:500;font-size:10px;box-shadow:var(--shadow)}
+  #write{position:absolute;inset:0;background:var(--white);display:grid;grid-template-rows:auto 1fr;z-index:5}
+  #write .bar{display:flex;justify-content:space-between;align-items:center;padding:6px 10px;border-bottom:1px solid var(--line);font-size:10px;color:var(--ink-3);border-radius:0;box-shadow:none;background:#fff}
+  #write .bar button{font-weight:500;font-size:10px;padding:4px 9px;min-height:0;border-radius:999px;box-shadow:var(--shadow);color:var(--ink)}
+  #write canvas{width:100%;height:100%;touch-action:none;cursor:crosshair;display:block}
+  /* sleep: photo stays, controls go away (e-ink behaviour) */
+  .display .hero{cursor:pointer}
+  .display.asleep .strip,.display.asleep .dots,.display.asleep .tag,.display.asleep .albumtag{opacity:0;pointer-events:none;transition:opacity .4s}
+  /* ---- coming up view on the fridge ---- */
+  #cal{position:absolute;inset:0;background:#FAFAF8;z-index:6;display:grid;grid-template-rows:auto 1fr auto;padding:10px 12px 6px;gap:6px;font-size:11px;color:var(--ink)}
+  #cal .chead{display:flex;justify-content:space-between;align-items:baseline}
+  #cal .chead h3{margin:0;font-size:14px;font-weight:600;letter-spacing:-.01em}
+  #cal .chead .month{font-size:10px;color:var(--ink-3)}
+  #cal .cols{display:grid;grid-template-columns:1.5fr 1fr;gap:12px;min-height:0}
+  #cal .col{min-height:0;overflow-y:auto;scrollbar-width:none;display:flex;flex-direction:column}
+  #cal .col::-webkit-scrollbar{display:none}
+  #cal .col h4{margin:0 0 4px;font-size:9.5px;font-weight:500;color:var(--ink-3)}
+  /* month blocks, stacked and scrollable */
+  #cal .mblock{margin-bottom:10px}
+  #cal .mname{font-size:11px;font-weight:600;margin:0 0 4px;position:sticky;top:0;background:#FAFAF8;padding:2px 0;z-index:1}
+  #cal .wd{display:grid;grid-template-columns:repeat(7,1fr);font-size:7.5px;color:var(--ink-3);text-align:center;margin-bottom:2px}
+  #cal .mgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+  #cal .day{min-height:28px;border-radius:4px;padding:2px 3px;font-size:8.5px;line-height:1;position:relative;background:rgba(0,0,0,.025)}
+  #cal .day.pad{background:none}
+  #cal .day.today{box-shadow:inset 0 0 0 1.5px var(--ink)}
+  #cal .day.past{color:var(--ink-3);background:none}
+  #cal .day .n{font-weight:600}
+  #cal .day .evl{display:block;margin-top:2px;font-family:var(--mono);font-size:5.8px;text-transform:uppercase;letter-spacing:.03em;line-height:1.25;padding:1px 2px;border-radius:2px;background:var(--note);color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #cal .day .evl.me{background:rgba(0,0,0,.07)} #cal .day .evl.shared{background:var(--note-pink)}
+  #cal .day .evl.ink{background:none;padding:0} #cal .day .evl img{height:8px;display:block;mix-blend-mode:multiply}
+  /* right column: next up + pinned */
+  #cal .ev{display:flex;gap:7px;align-items:center;padding:5px 0;border-top:1px solid rgba(0,0,0,.08);min-height:28px}
+  #cal .ev:first-of-type{border-top:0}
+  #cal .ev .d{width:26px;flex:none;line-height:1}
+  #cal .ev .d b{display:block;font-size:13px;font-weight:600}
+  #cal .ev .d span{font-size:7px;color:var(--ink-3)}
+  #cal .ev .t{flex:1;min-width:0;font-size:10px;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--blue);font-family:var(--mono)}
+  #cal .ev .t img{height:18px;max-width:100%;display:block;mix-blend-mode:multiply}
+  #cal .ev .tagw{font-size:7.5px;color:var(--ink-3);flex:none}
+  #cal .note{position:relative;background:var(--note);padding:6px 16px 7px 7px;transform:rotate(var(--r,0deg));font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.04em;line-height:1.3;cursor:pointer;min-height:28px;margin:4px 0;color:var(--blue);background-image:repeating-linear-gradient(transparent 0 14px,rgba(0,0,0,.05) 14px 15px)}
+  #cal .note:nth-child(even){background-color:var(--note-pink)}
+  #cal .note img{display:block;max-height:30px;max-width:100%;mix-blend-mode:multiply}
+  #cal .note .x{position:absolute;right:4px;top:0;font-size:12px;color:var(--ink-3);font-family:var(--sans);text-transform:none;letter-spacing:0}
+  #cal .cfoot{display:flex;gap:14px;align-items:center;border-top:1px solid rgba(0,0,0,.08);padding-top:5px}
+  #cal .cfoot .dbtn{background:none;color:var(--blue);box-shadow:none;padding:0;font-size:10px;font-weight:500} #cal .cfoot .dbtn.dark{color:var(--ink);margin-left:auto}
+  #cal .emptyc{font-size:9.5px;color:var(--ink-3);padding:4px 0}
+  body[data-view="fridge"] #cal{font-size:13px;padding:14px 16px 8px}
+  body[data-view="fridge"] #cal .day{min-height:44px;font-size:11px}
+  body[data-view="fridge"] #cal .day .evl{font-size:7.5px}
+  body[data-view="fridge"] #cal .wd{font-size:9px} body[data-view="fridge"] #cal .mname{font-size:13px}
+  body[data-view="fridge"] #cal .ev .t{font-size:12px} body[data-view="fridge"] #cal .ev .d b{font-size:16px} body[data-view="fridge"] #cal .note{font-size:11px}
+  body[data-view="fridge"] #cal .cfoot .dbtn{font-size:13px} body[data-view="fridge"] #cal .chead h3{font-size:17px}
+  /* add-a-date / pin-a-note on the fridge: day strip + short handwriting */
+  #cadd{position:absolute;inset:0;background:#FAFAF8;z-index:7;display:grid;grid-template-rows:auto auto 1fr auto;padding:8px 10px;gap:6px}
+  #cadd .bar{display:flex;justify-content:space-between;align-items:center;font-size:10px;color:var(--ink-3);border:0;background:none;box-shadow:none;border-radius:0;padding:0}
+  #cadd .bar b{color:var(--ink);font-size:12px}
+  #cadd .days{display:flex;gap:4px}
+  #cadd .days button{flex:1;min-height:30px;height:30px;border-radius:6px;background:rgba(0,0,0,.04);font-size:9px;line-height:1.1;display:grid;place-items:center}
+  #cadd .days button b{font-size:12px;font-weight:600}
+  #cadd .days button.on{background:var(--ink);color:#fff}
+  #cadd .padarea{position:relative;background:#fff;border-radius:3px;overflow:hidden;min-height:0;background-image:repeating-linear-gradient(transparent 0 23px,rgba(0,0,0,.06) 23px 24px)}
+  #cadd .padarea canvas{width:100%;height:100%;display:block;touch-action:none;cursor:crosshair}
+  #cadd .padarea .ph{position:absolute;inset:0;display:grid;place-items:center;color:#A9A9A5;font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.06em;pointer-events:none}
+  #cadd .acts{display:flex;gap:6px;align-items:center}
+  #cadd .seg{display:flex;background:rgba(0,0,0,.05);border-radius:999px;padding:2px}
+  #cadd .seg button{min-height:22px;height:22px;padding:0 9px;border-radius:999px;font-size:9px}
+  #cadd .seg button.on{background:#fff;box-shadow:var(--shadow);font-weight:600}
+  #cadd .acts .dbtn{margin-left:auto}
+</style>
+</head>
+<body>
+<div class="views" id="views"><button data-v="board" class="on">Board</button><button data-v="maya">Maya</button><button data-v="fridge">Fridge</button><button data-v="mom">Mom</button></div>
+<div class="board">
+
+  <!-- ================= MAYA: lock screen on top of the app ================= -->
+  <section id="maya">
+    <p class="col-label">Maya</p>
+    <div class="phone"><div class="screen"><div class="island"></div>
+      <div class="lock" id="lock">
+        <div class="status light"><span>9:41</span><span>5G</span></div>
+        <div class="hrow">
+          <button class="widget" id="widget" aria-label="Open Fridge Post"><div class="inner post" data-post="widget"></div></button>
+        </div>
+        <div class="wlabel">Fridge Post</div>
+        <div class="hrow">
+          <div class="wquick" id="wQuick"><div class="wt">To the fridge</div></div>
+          <div class="icons">
+            <div><div class="ic" style="background:#34C759"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><rect x="3" y="6" width="13" height="12" rx="2"/><path d="M16 10l5-3v10l-5-3"/></svg></div><div class="ilabel">FaceTime</div></div>
+            <div><div class="ic" style="background:#fff"><svg width="30" height="30" viewBox="0 0 24 24"><circle cx="8" cy="9" r="4" fill="#FF3B30" opacity=".9"/><circle cx="16" cy="9" r="4" fill="#FFCC00" opacity=".9"/><circle cx="12" cy="16" r="4" fill="#34C759" opacity=".9"/></svg></div><div class="ilabel">Photos</div></div>
+            <div><div class="ic" style="background:#fff"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div><div class="ilabel">Clock</div></div>
+            <div><div class="ic" style="background:#1C1C1E"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></div><div class="ilabel">Camera</div></div>
+          </div>
+        </div>
+        <div class="irow">
+          <div><div class="ic" style="background:#1E90FF"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg></div><div class="ilabel">Mail</div></div>
+          <div><div class="ic" style="background:#FFD60A"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#5a4a10" stroke-width="2" stroke-linecap="round"><path d="M6 4h12v16H6zM9 9h6M9 13h6"/></svg></div><div class="ilabel">Notes</div></div>
+          <div><div class="ic" style="background:#fff"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2" stroke-linecap="round"><path d="M5 7h14M5 12h14M5 17h9"/></svg></div><div class="ilabel">Reminders</div></div>
+          <div><div class="ic" style="background:#fff"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M8 3v4M16 3v4"/></svg></div><div class="ilabel">Calendar</div></div>
+        </div>
+        <div class="search">Search</div>
+        <div class="dock">
+          <div class="ic" style="background:#34C759"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M5 4h4l2 5-2 2a12 12 0 0 0 4 4l2-2 5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg></div>
+          <div class="ic" style="background:#1E90FF"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M15 9l-2 6-4 0 2-6z" fill="#fff"/></svg></div>
+          <div class="ic" style="background:#34C759"><svg width="26" height="26" viewBox="0 0 24 24" fill="#fff"><path d="M12 4C7 4 3 7.2 3 11c0 2.2 1.3 4.1 3.3 5.4L5 20l4.2-2.2c.9.2 1.8.3 2.8.3 5 0 9-3.2 9-7s-4-7-9-7z"/></svg></div>
+          <div class="ic" style="background:#FF2D55"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M9 18V6l10-2v12"/><circle cx="7" cy="18" r="2.5"/><circle cx="17" cy="16" r="2.5"/></svg></div>
+        </div>
+      </div>
+      <div class="status"><span>9:41</span><span>5G</span></div>
+      <div class="app" data-app="Maya"></div>
+      <div class="homebar"></div>
+    </div></div>
+  </section>
+
+  <!-- ================= FRIDGE ================= -->
+  <section id="fridgeSec">
+    <p class="col-label">Fridge</p>
+    <div class="fridge">
+      <div class="divider"></div>
+      <div class="handle a"></div><div class="handle b"></div>
+      <span class="sticker heartmag" style="left:14%;top:8%"></span>
+      <span class="mag" style="left:62%;top:11%;width:16px;height:16px;background:#2E6DB4"></span>
+      <span class="mag" style="left:83%;top:52%;width:14px;height:14px;background:#4C7A4C"></span>
+      <div class="sticker receipt"><b>Market</b><i>oat milk</i><i>eggs</i><i>lemons</i><i>cough drops</i><i>thank you</i></div>
+      <div class="sticker photo-mag"><div></div></div>
+      <div class="display" id="display">
+        <div class="stage">
+          <div class="hero" id="hero" title="Tap for the next one"><div class="empty-state">Nothing here yet</div></div>
+          <div class="strip">
+            <div class="dreacts" id="dreacts"></div>
+            <div class="spacer"></div>
+            <button class="dbtn" id="writeBtn">Write a note</button>
+          </div>
+        </div>
+        <div id="write" class="hidden">
+          <div class="bar"><span>Write with your finger. It sends when you stop.</span><button id="writeCancel">Cancel</button></div>
+          <canvas id="writeCanvas"></canvas>
+        </div>
+        <div id="cal" class="hidden">
+          <div class="chead"><h3>Calendar</h3><span class="month" id="calMonth"></span></div>
+          <div class="cols">
+            <div class="col" id="calMonths"></div>
+            <div class="col"><h4>Next up</h4><div id="calEvents"></div><h4 style="margin-top:10px">Pinned notes</h4><div id="calNotes"></div></div>
+          </div>
+          <div class="cfoot"><button class="dbtn" id="calAddDate">Add a date</button><button class="dbtn" id="calPinNote">Pin a note</button><span class="spacer"></span><button class="dbtn dark" id="calBack">Back to photo</button></div>
+        </div>
+        <div id="cadd" class="hidden">
+          <div class="bar"><b id="caddTitle">Add a date</b><span id="caddHint">Pick a day, then write a word or two</span></div>
+          <div class="days" id="caddDays"></div>
+          <div class="padarea"><canvas id="caddCanvas"></canvas><div class="ph" id="caddPh">write here</div></div>
+          <div class="acts"><div class="seg" id="caddSeg"><button class="on" data-share="0">Just here</button><button data-share="1">Share with Maya</button></div><button class="dbtn" id="caddCancel" style="background:none;color:var(--ink-3);box-shadow:none">Cancel</button><button class="dbtn" id="caddSave">Save</button></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= MOM: the app, opened directly ================= -->
+  <section id="mom">
+    <p class="col-label">Mom</p>
+    <div class="phone"><div class="screen"><div class="island"></div>
+      <div class="status"><span>9:41</span><span>5G</span></div>
+      <div class="app" data-app="Mom"></div>
+      <div class="homebar"></div>
+    </div></div>
+  </section>
+
+</div>
+<div class="toast" id="toast"><span id="toastText"></span><button id="toastUndo" class="hidden">Undo</button></div>
+
+<!-- ============ app template (cloned into both phones) ============ -->
+<template id="appTpl">
+  <header>
+    <h1>Fridge Post</h1>
+    <div style="display:flex;gap:8px">
+      <button class="icon-btn text lockbtn" title="Back to home screen">Done</button>
+      <button class="icon-btn gear" aria-label="Fridge settings" style="margin-left:4px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#141414" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
+    </div>
+  </header>
+  <div class="scroll">
+    <div class="now"><div class="magnetdot"></div><div class="post" data-post="now"></div><div class="meta" data-meta></div></div>
+    <div class="reacts" data-reacts></div>
+    <div class="epick hidden" data-epick></div>
+    <div class="sect-row"><p class="sect">Recent</p></div>
+    <div class="week" data-week></div>
+    <div class="sect-row"><p class="sect">Coming up</p><button class="see-plans">See all</button></div>
+    <div class="upcoming compact" data-upcoming></div>
+  </div>
+  <div class="composer">
+    <button class="primary-cta photo-btn"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>Send a photo</button>
+    <button class="secondary-cta note-btn">Write a note instead</button>
+  </div>
+
+  <div class="scrim"></div>
+  <div class="sheet photosheet">
+    <div class="head"><div><h2>Send a photo</h2><p>Or pick one from your camera roll</p></div><button class="icon-btn text closer">Cancel</button></div>
+    <div class="body"><div class="grid"><button class="camtile shutter"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg><b>Take a photo</b></button></div></div>
+  </div>
+  <div class="sheet notesheet">
+    <div class="head"><div><h2>Write a note</h2></div><button class="icon-btn text closer">Cancel</button></div>
+    <div class="body">
+      <input class="line" placeholder="Say something" maxlength="80">
+      <div class="sug" data-sug></div>
+      <button class="handlink">Write it by hand instead</button>
+      <div class="padwrap hidden"><canvas class="pad2"></canvas><div class="ph">write here</div></div>
+      <div class="rowbtns"><button class="primary notesend" disabled>Send to fridge</button></div>
+    </div>
+  </div>
+  <div class="sheet planssheet">
+    <div class="head"><div><h2>Coming up</h2></div><button class="icon-btn text closer">Done</button></div>
+    <div class="body">
+      <div class="upcoming" data-upcoming-all style="margin:0"></div>
+      <div class="rowbtns"><button class="add-date">Add a date</button></div>
+      <div class="notes-wrap"><div class="sect-row" style="margin:26px 0 10px"><p class="sect" style="margin:0">Pinned on the fridge</p><button class="add-pin">Pin a note</button></div><div class="notes-pins" data-pins style="padding:4px 0 6px"></div></div>
+    </div>
+  </div>
+  <div class="sheet pensheet">
+    <div class="head"><div><h2>Write by hand</h2><p>It goes on the fridge as you wrote it</p></div><button class="icon-btn text closer">Cancel</button></div>
+    <div class="body"><div class="padwrap"><canvas class="pad"></canvas><div class="ph">write here</div></div>
+      <div class="rowbtns"><button class="clear">Clear</button><button class="primary inksend" disabled>Send to fridge</button></div></div>
+  </div>
+  <div class="sheet datesheet">
+    <div class="head"><div><h2 class="dtitle">Add a date</h2><p class="dsub">It shows on the fridge calendar</p></div><button class="icon-btn text closer">Cancel</button></div>
+    <div class="body">
+      <div class="field"><input class="dtext" placeholder="flight home" maxlength="40"><input class="ddate" type="date"></div>
+      <div class="share"><div><span class="dsharelbl">Share with Maya</span><small class="dsharesub">Off means it stays on the fridge and your phone</small></div><input type="checkbox" class="toggle dshare"></div>
+      <div class="rowbtns"><button class="primary dsave" disabled>Save</button></div>
+    </div>
+  </div>
+  <div class="sheet pinsheet">
+    <div class="head"><div><h2>Pin a note</h2><p>A short note that stays on the fridge until it's taken down</p></div><button class="icon-btn text closer">Cancel</button></div>
+    <div class="body"><div class="field" style="display:flex;gap:8px"><input class="pintext" placeholder="buy stamps" maxlength="40" style="flex:1;min-width:0;padding:12px 0;border:0;border-bottom:1px solid var(--line);background:none;font-size:17px"></div>
+      <div class="rowbtns"><button class="primary pinsave" disabled>Pin it</button></div></div>
+  </div>
+  <div class="sheet setsheet">
+    <div class="head"><div><h2>The fridge</h2><p>How the magnet looks and behaves</p></div><button class="icon-btn text closer">Done</button></div>
+    <div class="body">
+      <div class="setrow"><div>Frame<small>Colour of the magnet's edge</small></div><div class="swatches" data-swatches></div></div>
+      <div class="setrow" style="display:block"><div style="display:flex;justify-content:space-between;align-items:center"><div>Albums<small>Play a set of photos when nothing new has arrived</small></div><button class="icon-btn text album-start">Make one</button></div>
+        <div class="albums" data-albums></div>
+        <div class="album-maker hidden"><div class="pickgrid" data-pickgrid></div><div class="inline-field"><input class="album-name" placeholder="Name it" maxlength="30"><button class="icon-btn text album-save" disabled>Save</button><button class="icon-btn text album-cancel">Cancel</button></div></div>
+      </div>
+      <div class="setrow"><div>Quiet hours<small>Dims 10pm to 7am</small></div><input type="checkbox" class="toggle" checked></div>
+      <div class="setrow"><div>Weekly digest<small>Bundle posts instead of instant</small></div><input type="checkbox" class="toggle"></div>
+    </div>
+  </div>
+  <div class="camscreen">
+    <div class="vf"><img class="live" alt=""><div class="grid9"></div><button class="close camclose">Cancel</button><img class="snap" alt=""><div class="flash"></div></div>
+    <div class="ctrls"><button class="thumb rollthumb" aria-label="Camera roll"><img alt=""></button><button class="shutterbtn" aria-label="Take photo"></button><button class="flip" aria-label="Flip camera"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><path d="M9 13a3 3 0 0 0 5.2 2M15 13a3 3 0 0 0-5.2-2"/><path d="M14.5 16.5v-2h-2M9.5 9.5v2h2"/></svg></button></div>
+  </div>
+  <div class="compose">
+    <div class="top"><button class="icon-btn text back">Back</button><h2>Add a note</h2><button class="icon-btn text retake hidden">Retake</button></div>
+    <div class="frame"><div class="post composepost"></div><canvas class="ink hidden"></canvas></div>
+    <div class="capbar"><input class="caption" placeholder="Add a caption (optional)" maxlength="60"><button class="inktoggle">Write on it</button></div>
+    <div class="sug" data-csug></div>
+    <div class="acts"><button class="primary csend">Send to fridge</button></div>
+  </div>
+</template>
+
+<script>
+const STAMPS=["home safe","all good","miss you","good night","thinking of you"];
+const EMOJI=["\u2764\uFE0F","\uD83D\uDE02","\uD83E\uDD79","\uD83D\uDC4F","\uD83E\uDEF6","\uD83D\uDE2E"];  // heart, laugh, teary smile, clap, heart hands, wow
+const HEART=EMOJI[0];
+const RICON_UNUSED={love:'<svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.5A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>',ha:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 14c1 2 7 2 8 0M9 10h.01M15 10h.01"/></svg>',"miss you":'<svg viewBox="0 0 24 24"><path d="M4 8l8 6 8-6"/><rect x="4" y="6" width="16" height="12" rx="2"/><path d="M12 11.5l-1.5-1.5a1.2 1.2 0 0 1 1.5-1.8 1.2 1.2 0 0 1 1.5 1.8z" fill="currentColor" stroke="none"/></svg>'};
+const KID="Maya", PARENT="Mom";
+const IDLE_MS=10*60*1000, ALBUM_AFTER=20*1000, ALBUM_EVERY=6*1000;
+const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
+
+/* ---------- state ---------- */
+const state={posts:[], albums:[], activeAlbum:null, events:[], pins:[]};
+function toggleReact(post,e){ post.reacts=post.reacts||[]; const i=post.reacts.indexOf(e); if(i>=0) post.reacts.splice(i,1); else post.reacts.push(e); render(); noteActivity(); }
+function reactChips(post){ return (post.reacts||[]).map(e=>`<span class="rchip">${e}</span>`).join(""); }
+let heroIdx=0, lastActivity=Date.now(), albumIdx=0, showingAlbum=false;
+function noteActivity(){ lastActivity=Date.now(); }
+function addPost(p){ const post={id:Date.now()+Math.random(), reacts:[], at:Date.now(), ...p}; state.posts.unshift(post); heroIdx=0; render(); noteActivity(); return post; }
+function addEvent(e){ state.events.push({id:Date.now()+Math.random(), ...e}); state.events.sort((a,b)=>a.date.localeCompare(b.date)); render(); noteActivity(); }
+function addPin(n){ state.pins.unshift({id:Date.now()+Math.random(), ...n}); render(); noteActivity(); }
+function todayISO(d=new Date()){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
+function dayParts(iso){ const [y,m,d]=iso.split("-").map(Number); const dt=new Date(y,m-1,d); return {num:d, wd:dt.toLocaleDateString(undefined,{weekday:"short"}), mon:dt.toLocaleDateString(undefined,{month:"short"}), dt}; }
+function visibleEvents(me){ const today=todayISO(); return state.events.filter(e=>e.date>=today&&(e.shared||e.from===me||me===PARENT)); }
+function removePost(id){ state.posts=state.posts.filter(p=>p.id!==id); render(); }
+let toastT; function toast(m,undoId){ const t=$("#toast"); $("#toastText").textContent=m; const u=$("#toastUndo"); u.classList.toggle("hidden",!undoId); u.onclick=()=>{ removePost(undoId); t.classList.remove("show"); }; t.classList.add("show"); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove("show"),undoId?5000:1600); }
+function ago(ts){ const m=Math.round((Date.now()-ts)/60000); if(m<1) return "just now"; if(m<60) return m+" min ago"; const h=Math.round(m/60); if(h<24) return h+(h===1?" hour ago":" hours ago"); const d=Math.round(h/24); return d===1?"yesterday":d<7?d+" days ago":"last week"; }
+function esc(s){ return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function sentMsg(me){ return me===KID?"On the fridge":"Sent to "+KID; }
+
+/* ---------- sample imagery ---------- */
+const PAL=[["#CFD8C9","#8EA386","#F3EFE4"],["#E9D5C3","#B98B6B","#F7EFE6"],["#C9D6E8","#6F8AAE","#EEF2F8"],["#E8DCC8","#C9A86A","#FBF6EA"],["#D9C9D6","#8F6F8E","#F5EEF4"],["#C8DAD6","#5E8C84","#EAF2F0"],["#EAD9C9","#C27A5A","#FBF1EA"],["#D6D9DF","#7D8594","#F1F3F6"],["#E3E6C8","#9DA56A","#F6F7EA"]];
+function pic(i,w=800,h=600){ const [a,b]=PAL[i%PAL.length]; const cv=document.createElement("canvas"); cv.width=w; cv.height=h; const x=cv.getContext("2d");
+  const g=x.createLinearGradient(0,0,w,h); g.addColorStop(0,a); g.addColorStop(1,b); x.fillStyle=g; x.fillRect(0,0,w,h);
+  return cv.toDataURL("image/jpeg",.8); }
+const ROLL=Array.from({length:9},(_,i)=>pic(i));
+const LIVE=pic(5,900,1200);
+
+/* ---------- drawing pad ---------- */
+function makePad(canvas,{onStroke,onIdle,idleMs}={}){
+  const ctx=canvas.getContext("2d"); let drawing=false,has=false,idleT,last=null;
+  function fit(){ const r=canvas.getBoundingClientRect(); if(!r.width) return; const dpr=window.devicePixelRatio||1; const snap=has?canvas.toDataURL():null;
+    canvas.width=Math.round(r.width*dpr); canvas.height=Math.round(r.height*dpr); ctx.setTransform(dpr,0,0,dpr,0,0);
+    ctx.lineCap="round"; ctx.lineJoin="round"; ctx.lineWidth=3.5; ctx.strokeStyle="#2F5BEA";
+    if(snap){ const im=new Image(); im.onload=()=>ctx.drawImage(im,0,0,r.width,r.height); im.src=snap; } }
+  const pos=e=>{ const r=canvas.getBoundingClientRect(); return {x:e.clientX-r.left,y:e.clientY-r.top}; };
+  canvas.addEventListener("pointerdown",e=>{ canvas.setPointerCapture(e.pointerId); drawing=true; last=pos(e); clearTimeout(idleT); ctx.beginPath(); ctx.moveTo(last.x,last.y); ctx.lineTo(last.x+.1,last.y+.1); ctx.stroke(); has=true; onStroke&&onStroke(); });
+  canvas.addEventListener("pointermove",e=>{ if(!drawing) return; const p=pos(e); ctx.beginPath(); ctx.moveTo(last.x,last.y); ctx.lineTo(p.x,p.y); ctx.stroke(); last=p; });
+  const end=()=>{ if(!drawing) return; drawing=false; if(onIdle){ clearTimeout(idleT); idleT=setTimeout(onIdle,idleMs||2000); } };
+  ["pointerup","pointercancel","pointerleave"].forEach(ev=>canvas.addEventListener(ev,end));
+  window.addEventListener("resize",fit); requestAnimationFrame(fit);
+  return { hasInk:()=>has, fit, raw:()=>canvas,
+    clear:()=>{ has=false; clearTimeout(idleT); const r=canvas.getBoundingClientRect(); ctx.clearRect(0,0,r.width,r.height); },
+    dataURL:()=>{ const o=document.createElement("canvas"); o.width=canvas.width; o.height=canvas.height; const c=o.getContext("2d"); c.fillStyle="#fff"; c.fillRect(0,0,o.width,o.height); c.drawImage(canvas,0,0); return o.toDataURL("image/png"); } };
+}
+
+/* ---------- shared post renderer ---------- */
+function postHTML(d,{sticky=true,who=true}={}){
+  if(!d) return '<div class="emptyp">Send the first photo</div>';
+  let vis; if(d.type==="photo") vis=`<img class="full" src="${d.url}" alt="">`;
+  else if(d.type==="ink") vis=`<div class="notebg w"><img src="${d.url}" alt="handwritten note"></div>`;
+  else vis=`<div class="notebg ${d.type==="text"?"p":"y"}">${esc(d.text)}</div>`;
+  const st=sticky&&d.type==="photo"&&d.caption?`<div class="sticky">${esc(d.caption)}</div>`:"";
+  const w=who?`<div class="who"><span>${esc(d.from)}</span><span class="t">${ago(d.at)}</span></div>`:"";
+  return `${vis}${w}${st}`;
+}
+
+/* ---------- build an app instance ---------- */
+const apps=[];
+function buildApp(root, me){
+  root.appendChild($("#appTpl").content.cloneNode(true));
+  const A={root,me};
+  const other=me===KID?PARENT:KID;
+  if(me!==KID) $(".lockbtn",root).classList.add("hidden");
+  $(".lockbtn",root).addEventListener("click",()=>{ closeAll(); $("#lock").classList.remove("away"); });
+
+  // note sheet: a line (with suggestions) or, optionally, handwriting
+  const nline=$(".notesheet .line",root), nsend=$(".notesend",root), npadwrap=$(".notesheet .padwrap",root), nph=$(".notesheet .ph",root);
+  let nhand=false;
+  $("[data-sug]",root).innerHTML="";
+  STAMPS.forEach(st=>{ const b=document.createElement("button"); b.textContent=st; b.addEventListener("click",()=>{ nline.value=st; nsend.disabled=false; }); $("[data-sug]",root).appendChild(b); });
+  nline.addEventListener("input",()=>nsend.disabled=!nline.value.trim()&&!(nhand&&npad.hasInk()));
+  const npad=makePad($(".pad2",root),{onStroke:()=>{ nph.classList.add("hidden"); nsend.disabled=false; }});
+  $(".handlink",root).addEventListener("click",e=>{ nhand=!nhand; npadwrap.classList.toggle("hidden",!nhand); e.target.textContent=nhand?"Type it instead":"Write it by hand instead"; if(nhand) setTimeout(()=>npad.fit(),50); nsend.disabled=!(nline.value.trim()||(nhand&&npad.hasInk())); });
+  nsend.addEventListener("click",()=>{ if(nhand&&npad.hasInk()){ addPost({from:me,type:"ink",url:npad.dataURL()}); npad.clear(); nph.classList.remove("hidden"); }
+    else { const t=nline.value.trim(); if(!t) return; const p=addPost({from:me,type:STAMPS.includes(t)?"stamp":"text",text:t}); }
+    nline.value=""; nsend.disabled=true; closeAll(); toast(sentMsg(me)); });
+  // sheets
+  const scrim=$(".scrim",root);
+  function openSheet(sel){ closeAll(); $(sel,root).classList.add("open"); scrim.classList.add("on"); }
+  function closeAll(){ $$(".sheet",root).forEach(s=>s.classList.remove("open")); $(".compose",root).classList.remove("open"); scrim.classList.remove("on"); }
+  A.closeAll=closeAll;
+  scrim.addEventListener("click",closeAll);
+  $$(".closer",root).forEach(b=>b.addEventListener("click",closeAll));
+
+  // photos: sheet → compose → send
+  $(".photo-btn",root).addEventListener("click",()=>openSheet(".photosheet"));
+  $(".note-btn",root).addEventListener("click",()=>{ nline.value=""; nsend.disabled=true; openSheet(".notesheet"); });
+  $(".see-plans",root).addEventListener("click",()=>openSheet(".planssheet"));
+  const grid=$(".photosheet .grid",root);
+  // "Take a photo" opens a viewfinder; the shutter flashes, the frame drops into the compose step
+  const camscr=$(".camscreen",root), live=$(".live",root), snapImg=$(".snap",root), flash=$(".flash",root);
+  let liveIdx=5; const liveSrc=()=>pic(liveIdx,900,1200);
+  function openCam(){ liveIdx=(liveIdx+1)%PAL.length; live.src=liveSrc(); $(".rollthumb img",root).src=ROLL[0]; $$(".sheet",root).forEach(x=>x.classList.remove("open")); camscr.classList.add("open"); }
+  $(".shutter",root).addEventListener("click",openCam);
+  $(".camclose",root).addEventListener("click",()=>{ camscr.classList.remove("open"); openSheet(".photosheet"); });
+  $(".rollthumb",root).addEventListener("click",()=>{ camscr.classList.remove("open"); openSheet(".photosheet"); });
+  $(".flip",root).addEventListener("click",()=>{ liveIdx=(liveIdx+1)%PAL.length; live.src=liveSrc(); });
+  let snapping=false;
+  $(".shutterbtn",root).addEventListener("click",()=>{ if(snapping) return; snapping=true; const src=live.src;
+    snapImg.src=src; flash.classList.remove("go"); snapImg.classList.remove("go"); void flash.offsetWidth; flash.classList.add("go"); snapImg.classList.add("go");
+    setTimeout(()=>{ openCompose(src,true); camscr.classList.remove("open"); snapImg.classList.remove("go"); snapping=false; },520); });
+  ROLL.forEach(src=>{ const b=document.createElement("button"); b.innerHTML=`<img src="${src}" alt="">`; b.addEventListener("click",()=>openCompose(src)); grid.appendChild(b); });
+  const compose=$(".compose",root), cpost=$(".composepost",root), cap=$(".caption",root), inkC=$(".ink",root), inkT=$(".inktoggle",root);
+  let pending=null, inkOn=false, cpad=null;
+  $("[data-csug]",root).innerHTML="";
+  STAMPS.forEach(st=>{ const b=document.createElement("button"); b.textContent=st; b.addEventListener("click",()=>{ const on=b.classList.contains("on"); $$("[data-csug] button",root).forEach(x=>x.classList.remove("on")); if(!on){ b.classList.add("on"); cap.value=st; } else cap.value=""; }); $("[data-csug]",root).appendChild(b); });
+  cap.addEventListener("input",()=>$$("[data-csug] button",root).forEach(x=>x.classList.toggle("on",x.textContent===cap.value)));
+  let fromCam=false;
+  function openCompose(src,cam){ fromCam=!!cam; $(".retake",root).classList.toggle("hidden",!cam); $(".back",root).classList.toggle("hidden",!!cam); pending=src; cpost.innerHTML=`<img class="full" src="${src}" alt="">`; cap.value=""; $$("[data-csug] button",root).forEach(x=>x.classList.remove("on")); inkOn=false; inkC.classList.add("hidden"); inkT.classList.remove("on"); if(cpad) cpad.clear(); $$(".sheet",root).forEach(s=>s.classList.remove("open")); compose.classList.add("open"); }
+  $(".back",root).addEventListener("click",()=>{ compose.classList.remove("open"); openSheet(".photosheet"); });
+  $(".retake",root).addEventListener("click",()=>{ compose.classList.remove("open"); openCam(); });
+
+  inkT.addEventListener("click",()=>{ inkOn=!inkOn; inkT.classList.toggle("on",inkOn); inkC.classList.toggle("hidden",!inkOn); if(inkOn){ if(!cpad) cpad=makePad(inkC,{}); requestAnimationFrame(()=>cpad.fit()); } });
+  function composite(src,cb){ const box=cpost.getBoundingClientRect(); const W=Math.round(box.width*2),H=Math.round(box.height*2); const img=new Image();
+    img.onload=()=>{ const o=document.createElement("canvas"); o.width=W; o.height=H; const x=o.getContext("2d"); const s=Math.max(W/img.width,H/img.height); const dw=img.width*s,dh=img.height*s; x.drawImage(img,(W-dw)/2,(H-dh)/2,dw,dh); if(inkOn&&cpad&&cpad.hasInk()) x.drawImage(cpad.raw(),0,0,W,H); cb(o.toDataURL("image/jpeg",.86)); }; img.src=src; }
+  $(".csend",root).addEventListener("click",()=>{ if(!pending) return; const caption=cap.value.trim(); const done=url=>{ addPost({from:me,type:"photo",url,caption}); closeAll(); toast(sentMsg(me)); };
+    (inkOn&&cpad&&cpad.hasInk())?composite(pending,done):done(pending); });
+
+  // handwriting sheet (kept for parity; reached from the note sheet)
+  const pad=makePad($(".pad",root),{onStroke:()=>{ $(".pensheet .ph",root).classList.add("hidden"); $(".inksend",root).disabled=false; }});
+  $(".pensheet .clear",root).addEventListener("click",()=>{ pad.clear(); $(".pensheet .ph",root).classList.remove("hidden"); $(".inksend",root).disabled=true; });
+  $(".inksend",root).addEventListener("click",()=>{ if(!pad.hasInk()) return; addPost({from:me,type:"ink",url:pad.dataURL()}); pad.clear(); $(".pensheet .ph",root).classList.remove("hidden"); $(".inksend",root).disabled=true; closeAll(); toast(sentMsg(me)); });
+
+  // coming up: add a date (typed), pin a note (typed)
+  const ds=$(".datesheet",root), dtext=$(".dtext",root), ddate=$(".ddate",root), dshare=$(".dshare",root), dsave=$(".dsave",root);
+  if(me===KID){ $(".dsub",root).textContent="Only what you share shows on the fridge"; $(".dsharelbl",root).textContent="Share with Mom"; $(".dsharesub",root).textContent="On means it goes on the fridge calendar"; dshare.checked=true; $$(".notes-wrap",root).forEach(n=>n.classList.add("hidden")); }
+  $$(".add-date",root).forEach(b=>b.addEventListener("click",()=>{ dtext.value=""; ddate.value=""; ddate.min=todayISO(); dsave.disabled=true; openSheet(".datesheet"); }));
+  const chk=()=>dsave.disabled=!(dtext.value.trim()&&ddate.value); dtext.addEventListener("input",chk); ddate.addEventListener("input",chk);
+  dsave.addEventListener("click",()=>{ addEvent({title:dtext.value.trim(),date:ddate.value,from:me,shared:dshare.checked}); closeAll(); toast(me===KID?(dshare.checked?"On Mom's fridge calendar":"Saved for you"):(dshare.checked?"On the fridge and sent to "+KID:"On the fridge")); });
+  const pintext=$(".pintext",root), pinsave=$(".pinsave",root);
+  $$(".add-pin",root).forEach(b=>b.addEventListener("click",()=>{ pintext.value=""; pinsave.disabled=true; openSheet(".pinsheet"); }));
+  pintext.addEventListener("input",()=>pinsave.disabled=!pintext.value.trim());
+  pinsave.addEventListener("click",()=>{ addPin({text:pintext.value.trim(),from:me}); closeAll(); toast("Pinned on the fridge"); });
+
+  // settings: frame, albums, toggles
+  $(".gear",root).addEventListener("click",()=>openSheet(".setsheet"));
+  const FRAMES=[["black","#1A1A1A"],["white","#F6F3EC"],["wood","linear-gradient(135deg,#D3A978,#A8743F)"],["pink","#F2C7CC"],["blue","#C9DDF3"]];
+  const sw=$("[data-swatches]",root);
+  FRAMES.forEach(([k,bg])=>{ const b=document.createElement("button"); b.className="swatch"; b.title=k; b.style.background=bg; b.addEventListener("click",()=>{ $("#display").dataset.frame=k; render(); }); sw.appendChild(b); });
+  A.renderSwatches=()=>{ const cur=$("#display").dataset.frame||"black"; $$(".swatch",sw).forEach(b=>b.classList.toggle("on",b.title===cur)); };
+  const picking=new Set(); const maker=$(".album-maker",root), pg=$("[data-pickgrid]",root), nameIn=$(".album-name",root), saveBtn=$(".album-save",root);
+  $(".album-start",root).addEventListener("click",()=>{ picking.clear(); pg.innerHTML=""; const photos=state.posts.filter(p=>p.type==="photo");
+    if(photos.length<2){ toast("Send a couple of photos first"); return; }
+    photos.forEach(p=>{ const b=document.createElement("button"); b.innerHTML=`<img src="${p.url}" alt="">`; b.addEventListener("click",()=>{ picking.has(p.id)?picking.delete(p.id):picking.add(p.id); b.classList.toggle("on",picking.has(p.id)); saveBtn.disabled=picking.size<2; }); pg.appendChild(b); });
+    nameIn.value=""; saveBtn.disabled=true; maker.classList.remove("hidden"); });
+  $(".album-cancel",root).addEventListener("click",()=>maker.classList.add("hidden"));
+  saveBtn.addEventListener("click",()=>{ const a={id:Date.now(),name:nameIn.value.trim()||"Album",ids:[...picking]}; state.albums.unshift(a); state.activeAlbum=a.id; albumIdx=0; maker.classList.add("hidden"); render(); toast("Playing on the fridge"); });
+  A.renderAlbums=()=>{ const el=$("[data-albums]",root); el.innerHTML="";
+    state.albums.forEach(a=>{ const pics=a.ids.map(id=>state.posts.find(p=>p.id===id)).filter(Boolean); const row=document.createElement("div"); row.className="album";
+      row.innerHTML=`<div class="stack">${pics.slice(0,3).map(p=>`<img src="${p.url}" alt="">`).join("")}</div><div class="meta"><b>${esc(a.name)}</b><span>${pics.length} photos</span></div><button class="play ${state.activeAlbum===a.id?"on":""}">${state.activeAlbum===a.id?"Playing":"Play"}</button>`;
+      row.querySelector(".play").addEventListener("click",()=>{ state.activeAlbum=state.activeAlbum===a.id?null:a.id; albumIdx=0; render(); }); el.appendChild(row); }); };
+
+  // home: now card, reactions, week
+  A.render=()=>{
+    const latestOther=state.posts.find(p=>p.from!==me);           // what the other person sent most recently
+    const latest=state.posts[0];
+    const nowEl=$("[data-post=now]",root); nowEl.innerHTML=postHTML(latest,{who:false}); nowEl.classList.toggle("isnote",!!latest&&latest.type!=="photo");
+    $("[data-meta]",root).innerHTML=latest?`<span><b>${latest.from===me?"You":esc(latest.from)}</b>${latest.type==="photo"&&latest.caption?" · "+esc(latest.caption):latest.type==="ink"?" · a note":""}</span><span>${ago(latest.at)}</span>`:"<span>Nothing on the fridge yet</span><span></span>";
+    const rx=$("[data-reacts]",root); rx.innerHTML=""; const ep=$("[data-epick]",root); ep.innerHTML="";
+    if(latest){
+      const mine=latest.from===me; const rs=latest.reacts||[];
+      if(!mine){
+        const h=document.createElement("button"); h.className="rbtn"+(rs.includes(HEART)?" on":""); h.innerHTML=HEART; h.title="love"; h.addEventListener("click",()=>toggleReact(latest,HEART)); rx.appendChild(h);
+        rs.filter(e=>e!==HEART).forEach(e=>{ const c=document.createElement("button"); c.className="rbtn on"; c.textContent=e; c.addEventListener("click",()=>toggleReact(latest,e)); rx.appendChild(c); });
+        const plus=document.createElement("button"); plus.className="rbtn plus"; plus.textContent="+"; plus.title="More reactions"; plus.addEventListener("click",()=>ep.classList.toggle("hidden")); rx.appendChild(plus);
+        EMOJI.forEach(e=>{ const b=document.createElement("button"); b.textContent=e; b.className=rs.includes(e)?"on":""; b.addEventListener("click",()=>toggleReact(latest,e)); ep.appendChild(b); });
+      } else {
+        if(rs.length){ rx.innerHTML=reactChips(latest)+`<span class="from">${esc(other)}</span>`; }
+      }
+    }
+    const wk=$("[data-week]",root); wk.innerHTML="";
+    const rest=state.posts.slice(1,10);
+    if(!rest.length){ wk.innerHTML=''; }
+    rest.forEach((d,i)=>{ const m=document.createElement("div"); m.className="mini"; m.style.setProperty("--r",((i%3)-1)*1.5+"deg");
+      m.innerHTML=`<div class="post">${postHTML(d,{sticky:false,who:false})}</div><div class="lbl"><b>${d.from===me?"You":esc(d.from)}</b><span>${d.type==="photo"?(d.caption?esc(d.caption):"photo"):d.type==="ink"?"note":""}</span></div>${(d.reacts||[]).length?`<span class="rx">${d.reacts.slice(0,2).join("")}</span>`:""}`;
+      m.querySelector(".post .ago")?.remove(); wk.appendChild(m); });
+    const evRow=e=>{ const d=dayParts(e.date); const row=document.createElement("div"); row.className="ev";
+      row.innerHTML=`<div class="d"><b>${d.num}</b><span>${d.wd}</span></div><div class="t">${e.ink?`<img src="${e.ink}" alt="">`:esc(e.title)}</div><span class="tagw ${e.from===me?"me":""}">${e.from===me?(e.shared?"shared":"just you"):esc(e.from)}</span>`; return row; };
+    const evs=visibleEvents(me);
+    const up=$("[data-upcoming]",root); up.innerHTML=""; evs.slice(0,2).forEach(e=>up.appendChild(evRow(e)));
+    if(!evs.length) up.innerHTML='<div class="empty" style="padding-left:0">Nothing yet</div>';
+    const all=$("[data-upcoming-all]",root); all.innerHTML=""; evs.slice(0,10).forEach(e=>all.appendChild(evRow(e)));
+    if(!evs.length) all.innerHTML='<div class="empty" style="padding-left:0">Nothing yet</div>';
+    if(me===PARENT){ const pn=$("[data-pins]",root); pn.innerHTML="";
+      state.pins.slice(0,6).forEach((n,i)=>{ const el=document.createElement("div"); el.className="pinned"; el.style.setProperty("--r",((i%3)-1)*1.5+"deg"); el.innerHTML=n.ink?`<img src="${n.ink}" alt="note">`:esc(n.text); pn.appendChild(el); }); }
+    A.renderSwatches(); A.renderAlbums();
+  };
+  root.closest(".screen").addEventListener("focusin",()=>{ const sc=root.closest(".screen"); requestAnimationFrame(()=>{ sc.scrollTop=0; }); });
+  apps.push(A); return A;
+}
+
+/* ---------- Maya's lock screen & widget ---------- */
+["home safe","good night"].forEach(st=>{ const b=document.createElement("button"); b.textContent=st; b.addEventListener("click",()=>{ const p=addPost({from:KID,type:"stamp",text:st}); toast("On the fridge",p.id); }); $("#wQuick").appendChild(b); });
+$("#widget").addEventListener("click",()=>$("#lock").classList.add("away"));
+function renderWidget(){
+  const fromHome=state.posts.find(p=>p.from!==KID), mine=state.posts.find(p=>p.from===KID);
+  $("[data-post=widget]").innerHTML=postHTML(fromHome).replace('Send the first photo','Nothing from home yet');
+  $("#widget").querySelector(".react")?.remove();
+  if(mine&&(mine.reacts||[]).length) $("#widget").insertAdjacentHTML("beforeend",`<div class="react">${mine.reacts.slice(0,3).join("")}</div>`);
+}
+
+/* ---------- fridge ---------- */
+function activeAlbumPics(){ const a=state.albums.find(x=>x.id===state.activeAlbum); return a?a.ids.map(id=>state.posts.find(p=>p.id===id)).filter(Boolean):[]; }
+function pcard(d,extra){ 
+  const vis=d.type==="photo"?`<div class="ph"><img src="${d.url}" alt=""></div>`:d.type==="ink"?`<div class="ph ink"><img src="${d.url}" alt="note"></div>`:`<div class="ph note ${d.type==="text"?"pink":""}">${esc(d.text)}</div>`;
+  const st=d.type==="photo"&&d.caption?`<div class="sticky">${esc(d.caption)}</div>`:"";
+  const rc=(d.reacts||[]).length?`<div class="rchips">${d.reacts.slice(0,3).join("")}</div>`:"";
+  return `<div class="pcard ${extra||""}">${vis}${st}${rc}<div class="cap"><b>${esc(d.from)}</b><span>${ago(d.at)}</span></div></div>`; }
+function renderFridge(forceAlbum){
+  const hero=$("#hero"), docs=state.posts, disp=$("#display");
+  const album=activeAlbumPics(); const a=state.albums.find(x=>x.id===state.activeAlbum);
+  showingAlbum=!!(forceAlbum&&album.length);
+  if(showingAlbum){ albumIdx=albumIdx%album.length; const d=album[albumIdx]; const nxt=album[(albumIdx+1)%album.length];
+    hero.innerHTML=`<div class="pile">${nxt&&nxt!==d?pcard(nxt,"back").replace('class="pcard back"','class="pcard back" style="--r:4deg;margin-left:14px;margin-top:-6px"'):""}${pcard(d).replace('class="pcard "','class="pcard" style="--r:-2deg"')}</div><div class="albumtag">${esc(a.name)} · ${albumIdx+1}/${album.length}</div>`;
+    renderDReacts(d); return; }
+  if(!docs.length){ hero.innerHTML='<div class="empty-state">Send the first photo</div>'; renderDReacts(null); return; }
+  const n=Math.min(docs.length,8); heroIdx=Math.min(heroIdx,n-1); const d=docs[heroIdx]; const b1=docs[(heroIdx+1)%docs.length], b2=docs[(heroIdx+2)%docs.length];
+  let html='<div class="pile">';
+  if(docs.length>2&&b2!==d) html+=pcard(b2,"back").replace('class="pcard back"','class="pcard back" style="--r:5deg;margin-left:22px;margin-top:-10px"');
+  if(docs.length>1&&b1!==d) html+=pcard(b1,"back").replace('class="pcard back"','class="pcard back" style="--r:-6deg;margin-left:-18px;margin-top:6px"');
+  html+=pcard(d).replace('class="pcard "','class="pcard" style="--r:-1.5deg"')+'</div>';
+  html+=n>1?`<div class="dots">${Array.from({length:n},(_,i)=>`<i class="${i===heroIdx?"on":""}"></i>`).join("")}</div>`:"";
+  hero.innerHTML=html; renderDReacts(d);
+}
+let dpick=false;
+function renderDReacts(d){ const r=$("#dreacts"); r.innerHTML=""; if(!d) return; const rs=d.reacts||[];
+  const h=document.createElement("button"); h.className=rs.includes(HEART)?"on":""; h.textContent=HEART; h.addEventListener("click",()=>toggleReact(d,HEART)); r.appendChild(h);
+  rs.filter(e=>e!==HEART).forEach(e=>{ const c=document.createElement("button"); c.className="on"; c.textContent=e; c.addEventListener("click",()=>toggleReact(d,e)); r.appendChild(c); });
+  const plus=document.createElement("button"); plus.className="plus"; plus.textContent=dpick?"×":"+"; plus.addEventListener("click",()=>{ dpick=!dpick; renderDReacts(d); noteActivity(); }); r.appendChild(plus);
+  if(dpick){ const ep=document.createElement("div"); ep.className="epk"; EMOJI.slice(1).forEach(e=>{ const b=document.createElement("button"); b.textContent=e; b.className=rs.includes(e)?"on":""; b.addEventListener("click",()=>{ toggleReact(d,e); }); ep.appendChild(b); }); r.appendChild(ep); }
+}
+// swipe through the pile; a plain tap opens the calendar
+let sx=null,sy=null;
+$("#hero").addEventListener("pointerdown",e=>{ sx=e.clientX; sy=e.clientY; });
+$("#hero").addEventListener("pointerup",e=>{ if(sx===null) return; const dx=e.clientX-sx, dy=e.clientY-sy; sx=null;
+  const n=showingAlbum?activeAlbumPics().length:Math.min(state.posts.length,8);
+  if(Math.abs(dx)>30&&Math.abs(dx)>Math.abs(dy)){ if(n<2) return; if(showingAlbum){ albumIdx=(albumIdx+(dx<0?1:n-1))%n; renderFridge(true); } else { heroIdx=(heroIdx+(dx<0?1:n-1))%n; renderFridge(); } noteActivity(); return; }
+  openCal(); });
+const cal=$("#cal"), cadd=$("#cadd"); let calT;
+function openCal(){ renderCal(); cal.classList.remove("hidden"); bumpCal(); noteActivity(); }
+function closeCal(){ cal.classList.add("hidden"); cadd.classList.add("hidden"); clearTimeout(calT); }
+function bumpCal(){ clearTimeout(calT); calT=setTimeout(closeCal,30000); }  // back to the photo after 30s
+cal.addEventListener("pointerdown",bumpCal); cadd.addEventListener("pointerdown",bumpCal);
+$("#calBack").addEventListener("click",closeCal);
+function renderCal(){
+  const now=new Date(); $("#calMonth").textContent="Scroll for later months";
+  const today=todayISO(); const vis=state.events.filter(e=>e.shared||e.from===PARENT);
+  const byDate={}; vis.forEach(e=>{ (byDate[e.date]=byDate[e.date]||[]).push(e); });
+  const months=$("#calMonths"); months.innerHTML="";
+  for(let m=0;m<3;m++){
+    const first=new Date(now.getFullYear(),now.getMonth()+m,1); const y=first.getFullYear(), mo=first.getMonth();
+    const days=new Date(y,mo+1,0).getDate(); const lead=(first.getDay()+6)%7; // Monday first
+    const blk=document.createElement("div"); blk.className="mblock";
+    blk.innerHTML=`<p class="mname">${first.toLocaleDateString(undefined,{month:"long",year:"numeric"})}</p><div class="wd">${["M","T","W","T","F","S","S"].map(x=>`<span>${x}</span>`).join("")}</div>`;
+    const grid=document.createElement("div"); grid.className="mgrid";
+    for(let i=0;i<lead;i++){ const d=document.createElement("div"); d.className="day pad"; grid.appendChild(d); }
+    for(let dd=1;dd<=days;dd++){ const iso=y+"-"+String(mo+1).padStart(2,"0")+"-"+String(dd).padStart(2,"0"); const d=document.createElement("div"); d.className="day"+(iso===today?" today":"")+(iso<today?" past":"");
+      d.innerHTML=`<span class="n">${dd}</span>`+(byDate[iso]||[]).slice(0,2).map(e=>`<span class="evl ${e.from===PARENT?(e.shared?"shared":"me"):""}${e.ink?" ink":""}" title="${esc(e.title||"")}">${e.ink?`<img src="${e.ink}" alt="">`:esc(e.title)}</span>`).join("");
+      grid.appendChild(d); }
+    blk.appendChild(grid); months.appendChild(blk);
+  }
+  const ev=$("#calEvents"); ev.innerHTML="";
+  const list=vis.filter(e=>e.date>=today).slice(0,6);
+  if(!list.length) ev.innerHTML='<div class="emptyc">Nothing yet.</div>';
+  list.forEach(e=>{ const d=dayParts(e.date); const row=document.createElement("div"); row.className="ev";
+    row.innerHTML=`<div class="d"><b>${d.num}</b><span>${d.wd}</span></div><div class="t">${e.ink?`<img src="${e.ink}" alt="">`:esc(e.title)}</div><span class="tagw">${e.from===PARENT?(e.shared?"shared":"you"):esc(e.from)}</span>`; ev.appendChild(row); });
+  const pn=$("#calNotes"); pn.innerHTML=""; if(!state.pins.length) pn.innerHTML='<div class="emptyc">None pinned.</div>';
+  state.pins.slice(0,6).forEach((n,i)=>{ const el=document.createElement("div"); el.className="note"; el.style.setProperty("--r",((i%3)-1)*1.6+"deg"); el.title="Tap to take down";
+    el.innerHTML=`${n.ink?`<img src="${n.ink}" alt="note">`:esc(n.text)}<span class="x" aria-label="take down">×</span>`; el.addEventListener("click",()=>{ state.pins=state.pins.filter(x=>x.id!==n.id); render(); renderCal(); }); pn.appendChild(el); });
+}
+// add a date / pin a note directly on the fridge: a day strip plus a short handwritten label (no keyboard on the device)
+let caddMode="date", caddDay=null, caddShare=0, cpad2=null;
+function openCadd(mode){ caddMode=mode; caddShare=0; $$("#caddSeg button").forEach(b=>b.classList.toggle("on",b.dataset.share==="0"));
+  $("#caddTitle").textContent=mode==="date"?"Add a date":"Pin a note"; $("#caddHint").textContent=mode==="date"?"Pick a day, then write a word or two":"Write a word or two";
+  const days=$("#caddDays"); days.innerHTML=""; days.classList.toggle("hidden",mode!=="date");
+  if(mode==="date"){ for(let i=0;i<7;i++){ const dt=new Date(Date.now()+i*86400000); const iso=todayISO(dt); const b=document.createElement("button"); b.innerHTML=`<span>${i===0?"Today":dt.toLocaleDateString(undefined,{weekday:"short"})}</span><b>${dt.getDate()}</b>`; b.addEventListener("click",()=>{ caddDay=iso; $$("#caddDays button").forEach(x=>x.classList.toggle("on",x===b)); }); days.appendChild(b); } caddDay=null; }
+  $("#caddSeg").classList.toggle("hidden",mode!=="date");
+  cadd.classList.remove("hidden"); if(!cpad2) cpad2=makePad($("#caddCanvas"),{onStroke:()=>$("#caddPh").classList.add("hidden")}); requestAnimationFrame(()=>cpad2.fit()); cpad2.clear(); $("#caddPh").classList.remove("hidden"); bumpCal(); }
+$("#calAddDate").addEventListener("click",()=>openCadd("date")); $("#calPinNote").addEventListener("click",()=>openCadd("note"));
+$$("#caddSeg button").forEach(b=>b.addEventListener("click",()=>{ caddShare=+b.dataset.share; $$("#caddSeg button").forEach(x=>x.classList.toggle("on",x===b)); }));
+$("#caddCancel").addEventListener("click",()=>cadd.classList.add("hidden"));
+$("#caddSave").addEventListener("click",()=>{ if(!cpad2.hasInk()){ toast("Write a word or two first"); return; }
+  if(caddMode==="date"){ if(!caddDay){ toast("Pick a day"); return; } addEvent({title:"",ink:cpad2.dataURL(),date:caddDay,from:PARENT,shared:!!caddShare}); toast(caddShare?"On the fridge and sent to Maya":"On the fridge"); }
+  else { addPin({ink:cpad2.dataURL(),from:PARENT}); toast("Pinned"); }
+  cadd.classList.add("hidden"); renderCal(); });
+setInterval(()=>{ if(Date.now()-lastActivity<ALBUM_AFTER) return; if(!$("#write").classList.contains("hidden")||!cal.classList.contains("hidden")) return;
+  const album=activeAlbumPics(); if(album.length){ albumIdx=showingAlbum?(albumIdx+1)%album.length:0; renderFridge(true); return; }
+  const n=Math.min(state.posts.length,8); if(n<2) return; heroIdx=(heroIdx+1)%n; renderFridge(); },ALBUM_EVERY);
+const write=$("#write"); let fpad;
+$("#writeBtn").addEventListener("click",()=>{ write.classList.remove("hidden"); if(!fpad) fpad=makePad($("#writeCanvas"),{idleMs:2000,onIdle:sendInk}); else fpad.fit(); fpad.clear(); requestAnimationFrame(()=>fpad.fit()); });
+$("#writeCancel").addEventListener("click",()=>{ fpad.clear(); write.classList.add("hidden"); });
+function sendInk(){ if(!fpad.hasInk()) return; const url=fpad.dataURL(); write.classList.add("hidden"); fpad.clear(); addPost({from:PARENT,type:"ink",url}); toast("Sent to "+KID); }
+let idleT;
+function wake(){ $("#display").classList.remove("asleep"); clearTimeout(idleT); idleT=setTimeout(sleep,IDLE_MS); noteActivity(); }
+function sleep(){ if(!write.classList.contains("hidden")){ wake(); return; } closeCal(); $("#display").classList.add("asleep"); }  // the photo stays; only controls go
+$("#display").addEventListener("pointerdown",wake); wake();
+
+/* ---------- view switcher ---------- */
+function setView(v){ document.body.dataset.view=v; $$("#views button").forEach(b=>b.classList.toggle("on",b.dataset.v===v)); location.hash=v==="board"?"":v; window.dispatchEvent(new Event("resize")); }
+$$("#views button").forEach(b=>b.addEventListener("click",()=>setView(b.dataset.v)));
+setView(location.hash.replace("#","")||(window.innerWidth<700?"maya":"board"));
+window.addEventListener("hashchange",()=>{ const v=location.hash.replace("#","")||"board"; if(document.body.dataset.view!==v) setView(v); });
+
+/* ---------- seed: the family has been using it for a week ---------- */
+(function seed(){
+  const H=3600e3, D=24*H, now=Date.now();
+  const mk=(o,agoMs)=>({id:Math.random(), reacts:[], at:now-agoMs, ...o});
+  state.posts=[
+    mk({from:PARENT,type:"photo",url:ROLL[3],caption:"dog is on your bed again"},2*H),
+    mk({from:KID,type:"stamp",text:"home safe",reacts:[HEART]},14*H),
+    mk({from:KID,type:"photo",url:ROLL[0],caption:"made soup, it was fine",reacts:[EMOJI[2],EMOJI[1]]},1*D+3*H),
+    mk({from:PARENT,type:"photo",url:ROLL[6]},2*D),
+    mk({from:KID,type:"photo",url:ROLL[2],caption:"new desk"},3*D+5*H),
+    mk({from:PARENT,type:"text",text:"dad fixed the gate"},4*D),
+    mk({from:KID,type:"photo",url:ROLL[8]},6*D),
+  ];
+  const iso=n=>todayISO(new Date(now+n*D));
+  state.events=[{id:1,title:"flight home",date:iso(9),from:KID,shared:true},{id:2,title:"dentist",date:iso(3),from:PARENT,shared:false},{id:3,title:"dad's birthday",date:iso(12),from:PARENT,shared:true}];
+  state.pins=[{id:1,text:"buy stamps",from:PARENT},{id:2,text:"call aunt jo",from:PARENT}];
+})();
+
+/* ---------- boot ---------- */
+buildApp($('[data-app="Maya"]'),KID); buildApp($('[data-app="Mom"]'),PARENT);
+function render(){ renderFridge(false); apps.forEach(a=>a.render()); renderWidget(); if(!cal.classList.contains("hidden")) renderCal(); }
+setInterval(()=>{ apps.forEach(a=>a.render()); renderWidget(); },30000);
+render();
+</script>
+</body>
+</html>

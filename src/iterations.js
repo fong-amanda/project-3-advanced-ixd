@@ -8,10 +8,10 @@ export const people = [
     name: "Charline Li",
     color: "charline",
     iterations: [
-      {
-        title: "Iteration 1",
-        description: "Add a short description",
-        href: "#",
+       {
+        title: "Fridge Post",
+        description: "October 26, 2026 - P3.1: (GROUP) Concept Prototypes",
+        href: "/FridgePostCharline.html",
       },
       {
         title: "Iteration 2",
@@ -42,8 +42,8 @@ export const people = [
     iterations: [
       {
         title: "Keepers",
-        description: "October 26, 2026",
-        href: "/keepers.html",
+        description: "October 26, 2026 - P3.1: (GROUP) Concept Prototypes",
+        href: "/keepersAmanda.html",
       },
       {
         title: "Iteration 2",
