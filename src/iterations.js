@@ -8,6 +8,11 @@ export const team = {
         description: "October 27, 2026 - P3.1: (GROUP) Concept Prototypes",
         href: "/SharedSpace.html",
       },
+      {
+        title: "Shared Space 2",
+        description: "November 3, 2026 - P3.1: (GROUP) Concept Prototypes",
+        href: "/sharedSpaceAmanda.html",
+      },
 
     ],
   };
@@ -34,6 +39,7 @@ export const people = [
         description: "October 26, 2026 - P3.1: (GROUP) Concept Prototypes",
         href: "/dateAgainVivian.html",
       },
+      
 
     ],
   },
