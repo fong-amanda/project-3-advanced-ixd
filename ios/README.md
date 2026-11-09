@@ -14,7 +14,6 @@ You'll need a Mac with **Xcode 16** or later (free from the App Store; open it o
 2. In Xcode's toolbar, click the run destination menu (next to the SharedSpace scheme) and choose an iPhone Simulator, such as **iPhone 16 Pro**.
    
 3. Click the **Run** button (▶) in the top-left corner of Xcode, or press **Command (⌘) + R**. The Simulator opens and launches the app. The first build takes a minute or two.
-4. On the phone: Settings › Privacy & Security › **Developer Mode** → on (the phone restarts).
 
 ## What's faked
 - **Scanning a room with RoomPlan:** [not built yet]
