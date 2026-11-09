@@ -21,7 +21,7 @@ struct JoinRoomSheet: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
+                VStack(alignment: .leading, spacing: Space.xl) {
                     if !sync.isShared {
                         ContentUnavailableView("Joining needs sharing turned on",
                                                systemImage: "icloud.slash",
@@ -32,9 +32,9 @@ struct JoinRoomSheet: View {
                         enterCode
                     }
                 }
-                .padding(20)
+                .padding(Space.xl)
             }
-            .background(Color.ssBg)
+            .background(Color.pageBackground)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
             }
@@ -45,60 +45,64 @@ struct JoinRoomSheet: View {
     }
 
     private var enterCode: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Join a room").font(.display(32))
-            Text("Enter the five-letter code from your invite.").foregroundStyle(Color.ssInk2)
+        VStack(alignment: .leading, spacing: Space.l) {
+            Text("Join a room").font(.screenTitle)
+            Text("Five letters and numbers, from the person who shared the room.").foregroundStyle(Color.textSecondary)
             TextField("K7M2Q", text: $code)
-                .font(.system(size: 34, weight: .semibold, design: .serif))
-                .kerning(6)
+                .font(.code)
+                .kerning(Tracking.code)
                 .multilineTextAlignment(.center)
                 .textInputAutocapitalization(.characters)
                 .autocorrectionDisabled()
                 .focused($codeFocused)
-                .padding(.vertical, 12)
-                .background(Color.ssSurface, in: RoundedRectangle(cornerRadius: 14))
-                .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(Color.ssLine, lineWidth: 1.5))
+                .padding(.vertical, Space.m)
+                .background(Color.surface, in: RoundedRectangle(cornerRadius: Radius.control))
+                .overlay(RoundedRectangle(cornerRadius: Radius.control).strokeBorder(Color.outline, lineWidth: Stroke.regular))
                 .onChange(of: code) { _, new in
                     let normal = RoomCode.normalize(new)
                     if normal != new { code = normal }
                     error = nil
                 }
                 .onSubmit { Task { await find() } }
-            if let error { Text(error).foregroundStyle(Color.ssLetGo).fontWeight(.semibold) }
+            if let error { Text(error).foregroundStyle(Color.letGo).fontWeight(.semibold) }
             Button { Task { await find() } } label: {
                 if busy { ProgressView() } else { Text("Find room") }
             }
-            .buttonStyle(.pill)
+            .buttonStyle(.app)
             .disabled(code.count < 5 || busy)
         }
     }
 
     private func found(_ peek: RoomPeek) -> some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: Space.l) {
             if peek.isHost {
-                Text("This is your room").font(.display(32))
-                Text("You created \(peek.name). Open it from your rooms.").foregroundStyle(Color.ssInk2)
-                Button("Open \(peek.name)") { dismiss(); onJoined(peek.id) }.buttonStyle(.pill)
+                Text("This is your room").font(.screenTitle)
+                Text("You created \(peek.name). Open it from your rooms.").foregroundStyle(Color.textSecondary)
+                Button("Open \(peek.name)") { dismiss(); onJoined(peek.id) }.buttonStyle(.app)
             } else {
-                Text("\(peek.hostName) invited you").font(.display(32))
-                Text("\(peek.hostName) is turning the \(peek.name.lowercased()) into a \(peek.futureUse.lowercased()) and wants your say on a few things.")
-                    .foregroundStyle(Color.ssInk2)
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("Your first name").font(.subheadline.weight(.semibold))
+                Text("Join room").font(.screenTitle)
+                HStack(spacing: Space.m) {
+                    Avatar(name: peek.hostName, role: .host)
+                    VStack(alignment: .leading, spacing: Space.xxs) {
+                        Text(peek.name).font(.bodyStrong)
+                        Text("Shared by \(peek.hostName)").textRole(.secondary)
+                    }
+                }
+                .accessibilityElement(children: .combine)
+                VStack(alignment: .leading, spacing: Space.s) {
+                    Text("Your first name").font(.detailStrong)
                     TextField("Your name", text: $name)
                         .textContentType(.givenName)
-                        .padding(14)
-                        .background(Color.ssSurface, in: RoundedRectangle(cornerRadius: 14))
-                        .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(Color.ssLine, lineWidth: 1.5))
+                        .textFieldStyle(.app)
                 }
-                if let error { Text(error).foregroundStyle(Color.ssLetGo).fontWeight(.semibold) }
+                if let error { Text(error).foregroundStyle(Color.letGo).fontWeight(.semibold) }
                 Button { Task { await join(peek) } } label: {
                     if busy { ProgressView() } else { Text("Join the room") }
                 }
-                .buttonStyle(.pill)
+                .buttonStyle(.app)
                 .disabled(name.trimmed.isEmpty || busy)
                 Button("Use a different code") { self.peek = nil; code = "" }
-                    .buttonStyle(.pill(.secondary))
+                    .buttonStyle(.link)
             }
         }
     }

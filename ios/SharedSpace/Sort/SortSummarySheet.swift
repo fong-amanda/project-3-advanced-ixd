@@ -1,49 +1,52 @@
 import SwiftUI
 
-/// Shown when the last undecided item gets a decision. Ends with "Done", not a next step.
+/// Shown when the last undecided thing gets a decision. The host can go on to the room plan.
 struct SortSummarySheet: View {
     let items: [Item]
     let room: Room
     let me: Role
+    var onSeeRoom: () -> Void
     @Environment(\.dismiss) private var dismiss
 
     private var progress: SortProgress { SortProgress(items) }
 
     var body: some View {
         NavigationStack {
-            List {
-                Section {
-                    ForEach(ItemStatus.decisions, id: \.self) { status in
-                        let count = progress.byStatus[status] ?? 0
-                        if count > 0 {
-                            HStack {
-                                Label(summaryLabel(status), systemImage: status.icon)
-                                    .foregroundStyle(status.color)
-                                Spacer()
-                                Text("\(count)").font(.body.weight(.semibold))
+            ScrollView {
+                VStack(alignment: .leading, spacing: Space.l) {
+                    VStack(spacing: Space.xxs) {
+                        ForEach(ItemStatus.decisions + [.keepMove], id: \.self) { status in
+                            let count = progress.byStatus[status] ?? 0
+                            if count > 0 {
+                                HStack(spacing: Space.m) {
+                                    Image(systemName: status.icon).foregroundStyle(status.color).frame(width: Size.iconColumn)
+                                        .accessibilityHidden(true)
+                                    Text(status.statusLabel)
+                                    Spacer()
+                                    Text("\(count)").font(.bodyStrong)
+                                }
+                                .padding(.vertical, Space.m)
+                                .accessibilityElement(children: .combine)
+                                Divider()
                             }
                         }
                     }
-                } footer: {
-                    Text("You can change any decision at any time.")
-                }
-                if progress.freedM2 > 0.05 {
-                    Section {
-                        Label("\(String(format: "%.1f", progress.freedM2)) m² of floor freed up", systemImage: "sparkles")
-                            .foregroundStyle(Color.ssAccentInk)
-                            .listRowBackground(Color.ssAccentSoft)
+                    if progress.freedCm2 > 500 {
+                        Text("\(room.unitSystem.area(progress.freedCm2)) of floor freed up.")
+                            .textRole(.secondary)
                     }
-                }
-                let pickups = items.filter { $0.status == .sendToOwner && $0.pickupDate != nil }
-                if !pickups.isEmpty {
-                    Section("Pickups") {
-                        ForEach(pickups) { item in
-                            LabeledContent(item.name,
-                                           value: item.pickupDate!.formatted(.dateTime.weekday(.abbreviated).month().day()))
+                    Text("You can change any decision at any time.").textRole(.hint)
+                    if me == .host {
+                        Button("See the room") {
+                            dismiss()
+                            onSeeRoom()
                         }
+                        .buttonStyle(.app)
                     }
                 }
+                .padding(Space.l)
             }
+            .background(Color.surface)
             .navigationTitle(me == .guest ? "All done, thank you" : "Everything’s decided")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -51,15 +54,5 @@ struct SortSummarySheet: View {
             }
         }
         .presentationDetents([.medium, .large])
-    }
-
-    private func summaryLabel(_ status: ItemStatus) -> String {
-        switch status {
-        case .keep: "Staying in the room"
-        case .keepMove: "Moving elsewhere in the house"
-        case .sendToOwner: "Going back to their owner"
-        case .letGo: "Letting go"
-        case .undecided: ""
-        }
     }
 }

@@ -1,7 +1,13 @@
 import Foundation
 import SwiftData
 
-/// One redesign option ("Option A"). Up to three per room. Local cache of `designs`.
+/// One room plan version. Local cache of `designs`.
+///
+/// * The working plan ("Proposed layout") is unlocked and the host edits it.
+/// * "Save a version" and "Share plan" make locked copies ("Version 2", "Shared 1"), which are
+///   read-only snapshots. Rooms made before Nov 2026 may also have unlocked "Option A/B/C" plans.
+/// * The guest reacts to the shared version: `guestLikes` means "Looks good", and
+///   `reactionNote` holds their "One thing…" note.
 ///
 /// A design stores only what it changes. A real item with no placement is shown where it
 /// physically is, so a brand-new design is the room exactly as it is today. Sort decisions are
@@ -21,10 +27,16 @@ final class Design {
     var needsUpload: Bool
     var existsRemotely: Bool
 
+    /// Saved versions are snapshots: nobody edits them, the host can continue from one.
+    var locked: Bool = false
+    /// The guest's "One thing…" note on this version (nil when they said it looks good).
+    var reactionNote: String? = nil
+    var reactionAt: Date? = nil
+
     @Relationship(deleteRule: .cascade, inverse: \DesignPlacement.design)
     var placements: [DesignPlacement] = []
 
-    static let maxPerRoom = 3
+    static let workingName = "Proposed layout"
 
     init(id: UUID = UUID(), room: Room, name: String, sortOrder: Int) {
         self.id = id

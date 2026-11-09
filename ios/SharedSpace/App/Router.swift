@@ -2,18 +2,14 @@ import Observation
 import SwiftData
 import SwiftUI
 
-enum AppTab: Hashable {
-    case home, sort, redesign, people
+/// The two tabs inside a room.
+enum RoomTab: Hashable {
+    case items, plan
 }
 
-/// Screens pushed on the Home tab.
-enum HomeRoute: Hashable {
-    case room(UUID)
-}
-
-/// Screens pushed inside the Redesign tab.
+/// Screens pushed inside a room tab.
 enum RoomRoute: Hashable {
-    case design(UUID)
+    case people
 }
 
 struct JoinRequest: Identifiable {
@@ -21,190 +17,152 @@ struct JoinRequest: Identifiable {
     var id: String { code }
 }
 
-/// App-level navigation: the selected tab, the Home stack, and the current room
-/// (the one Sort, Redesign and People work on).
+/// App-level navigation. Home lists your rooms; opening one shows that room with its own two tabs
+/// (Items and Room plan). People & sharing lives in the room's ⋯ menu.
 @MainActor
 @Observable
 final class Router {
-    private static let lastRoomKey = "ss.lastRoomId"
-
-    var tab: AppTab = .home
-    var homePath: [HomeRoute] = []
-    /// Remembered between launches. nil (or a deleted room) falls back to the newest room.
-    var currentRoomId: UUID? {
-        didSet { UserDefaults.standard.set(currentRoomId?.uuidString, forKey: Self.lastRoomKey) }
-    }
+    /// The room on screen, or nil for the room list.
+    var openRoomId: UUID?
+    var roomTab: RoomTab = .items
     var showNewRoom = false
-    /// Set by "I’m invited" or an invite link; shows the join sheet.
+    var showAddRoom = false
+    /// Set by "Join with a code" or an invite link; shows the join sheet.
     var joinRequest: JoinRequest?
 
-    init() {
-        currentRoomId = UserDefaults.standard.string(forKey: Self.lastRoomKey).flatMap(UUID.init(uuidString:))
+    func openRoom(_ id: UUID, showing tab: RoomTab = .items) {
+        roomTab = tab
+        openRoomId = id
     }
 
-    /// Opens a room from Home (or after creating/joining one): pushes its overview on the Home tab.
-    func openRoom(_ id: UUID, showing tab: AppTab = .home) {
-        currentRoomId = id
-        homePath = [.room(id)]
-        self.tab = tab
-    }
-
-    /// Makes a room current without leaving the tab you're on (the title menu's room switcher).
-    func switchRoom(to id: UUID) {
-        currentRoomId = id
-        if !homePath.isEmpty { homePath = [.room(id)] }
-    }
-
-    /// After deleting or leaving the current room.
+    /// Back to the room list (also after deleting or leaving the room).
     func closeRoom() {
-        currentRoomId = nil
-        homePath = []
-        tab = .home
+        openRoomId = nil
     }
 }
 
-/// The tab bar is always there. Home lists rooms; Sort, Redesign and People work on the current room.
 struct RootView: View {
     @Environment(SyncEngine.self) private var sync
     @Environment(Router.self) private var router
-    @State private var session = RoomSession()
     @Query(filter: #Predicate<Room> { $0.deletedAt == nil }, sort: \Room.createdAt, order: .reverse)
     private var rooms: [Room]
-    @Query(filter: #Predicate<Item> { $0.deletedAt == nil }) private var allItems: [Item]
 
-    private var currentRoom: Room? {
-        rooms.first { $0.id == router.currentRoomId } ?? rooms.first
-    }
-
-    /// Undecided items the current person is responsible for, in the current room. Live.
-    private var undecidedCount: Int {
-        guard let room = currentRoom else { return 0 }
-        let items = allItems.filter { $0.roomId == room.id }
-        let mine = session.me(in: room, userId: sync.userId) == .guest ? SortRules.items(items, belongingTo: .guest) : items
-        return mine.filter { !$0.isDecided }.count
-    }
-
-    private var sortTitle: String {
-        guard let room = currentRoom else { return "Sort" }
-        return session.me(in: room, userId: sync.userId) == .guest ? "Your things" : "Sort"
+    private var openRoom: Room? {
+        guard let id = router.openRoomId else { return nil }
+        return rooms.first { $0.id == id }
     }
 
     var body: some View {
         @Bindable var router = router
         @Bindable var sync = sync
+        ZStack {
+            if let room = openRoom {
+                RoomView(room: room)
+                    .id(room.id)
+                    .transition(.move(edge: .trailing))
+            } else {
+                NavigationStack { HomeView() }
+                    .transition(.move(edge: .leading))
+            }
+        }
+        .animation(.snappy(duration: 0.3), value: openRoom?.id)
+        .task(id: openRoom?.id) {
+            if let id = openRoom?.id { await sync.openRoom(id) } else { await sync.closeRoom() }
+        }
+        .sheet(isPresented: $router.showAddRoom) { AddRoomSheet() }
+        .fullScreenCover(isPresented: $router.showNewRoom) {
+            NewRoomFlow { room, invite in
+                if invite { pendingInvite = room.id }
+                router.openRoom(room.id)
+            }
+        }
+        .sheet(item: $router.joinRequest) { request in
+            JoinRoomSheet(initialCode: request.code) { roomId in router.openRoom(roomId) }
+        }
+        .activityBanner($sync.activity)
+        .environment(\.pendingInvite, $pendingInvite)
+    }
+
+    /// A room just created with "Invite someone": its People screen opens the invite sheet once.
+    @State private var pendingInvite: UUID?
+}
+
+/// One room: Items and Room plan, each with its own navigation stack.
+struct RoomView: View {
+    let room: Room
+    @Environment(SyncEngine.self) private var sync
+    @Environment(Router.self) private var router
+    @Environment(\.pendingInvite) private var pendingInvite
+    @State private var session = RoomSession()
+    @Query private var items: [Item]
+
+    init(room: Room) {
+        self.room = room
+        _items = Query(Item.live(in: room.id))
+    }
+
+    /// Things that need the current person: theirs to decide, or a question for them. Live.
+    private var openCount: Int {
+        let me = session.me(in: room, userId: sync.userId)
+        return items.filter { SortRules.needsMe($0, me: me, in: room) }.count
+    }
+
+    var body: some View {
+        @Bindable var router = router
         @Bindable var session = session
-        TabView(selection: $router.tab) {
-            Tab("Home", systemImage: "house", value: AppTab.home) {
-                NavigationStack(path: $router.homePath) {
-                    HomeView()
-                        .navigationDestination(for: HomeRoute.self) { route in
-                            switch route {
-                            case .room(let id): RoomOverviewScreen(roomId: id)
-                            }
-                        }
+        TabView(selection: $router.roomTab) {
+            Tab("Items", systemImage: "list.bullet", value: RoomTab.items) {
+                NavigationStack(path: $session.itemsPath) {
+                    ItemsView(room: room)
+                        .navigationDestination(for: RoomRoute.self) { route in destination(route) }
                 }
             }
-            Tab(sortTitle, systemImage: "checklist", value: AppTab.sort) {
-                NavigationStack {
-                    if let room = currentRoom { SortView(room: room).id(room.id) } else { NoRoomChosenView(tool: "Sort") }
-                }
-            }
-            .badge(undecidedCount)
-            Tab("Redesign", systemImage: "cube", value: AppTab.redesign) {
-                NavigationStack(path: $session.redesignPath) {
-                    Group {
-                        if let room = currentRoom { RedesignHomeView(room: room).id(room.id) } else { NoRoomChosenView(tool: "Redesign") }
-                    }
-                    .navigationDestination(for: RoomRoute.self) { route in
-                        switch route {
-                        case .design(let id): DesignEditorView(roomId: currentRoom?.id ?? id, designId: id)
-                        }
-                    }
-                }
-            }
-            Tab("People", systemImage: "person.2", value: AppTab.people) {
-                NavigationStack {
-                    if let room = currentRoom { PeopleView(room: room).id(room.id) } else { NoRoomChosenView(tool: "People") }
+            .badge(openCount)
+            Tab("Room plan", systemImage: "cube", value: RoomTab.plan) {
+                NavigationStack(path: $session.planPath) {
+                    RoomPlanView(room: room)
+                        .navigationDestination(for: RoomRoute.self) { route in destination(route) }
                 }
             }
         }
-        .task(id: currentRoom?.id) {
-            session.reset(for: currentRoom?.id)
+        .tint(.accent)
+        .sheet(item: $session.addItem) { request in
+            AddItemSheet(room: room, pin: request.pin, photo: request.photo)
+        }
+        .sheet(isPresented: $session.showSettings) { RoomSettingsSheet(room: room) }
+        .fullScreenCover(isPresented: $session.showScan) {
+            ScanFlowView { result, captured in
+                ScanActions.apply(result, captured: captured, to: room, items: items, sync: sync)
+                sync.activity = ActivityEvent(text: "Scan saved: \(result.objects.count) things found", symbol: "viewfinder", status: nil)
+            }
+        }
+        .environment(session)
+        .onAppear {
             #if DEBUG
             if DemoData.asGuest { session.previewAsGuest = true }
             #endif
-            if let id = currentRoom?.id { await sync.openRoom(id) } else { await sync.closeRoom() }
-        }
-        .sheet(isPresented: $router.showNewRoom) {
-            NewRoomSheet { room in router.openRoom(room.id) }
-        }
-        .sheet(item: $router.joinRequest) { request in
-            JoinRoomSheet(initialCode: request.code) { roomId in
-                // Guests land on their own things, ready to review one at a time.
-                let isGuest = rooms.first { $0.id == roomId }?.role(of: sync.userId) == .guest
-                router.openRoom(roomId, showing: isGuest ? .sort : .home)
+            if pendingInvite.wrappedValue == room.id {
+                pendingInvite.wrappedValue = nil
+                session.showInviteOnPeople = true
+                session.show(.people, on: router.roomTab)
             }
         }
-        .sheet(isPresented: $session.showAddItem) { if let room = currentRoom { AddItemSheet(room: room) } }
-        .sheet(isPresented: $session.showSettings) { if let room = currentRoom { RoomSettingsSheet(room: room) } }
-        .fullScreenCover(isPresented: $session.showScan) { if let room = currentRoom { ScanFlowView(room: room) } }
-        .alert("This iPhone can’t scan rooms", isPresented: $session.showScanUnsupported) {
-            Button("Add items by hand") { session.showAddItem = true }
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text("Scanning needs an iPhone with LiDAR, such as an iPhone Pro. You can still add things by hand, sort them, and redesign the room.")
+    }
+
+    @ViewBuilder private func destination(_ route: RoomRoute) -> some View {
+        switch route {
+        case .people: PeopleView(room: room)
         }
-        .activityBanner($sync.activity)
-        .environment(session)
     }
 }
 
-/// Pushed from Home. Makes the room current so the other tabs follow it.
-private struct RoomOverviewScreen: View {
-    let roomId: UUID
-    @Environment(Router.self) private var router
-    @Query private var rooms: [Room]
-
-    init(roomId: UUID) {
-        self.roomId = roomId
-        _rooms = Query(filter: #Predicate<Room> { $0.id == roomId && $0.deletedAt == nil })
-    }
-
-    var body: some View {
-        Group {
-            if let room = rooms.first {
-                RoomOverviewView(room: room)
-            } else {
-                ContentUnavailableView("This room no longer exists", systemImage: "door.left.hand.closed",
-                                       description: Text("It may have been deleted by the person who made it."))
-            }
-        }
-        .onAppear { if router.currentRoomId != roomId { router.currentRoomId = roomId } }
-    }
+private struct PendingInviteKey: EnvironmentKey {
+    static let defaultValue: Binding<UUID?> = .constant(nil)
 }
 
-/// Sort / Redesign / People before any room has been opened.
-private struct NoRoomChosenView: View {
-    let tool: String
-    @Environment(Router.self) private var router
-    @Query(filter: #Predicate<Room> { $0.deletedAt == nil }) private var rooms: [Room]
-
-    var body: some View {
-        ContentUnavailableView {
-            Label(rooms.isEmpty ? "No rooms yet" : "Choose a room", systemImage: "square.dashed")
-        } description: {
-            Text(rooms.isEmpty ? "\(tool) works on a room. Add the room you want to change, or join one you were invited to."
-                               : "Open a room from Home and \(tool) will show it here.")
-        } actions: {
-            if rooms.isEmpty {
-                Button { router.showNewRoom = true } label: { Label("New room", systemImage: "plus") }
-                    .buttonStyle(.pill(.primary, fullWidth: false))
-            }
-            Button("Go to Home") { router.tab = .home }
-                .buttonStyle(.pill(.secondary, fullWidth: false))
-        }
-        .background(Color.ssBg)
-        .navigationTitle(tool)
-        .navigationBarTitleDisplayMode(.inline)
+extension EnvironmentValues {
+    var pendingInvite: Binding<UUID?> {
+        get { self[PendingInviteKey.self] }
+        set { self[PendingInviteKey.self] = newValue }
     }
 }

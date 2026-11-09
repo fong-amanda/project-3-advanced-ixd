@@ -5,7 +5,8 @@
 -- Model
 --   rooms ─┬─ room_members      (who may read/write a room; host + at most one guest)
 --          ├─ items             (one row per thing in the room; Sort decisions live here)
---          ├─ designs           (up to 3 redesign options; likes live here)
+--          ├─ designs           (room plan versions: the working plan plus locked saved/shared copies;
+--          │                     likes and the guest's reaction live here)
 --          └─ design_placements (only what a design changes: a moved/hidden real item, or a new piece)
 --
 -- Sync rules the apps rely on
@@ -34,6 +35,11 @@ create table if not exists public.rooms (
   guest_joined_at  timestamptz,
   scan_version     integer not null default 0,
   geometry_path    text,           -- Storage path of the simplified room geometry JSON
+  units            text not null default 'ft' check (units in ('ft', 'cm')),
+  measured         boolean not null default false,
+  photo_count      integer not null default 0,
+  shared_design_id uuid,           -- the plan version the host shared with the guest
+  shape            jsonb,          -- floor outline (corners, cm) with doors and windows; null = rectangle
   created_at       timestamptz not null default now(),
   updated_at       timestamptz not null default now(),
   deleted_at       timestamptz
@@ -63,17 +69,23 @@ create table if not exists public.items (
   z_cm             double precision not null default 0,
   yaw_deg          double precision not null default 0,
   owner            text not null default 'unassigned' check (owner in ('unassigned', 'host', 'guest', 'shared')),
-  status           text not null default 'undecided' check (status in ('undecided', 'keep', 'keepMove', 'sendToOwner', 'letGo')),
+  status           text not null default 'undecided',
   move_destination text,
   decided_by       text check (decided_by in ('host', 'guest')),
   decided_at       timestamptz,
-  suggestion       text check (suggestion in ('keep', 'keepMove', 'sendToOwner', 'letGo')),
+  suggestion       text,
   suggested_by     text check (suggested_by in ('host', 'guest')),
   suggested_at     timestamptz,
   note             text not null default '',
   note_by          text check (note_by in ('host', 'guest')),
   pickup_date      timestamptz,
   photo_path       text,
+  ask_by           text check (ask_by in ('host', 'guest')),
+  ask_to           text check (ask_to in ('host', 'guest')),
+  asked_at         timestamptz,
+  pin_x            double precision,   -- pin on a room photo, as a fraction of its width
+  pin_y            double precision,   -- … and height
+  pin_photo        integer not null default 0,
   sort_order       integer not null default 0,
   created_at       timestamptz not null default now(),
   updated_at       timestamptz not null default now(),
@@ -87,7 +99,10 @@ create table if not exists public.designs (
   name            text not null,
   sort_order      integer not null default 0,
   host_likes      boolean not null default false,
-  guest_likes     boolean not null default false,
+  guest_likes     boolean not null default false,   -- the guest's "Looks good"
+  locked          boolean not null default false,   -- saved / shared versions are read-only snapshots
+  reaction_note   text,                             -- the guest's "One thing…" note
+  reaction_at     timestamptz,
   created_at      timestamptz not null default now(),
   updated_at      timestamptz not null default now(),
   deleted_at      timestamptz
@@ -109,6 +124,41 @@ create table if not exists public.design_placements (
   check ((item_id is null) <> (catalog_id is null))
 );
 create index if not exists placements_room_idx on public.design_placements(room_id);
+
+-- ───────────────────────── upgrades ─────────────────────────
+-- Nov 2026 (sharedSpaceCharline7): five decisions, asking the other person, photo pins, units,
+-- measured rooms, room photos, plan versions and the guest's reaction. Every change is additive,
+-- so existing rows keep working and older app builds can still read them.
+
+alter table public.rooms add column if not exists units text not null default 'ft';
+alter table public.rooms add column if not exists measured boolean not null default false;
+alter table public.rooms add column if not exists photo_count integer not null default 0;
+alter table public.rooms add column if not exists shared_design_id uuid;
+alter table public.rooms add column if not exists shape jsonb;
+alter table public.rooms drop constraint if exists rooms_units_check;
+alter table public.rooms add constraint rooms_units_check check (units in ('ft', 'cm'));
+
+alter table public.items add column if not exists ask_by text;
+alter table public.items add column if not exists ask_to text;
+alter table public.items add column if not exists asked_at timestamptz;
+alter table public.items add column if not exists pin_x double precision;
+alter table public.items add column if not exists pin_y double precision;
+alter table public.items add column if not exists pin_photo integer not null default 0;
+alter table public.items drop constraint if exists items_ask_by_check;
+alter table public.items add constraint items_ask_by_check check (ask_by in ('host', 'guest'));
+alter table public.items drop constraint if exists items_ask_to_check;
+alter table public.items add constraint items_ask_to_check check (ask_to in ('host', 'guest'));
+-- 'toss' (throw out) and 'unsure' (not sure) join the decisions. 'keepMove' stays valid for old rows.
+alter table public.items drop constraint if exists items_status_check;
+alter table public.items add constraint items_status_check
+  check (status in ('undecided', 'keep', 'keepMove', 'sendToOwner', 'letGo', 'toss', 'unsure'));
+alter table public.items drop constraint if exists items_suggestion_check;
+alter table public.items add constraint items_suggestion_check
+  check (suggestion in ('keep', 'keepMove', 'sendToOwner', 'letGo', 'toss', 'unsure'));
+
+alter table public.designs add column if not exists locked boolean not null default false;
+alter table public.designs add column if not exists reaction_note text;
+alter table public.designs add column if not exists reaction_at timestamptz;
 
 -- ───────────────────────── helpers ─────────────────────────
 
@@ -189,6 +239,24 @@ begin
   end if;
 end $$;
 
+-- React to a plan version: "Looks good" (p_ok = true) or "One thing…" with a note.
+-- Like set_design_like, it lets the guest write their side without being allowed to edit designs.
+create or replace function public.set_design_reaction(p_design uuid, p_ok boolean, p_note text)
+returns void language plpgsql security definer set search_path = public as $$
+declare rid uuid; my_role text;
+begin
+  select room_id into rid from designs where id = p_design;
+  select role into my_role from room_members where room_id = rid and user_id = auth.uid();
+  if my_role is null then raise exception 'not_a_member'; end if;
+  if my_role = 'host' then
+    update designs set host_likes = p_ok, reaction_note = case when p_ok then null else p_note end,
+                       reaction_at = now(), updated_at = now() where id = p_design;
+  else
+    update designs set guest_likes = p_ok, reaction_note = case when p_ok then null else p_note end,
+                       reaction_at = now(), updated_at = now() where id = p_design;
+  end if;
+end $$;
+
 -- Leave a room as the guest.
 create or replace function public.leave_room(p_room uuid)
 returns void language plpgsql security definer set search_path = public as $$
@@ -253,7 +321,7 @@ begin
 end $$;
 
 -- ───────────────────────── storage ─────────────────────────
--- Bucket "rooms": <room_id>/geometry.json and <room_id>/items/<item_id>.jpg
+-- Bucket "rooms": <room_id>/geometry.json, <room_id>/photos/<n>.jpg and <room_id>/items/<item_id>.jpg
 
 insert into storage.buckets (id, name, public)
 values ('rooms', 'rooms', false)

@@ -16,7 +16,6 @@ You'll need a Mac with **Xcode 16** or later (free from the App Store; open it o
 3. Click the **Run** button (▶) in the top-left corner of Xcode, or press **Command (⌘) + R**. The Simulator opens and launches the app. The first build takes a minute or two.
 
 ## What's faked
-- **Scanning a room with RoomPlan:** [not built yet]
 - **3D dollhouse redesign:** [not built yet]
 - **Live AR view of a design in the room:** [not built yet]
 - **Furniture catalogue, prices and store links:** [not built yet]

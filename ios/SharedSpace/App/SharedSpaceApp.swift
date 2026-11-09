@@ -25,11 +25,11 @@ struct SharedSpaceApp: App {
                 .environment(sync)
                 .environment(router)
                 .modelContainer(container)
-                .tint(.ssInk)
+                .tint(.accent)
                 .task {
                     #if DEBUG
                     if DemoData.requested {
-                        router.openRoom(DemoData.room(sync: sync).id, showing: DemoData.asGuest ? .sort : (DemoData.requestedTab ?? .home))
+                        router.openRoom(DemoData.room(sync: sync).id, showing: DemoData.requestedTab ?? .items)
                     }
                     #endif
                     await sync.start()

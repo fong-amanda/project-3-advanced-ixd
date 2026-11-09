@@ -1,14 +1,16 @@
 import SwiftData
 import SwiftUI
 
-/// People tab: who's in the room, inviting the guest, and the room code.
-/// Inviting is optional; Sort works fine solo.
+/// People & sharing (from the room's ⋯ menu): who's in the room, inviting someone, the room code.
+/// Inviting is optional; a room works fine solo.
 struct PeopleView: View {
     let room: Room
     @Environment(SyncEngine.self) private var sync
     @Environment(RoomSession.self) private var session
+    @Environment(Router.self) private var router
     @Query private var items: [Item]
     @State private var showAddGuest = false
+    @State private var showInvite = false
     @State private var copied = false
 
     init(room: Room) {
@@ -17,156 +19,244 @@ struct PeopleView: View {
     }
 
     private var context: RoomContext { session.context(room, userId: sync.userId) }
+    private var isHost: Bool { context.realRole == .host }
     private var guest: String { room.name(of: .guest) }
 
     var body: some View {
-        List {
-            Section("In this room") {
-                personRow(.host)
-                if room.hasGuest {
-                    personRow(.guest)
-                } else if context.canEditRoom {
-                    Button { showAddGuest = true } label: {
-                        Label("Add a person", systemImage: "person.badge.plus")
-                    }
-                }
-            }
-
-            if context.canEditRoom && !room.hasGuest {
-                Section {
-                    Text("If some things here belong to someone else, add them so they can decide on their own things. This is optional; you can sort on your own.")
-                        .font(.subheadline)
-                        .foregroundStyle(Color.ssInk2)
-                }
-            }
-
-            if context.canEditRoom && room.hasGuest && !room.guestHasJoined {
-                Section {
-                    if sync.isShared {
-                        ShareLink(item: inviteMessage) {
-                            Label(room.invitedAt == nil ? "Invite \(guest)" : "Invite \(guest) again",
-                                  systemImage: "square.and.arrow.up")
+        ScrollView {
+            VStack(alignment: .leading, spacing: Space.l) {
+                VStack(spacing: Space.xxs) {
+                    personRow(.host)
+                    if room.hasGuest {
+                        Divider().padding(.leading, Space.xxxl)
+                        personRow(.guest)
+                    } else if isHost {
+                        Divider().padding(.leading, Space.l)
+                        Button { showAddGuest = true } label: {
+                            Label("Invite someone", systemImage: "plus").frame(maxWidth: .infinity, alignment: .leading)
                         }
-                        .simultaneousGesture(TapGesture().onEnded {
-                            room.invitedAt = .now
-                            sync.save(room)
-                        })
+                        .buttonStyle(.link)
+                        .padding(.horizontal, Space.l)
                     }
-                    Button("Change name") { showAddGuest = true }
-                } footer: {
-                    Text("Until \(guest) joins, you can decide for them in Sort.")
                 }
-            }
+                .background(Color.surface, in: RoundedRectangle(cornerRadius: Radius.m))
+                .overlay(RoundedRectangle(cornerRadius: Radius.m).strokeBorder(Color.outline))
 
-            Section {
+                if room.hasGuest {
+                    let theirs = items.filter { $0.owner == .guest }.count
+                    Text("\(theirs) of \(items.count) things are \(SortRules.possessive(guest))")
+                        .textRole(.secondary)
+                }
+
+                if isHost && room.hasGuest && !room.guestHasJoined && sync.isShared {
+                    Button { showInvite = true } label: {
+                        Label(room.invitedAt == nil ? "Invite \(guest)" : "Invite \(guest) again", systemImage: "paperplane")
+                    }
+                    .buttonStyle(.app(.highlight))
+                }
+
                 if sync.isShared {
-                    HStack {
-                        Text(room.code)
-                            .font(.system(size: 30, weight: .regular, design: .serif))
-                            .kerning(5)
-                            .textSelection(.enabled)
-                        Spacer()
+                    KVRow(label: "Room code", value: room.code, valueFont: .title3.weight(.bold).monospaced()) {
                         Button(copied ? "Copied" : "Copy") {
                             UIPasteboard.general.string = room.code
                             copied = true
                         }
-                        .buttonStyle(.bordered)
+                        .buttonStyle(.link)
                     }
-                    .padding(.vertical, 4)
+                    .accessibilityHint("Anyone with this code can join as the second person")
                 } else {
                     Label("Sharing is off in this build, so the room stays on this iPhone.", systemImage: "icloud.slash")
-                        .font(.subheadline)
-                        .foregroundStyle(Color.ssInk2)
+                        .font(.detail)
+                        .foregroundStyle(Color.textSecondary)
                 }
-            } header: {
-                Text("Room code")
-            } footer: {
-                if sync.isShared {
-                    Text("Anyone with this code can open Shared Space, tap “I’m invited” and join as the second person.")
+
+                VStack(alignment: .leading, spacing: Space.xxs) {
+                    if isHost && !session.previewAsGuest {
+                        Button { session.showSettings = true } label: { Label("Room details", systemImage: "pencil") }
+                            .buttonStyle(.link)
+                    }
+                    if isHost && room.hasGuest {
+                        Button {
+                            session.previewAsGuest.toggle()
+                            session.itemsPath = []
+                            session.planPath = []
+                            router.roomTab = .items
+                        } label: {
+                            Label(session.previewAsGuest ? "Switch back to my view" : "View as \(guest)", systemImage: "eye")
+                        }
+                        .buttonStyle(.link)
+                    }
+                    if isHost && room.hasGuest && !room.guestHasJoined {
+                        Button { showAddGuest = true } label: { Label("Change their name", systemImage: "person") }
+                            .buttonStyle(.link)
+                    }
                 }
             }
+            .padding(Space.l)
         }
-        .scrollContentBackground(.hidden)
-        .background(Color.ssBg)
-        .roomChrome(room)
-        .sheet(isPresented: $showAddGuest) { AddGuestSheet(room: room) }
+        .background(Color.pageBackground)
+        .navigationTitle("People & sharing")
+        .navigationBarTitleDisplayMode(.inline)
+        .sheet(isPresented: $showAddGuest) {
+            AddGuestSheet(room: room, items: items) { if sync.isShared { showInvite = true } }
+        }
+        .sheet(isPresented: $showInvite) { InviteSheet(room: room, items: items) }
+        .onAppear {
+            if session.showInviteOnPeople {
+                session.showInviteOnPeople = false
+                if sync.isShared { showInvite = true }
+            }
+        }
     }
 
     private func personRow(_ role: Role) -> some View {
         let name = room.name(of: role)
         let isMe = role == context.realRole
         let userId = role == .host ? room.hostUserId : room.guestUserId
-        let theirs = SortRules.items(items, belongingTo: role).count
-        return HStack(spacing: 12) {
+        return HStack(spacing: Space.m) {
             Avatar(name: name, role: role,
                    online: isMe || !sync.isShared ? nil : (userId == nil ? false : sync.isPresent(userId)))
-            VStack(alignment: .leading, spacing: 2) {
-                Text(isMe ? "\(name) (you)" : name).font(.body.weight(.semibold))
-                Text(statusLine(role, isMe: isMe, theirs: theirs)).font(.subheadline).foregroundStyle(Color.ssMuted)
+            VStack(alignment: .leading, spacing: Space.xxs) {
+                Text(isMe ? "\(name) (you)" : name).font(.bodyStrong)
+                Text(statusLine(role, isMe: isMe)).textRole(.secondary)
             }
+            Spacer()
         }
-        .padding(.vertical, 2)
+        .padding(.horizontal, Space.l)
+        .padding(.vertical, Space.m)
+        .accessibilityElement(children: .combine)
     }
 
-    private func statusLine(_ role: Role, isMe: Bool, theirs: Int) -> String {
-        let whose = isMe ? "yours" : "theirs"
-        let things = theirs == 0 ? "" : ". \(theirs) thing\(theirs == 1 ? " is" : "s are") \(whose) or shared"
-        if role == .host { return (isMe ? "You set up this room" : "Set up this room") + things }
-        if room.guestHasJoined { return (sync.isPresent(room.guestUserId) && !isMe ? "Here now" : "Has joined") + things }
-        if room.invitedAt != nil { return "Invite sent, not joined yet" + things }
-        return (sync.isShared ? "Not invited yet" : "Sorting on this phone only") + things
-    }
-
-    private var inviteMessage: String {
-        let theirs = SortRules.items(items, belongingTo: .guest).count
-        let count = theirs > 0 ? " (\(theirs) so far)" : ""
-        let place = room.currentUse.isEmpty ? room.name.lowercased() : room.currentUse.lowercased()
-        let becoming = room.futureUse.isEmpty ? "" : " into a \(room.futureUse.lowercased())"
-        return """
-        Hi \(guest)! I’m turning the \(place)\(becoming). Some of your things are still in there\(count). \
-        Could you tell me what you’d like to happen to them?
-
-        Open this link, or open Shared Space and enter the code \(room.code):
-        \(Backend.joinURL(code: room.code).absoluteString)
-        """
+    private func statusLine(_ role: Role, isMe: Bool) -> String {
+        if role == .host { return "Owner" }
+        if room.guestHasJoined { return sync.isPresent(room.guestUserId) && !isMe ? "Here now" : "Joined" }
+        if room.invitedAt != nil { return "Invited" }
+        return sync.isShared ? "Not invited yet" : "Sorting on this phone only"
     }
 }
 
-/// Name the second person (before they join).
+/// Name the second person, and say whose things are in the room so owners are set in one go.
 struct AddGuestSheet: View {
     let room: Room
+    let items: [Item]
     var onSaved: (() -> Void)?
     @Environment(\.dismiss) private var dismiss
     @Environment(SyncEngine.self) private var sync
     @State private var name = ""
+    @State private var things: Things = .theirs
+
+    enum Things: String, CaseIterable { case theirs = "Theirs", mine = "Mine", mixed = "Mixed" }
 
     var body: some View {
         NavigationStack {
-            Form {
-                Section {
-                    TextField("For example, Sam", text: $name).textContentType(.givenName)
-                } header: {
-                    Text("Their first name")
-                } footer: {
-                    Text("They can join with the room code and decide on their own things. Their name is used everywhere in the app.")
+            VStack(alignment: .leading, spacing: Space.xl) {
+                VStack(alignment: .leading, spacing: Space.s) {
+                    SectionLabel("Their first name")
+                    TextField("For example, Alex", text: $name).textContentType(.givenName).textFieldStyle(.app)
                 }
-            }
-            .navigationTitle("Who else has things here?")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
-                        room.guestName = name.trimmed
-                        sync.save(room)
-                        onSaved?()
-                        dismiss()
+                if !room.hasGuest {
+                    VStack(alignment: .leading, spacing: Space.s) {
+                        SectionLabel("Whose things are in this room?")
+                        SegmentedControl(segments: Things.allCases.map { .init(value: $0, title: $0.rawValue) }, selection: $things)
                     }
-                    .disabled(name.trimmed.isEmpty)
                 }
+                Button(name.trimmed.isEmpty ? "Add person" : "Add \(name.trimmed)", action: save)
+                    .buttonStyle(.app)
+                    .disabled(name.trimmed.isEmpty)
+                Spacer()
             }
+            .padding(Space.l)
+            .background(Color.surface)
+            .navigationTitle(room.hasGuest ? "Change their name" : "Invite someone")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } } }
             .onAppear { name = room.guestName ?? "" }
         }
         .presentationDetents([.medium])
+    }
+
+    private func save() {
+        let first = !room.hasGuest
+        room.guestName = name.trimmed
+        sync.save(room)
+        if first {
+            // Like the prototype: "Theirs" hands every undecided thing to them; otherwise unowned things become yours.
+            for item in items where item.owner == .unassigned || (things == .theirs && !item.isDecided && item.owner == .host) {
+                item.owner = things == .theirs ? .guest : .host
+                sync.save(item)
+            }
+        }
+        dismiss()
+        if first { onSaved?() }
+    }
+}
+
+/// The invite: the room code and a message to send any way you like.
+struct InviteSheet: View {
+    let room: Room
+    let items: [Item]
+    @Environment(\.dismiss) private var dismiss
+    @Environment(SyncEngine.self) private var sync
+    @State private var message = ""
+    @State private var copied = false
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: Space.l) {
+                    Text("Send \(room.name(of: .guest)) this message any way you like. They open Shared Space, tap Join with a code, and type it in.")
+                        .foregroundStyle(Color.textSecondary)
+                    VStack(spacing: Space.xxs) {
+                        Text("Room code").textRole(.secondary)
+                        Text(room.code).font(.code).kerning(Tracking.code).textSelection(.enabled)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(Space.m)
+                    .background(Color.surfaceMuted, in: RoundedRectangle(cornerRadius: Radius.m))
+                    .accessibilityElement(children: .combine)
+                    VStack(alignment: .leading, spacing: Space.s) {
+                        SectionLabel("Message")
+                        TextField("Message", text: $message, axis: .vertical)
+                            .lineLimit(4...10)
+                            .padding(Space.m)
+                            .background(Color.surface, in: RoundedRectangle(cornerRadius: Radius.control))
+                            .overlay(RoundedRectangle(cornerRadius: Radius.control).strokeBorder(Color.outlineStrong))
+                    }
+                    HStack(spacing: Space.m) {
+                        ShareLink(item: message) { Label("Send", systemImage: "paperplane") }
+                            .buttonStyle(.app)
+                            .simultaneousGesture(TapGesture().onEnded { markInvited() })
+                        Button {
+                            UIPasteboard.general.string = message
+                            copied = true
+                            markInvited()
+                        } label: { Label(copied ? "Copied" : "Copy message", systemImage: "doc.on.doc") }
+                            .buttonStyle(.app(.neutral))
+                    }
+                }
+                .padding(Space.l)
+            }
+            .background(Color.pageBackground)
+            .navigationTitle("Invite \(room.name(of: .guest))")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
+            .onAppear { if message.isEmpty { message = defaultMessage } }
+        }
+    }
+
+    private func markInvited() {
+        room.invitedAt = .now
+        sync.save(room)
+    }
+
+    private var defaultMessage: String {
+        let theirs = SortRules.items(items, belongingTo: .guest).count
+        let becoming = room.futureUse.isEmpty || room.futureUse == "Still deciding" ? "" : " to make it a \(room.futureUse.lowercased())"
+        let still = theirs > 0 ? "\(theirs) of your things are still in there. " : ""
+        return """
+        Hi \(room.name(of: .guest)), I’m sorting out the \(room.name.lowercased())\(becoming). \(still)\
+        Could you say what should happen to them? Open Shared Space and enter the code \(room.code), or open this link:
+        \(Backend.joinURL(code: room.code).absoluteString)
+        """
     }
 }

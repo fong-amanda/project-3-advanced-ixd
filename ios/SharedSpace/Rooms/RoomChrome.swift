@@ -1,12 +1,10 @@
-import SwiftData
 import SwiftUI
 
-/// Top bar shared by every tab's root screen: inline room name, a way back to all rooms,
-/// and the ⋯ menu. Also shows a banner while the host previews the guest's view.
-struct RoomChrome: ViewModifier {
+/// Top bar shared by both tabs of a room: back to Rooms, the room name, and the ⋯ menu
+/// (People & sharing, Room details). Also shows a banner while the host previews the guest's view.
+struct RoomChrome<Trailing: View>: ViewModifier {
     let room: Room
-    @Query(filter: #Predicate<Room> { $0.deletedAt == nil }, sort: \Room.createdAt, order: .reverse)
-    private var rooms: [Room]
+    @ViewBuilder var trailing: Trailing
     @Environment(SyncEngine.self) private var sync
     @Environment(Router.self) private var router
     @Environment(RoomSession.self) private var session
@@ -18,22 +16,20 @@ struct RoomChrome: ViewModifier {
         content
             .navigationTitle(room.name)
             .navigationBarTitleDisplayMode(.inline)
-            // Tap the room name to switch rooms.
-            .toolbarTitleMenu {
-                ForEach(rooms) { other in
-                    Button { router.switchRoom(to: other.id) } label: {
-                        if other.id == room.id { Label(other.name, systemImage: "checkmark") } else { Text(other.name) }
-                    }
-                }
-                Divider()
-                Button("All rooms", systemImage: "house") { router.homePath = []; router.tab = .home }
-                Button("New room", systemImage: "plus") { router.showNewRoom = true }
-                Button("Join with a code", systemImage: "person.2") { router.joinRequest = JoinRequest(code: "") }
-            }
+            .navigationBarBackButtonHidden()
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) { menu }
+                ToolbarItem(placement: .topBarLeading) {
+                    Button { router.closeRoom() } label: {
+                        Label("Rooms", systemImage: "chevron.left").labelStyle(.titleAndIcon)
+                    }
+                    .accessibilityLabel("Back to rooms")
+                }
+                ToolbarItemGroup(placement: .topBarTrailing) {
+                    trailing
+                    menu
+                }
             }
-            .safeAreaInset(edge: .top, spacing: 0) {
+            .safeAreaInset(edge: .top, spacing: Space.xxs) {
                 if session.previewAsGuest { previewBanner }
             }
             .confirmationDialog(realRole == .host ? "Delete \(room.name) for everyone?" : "Leave \(room.name)?",
@@ -45,24 +41,20 @@ struct RoomChrome: ViewModifier {
                     }
                 }
             } message: {
-                Text(realRole == .host ? "This removes the room, its items and designs from both phones." :
+                Text(realRole == .host ? "This removes the room, its things and plans from both phones." :
                         "You can rejoin later with the room code.")
             }
     }
 
     private var menu: some View {
         Menu {
+            Button("People & sharing", systemImage: "person.2") { session.show(.people, on: router.roomTab) }
             if realRole == .host && !session.previewAsGuest {
                 Button("Room details", systemImage: "pencil") { session.showSettings = true }
             }
-            if sync.isShared {
-                Button("Copy room code (\(room.code))", systemImage: "doc.on.doc") {
-                    UIPasteboard.general.string = room.code
-                }
-            }
             if realRole == .host && room.hasGuest {
                 Button(session.previewAsGuest ? "Switch back to my view" : "View as \(room.name(of: .guest))",
-                       systemImage: "arrow.left.arrow.right") { togglePreview() }
+                       systemImage: "eye") { togglePreview() }
             }
             if !session.previewAsGuest {
                 Divider()
@@ -72,37 +64,41 @@ struct RoomChrome: ViewModifier {
             }
         } label: {
             Image(systemName: "ellipsis")
+                .frame(minWidth: Size.tapTarget, minHeight: Size.tapTarget)
         }
         .accessibilityLabel("Room options")
     }
 
     private var previewBanner: some View {
         let guest = room.name(of: .guest)
-        return HStack(spacing: 10) {
-            Image(systemName: "eye")
-            VStack(alignment: .leading, spacing: 1) {
-                Text("Viewing as \(guest)").font(.subheadline.weight(.semibold))
+        return HStack(spacing: Space.m) {
+            Image(systemName: "eye").accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: Space.xxs) {
+                Text("Viewing as \(guest)").font(.detailStrong)
                 Text(session.isReadOnly(in: room) ? "Only \(guest) can change their things."
                                                   : "Decisions you make here count as \(guest)’s.")
-                    .font(.caption)
+                    .font(.captionText)
             }
             Spacer()
             Button("Switch back") { togglePreview() }
-                .font(.subheadline.weight(.semibold))
+                .buttonStyle(.link(.onTint))
         }
-        .foregroundStyle(Color.ssAccentInk)
-        .padding(.horizontal, 16).padding(.vertical, 8)
-        .background(Color.ssAccentSoft)
+        .foregroundStyle(Color.onAccentSoft)
+        .padding(.horizontal, Space.l).padding(.vertical, Space.s)
+        .background(Color.accentSoft)
     }
 
     private func togglePreview() {
         withAnimation {
             session.previewAsGuest.toggle()
-            if session.previewAsGuest { router.tab = .sort }
+            router.roomTab = .items
         }
     }
 }
 
 extension View {
-    func roomChrome(_ room: Room) -> some View { modifier(RoomChrome(room: room)) }
+    func roomChrome(_ room: Room) -> some View { modifier(RoomChrome(room: room) { EmptyView() }) }
+    func roomChrome<T: View>(_ room: Room, @ViewBuilder trailing: () -> T) -> some View {
+        modifier(RoomChrome(room: room, trailing: trailing))
+    }
 }

@@ -29,6 +29,17 @@ final class Room {
     /// Storage path of the shared simplified geometry (walls, doors, windows) for other devices.
     var geometryPath: String?
 
+    /// "ft" (feet and inches) or "cm". Only changes how sizes are shown; storage is always cm.
+    var units: String = "ft"
+    /// True once someone measured the room. Until then sizes are estimates and fit checks stay off.
+    var measured: Bool = false
+    /// Number of room photos (stored as <room>/photos/<n>.jpg). Up to three angles.
+    var photoCount: Int = 0
+    /// The plan version the host shared with the guest.
+    var sharedDesignId: UUID? = nil
+    /// The floor outline with doors and windows (JSON of RoomShape). nil = a plain rectangle.
+    var shapeData: Data? = nil
+
     var createdAt: Date
     var updatedAt: Date
     var deletedAt: Date?
@@ -93,6 +104,13 @@ final class Room {
     }
 
     var floorAreaM2: Double { Double(widthCm * lengthCm) / 10_000 }
+
+    var unitSystem: UnitSystem {
+        get { UnitSystem(rawValue: units) ?? .feet }
+        set { units = newValue.rawValue }
+    }
+
+    static let maxPhotos = 3
 }
 
 enum RoomCode {

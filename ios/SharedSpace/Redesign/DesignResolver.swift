@@ -1,15 +1,16 @@
 import Foundation
 
-/// One thing drawn in a design view (floor plan now, dollhouse and AR later).
+/// One thing drawn in a plan view.
 struct PlanEntry: Identifiable {
     enum Style: Equatable {
         case normal                 // a real item, where it physically is
         case moved                  // a real item, at its new place in this design
-        case leaving(ItemStatus)    // Sort says it leaves the room (Send to owner / Let go)
+        case leaving(ItemStatus)    // Sort says it leaves the room
         case hiddenInDesign         // hidden in this design only; Sort still says it stays
-        case newPiece               // new furniture from the catalogue
+        case newPiece               // a piece placed in this plan
     }
 
+    /// Item id for real things; placement id for placed pieces.
     let id: UUID
     let name: String
     let xCm: Double
@@ -17,16 +18,23 @@ struct PlanEntry: Identifiable {
     let widthCm: Double
     let depthCm: Double
     let yawDeg: Double
+    /// For the 3D view.
+    var heightCm: Double?
     let isFlat: Bool
     let colorHex: String
     let style: Style
+    /// Set for pieces that need a look ("Overlaps the desk").
+    var problem: String?
 
-    /// Ghosts are shown only when the person asks to see removed things.
     var isGhost: Bool {
         switch style {
         case .leaving, .hiddenInDesign: true
         default: false
         }
+    }
+
+    var footprint: FloorRect {
+        RoomGeometry.footprint(x: xCm, z: zCm, w: widthCm, d: depthCm, yawDeg: yawDeg)
     }
 
     init(actual item: Item, style: Style = .normal) {
@@ -37,6 +45,7 @@ struct PlanEntry: Identifiable {
         widthCm = item.widthCm
         depthCm = item.depthCm
         yawDeg = item.yawDeg
+        heightCm = item.heightCm
         isFlat = item.category.isFlat
         colorHex = item.category.colorHex
         self.style = style
@@ -50,14 +59,29 @@ struct PlanEntry: Identifiable {
         widthCm = item.widthCm
         depthCm = item.depthCm
         yawDeg = placement.yawDeg
+        heightCm = item.heightCm
         isFlat = item.category.isFlat
         colorHex = item.category.colorHex
         self.style = style
     }
+
+    init(piece: CatalogPiece, placement: DesignPlacement) {
+        id = placement.id
+        name = piece.name
+        xCm = placement.xCm
+        zCm = placement.zCm
+        widthCm = piece.w
+        depthCm = piece.d
+        yawDeg = placement.yawDeg
+        heightCm = piece.h
+        isFlat = piece.isFlat
+        colorHex = piece.colorHex
+        style = .newPiece
+    }
 }
 
 /// Combines the room's items (and their live Sort decisions) with one design's changes.
-/// Designs never store Sort decisions, so a later "Let go" in Sort is reflected here at once.
+/// Designs never store Sort decisions, so a later "Donate or sell" in Sort is reflected here at once.
 struct ResolvedDesign {
     var entries: [PlanEntry] = []
     /// Items Sort has sent out of the room.
@@ -66,11 +90,16 @@ struct ResolvedDesign {
     var hiddenInDesign: [Item] = []
     /// Items this design moved that Sort has since marked as leaving.
     var conflicts: [Item] = []
+    /// Placed pieces, with what they are.
+    var pieces: [(placement: DesignPlacement, piece: CatalogPiece)] = []
+
+    var problems: [PlanEntry] { entries.filter { $0.problem != nil } }
+    var pieceCost: Int { pieces.reduce(0) { $0 + $1.piece.price } }
 }
 
 enum DesignResolver {
     /// `design == nil` means "the room as it is now".
-    static func resolve(items: [Item], design: Design?) -> ResolvedDesign {
+    static func resolve(items: [Item], design: Design?, room: Room? = nil) -> ResolvedDesign {
         var result = ResolvedDesign()
         let placements = design?.livePlacements ?? []
         var byItem: [UUID: DesignPlacement] = [:]
@@ -91,19 +120,38 @@ enum DesignResolver {
                 result.entries.append(PlanEntry(actual: item))
             }
         }
+
+        let kept = result.entries.filter { !$0.isGhost && !$0.isFlat }
+        var placed: [PlanEntry] = []
+        for p in placements.sorted(by: { $0.updatedAt < $1.updatedAt }) {
+            guard let id = p.catalogId, let piece = Catalogue.piece(id, items: items) else { continue }
+            result.pieces.append((p, piece))
+            placed.append(PlanEntry(piece: piece, placement: p))
+        }
+        // Problems: through a wall, or on top of something that's staying, or of another piece.
+        for i in placed.indices where !placed[i].isFlat {
+            let f = placed[i].footprint
+            if let room, f.x < -1 || f.z < -1 || f.maxX > Double(room.widthCm) + 1 || f.maxZ > Double(room.lengthCm) + 1
+                || !room.shape.contains(f) {
+                placed[i].problem = "Goes through a wall"
+            } else if let hit = kept.first(where: { f.overlaps($0.footprint, padding: 2) }) {
+                placed[i].problem = "Overlaps the \(hit.name.lowercased())"
+            } else if let hit = placed.first(where: { $0.id != placed[i].id && !$0.isFlat && f.overlaps($0.footprint, padding: 2) }) {
+                placed[i].problem = "Overlaps the \(hit.name.lowercased())"
+            }
+        }
+        result.entries += placed
         return result
     }
 
-    /// "3 items marked Let go are hidden" / "4 items are hidden: 3 marked Let go, 1 marked Send to owner".
+    /// "3 things marked Donate or sell are hidden" / "4 things that are leaving are hidden".
     static func hiddenSummary(_ leaving: [Item]) -> String? {
         guard !leaving.isEmpty else { return nil }
-        let letGo = leaving.filter { $0.status == .letGo }.count
-        let send = leaving.filter { $0.status == .sendToOwner }.count
         let total = leaving.count
-        let noun = total == 1 ? "1 item" : "\(total) items"
+        let noun = total == 1 ? "1 thing" : "\(total) things"
         let verb = total == 1 ? "is" : "are"
-        if send == 0 { return "\(noun) marked Let go \(verb) hidden" }
-        if letGo == 0 { return "\(noun) marked Send to owner \(verb) hidden" }
-        return "\(noun) \(verb) hidden: \(letGo) marked Let go, \(send) marked Send to owner"
+        let kinds = Set(leaving.map(\.status))
+        if kinds.count == 1, let only = kinds.first { return "\(noun) marked \(only.shortLabel) \(verb) hidden" }
+        return "\(noun) leaving the room \(verb) hidden"
     }
 }
