@@ -4,9 +4,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Shared Space</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=Young+Serif&display=swap" rel="stylesheet">
 <style>
 :root{
   --bg:#F3F1ED; --surface:#FFFFFF; --surface-2:#EAE6DF; --line:#DCD6CC; --line-2:#C9C2B6;
@@ -20,8 +17,9 @@
   --r-s:10px; --r-m:16px; --r-l:24px;
   --sh-1:0 1px 2px rgba(29,42,37,.05),0 6px 18px rgba(29,42,37,.07);
   --sh-2:0 18px 50px rgba(29,42,37,.22);
-  --f-display:"Young Serif",Georgia,"Times New Roman",serif;
-  --f-body:"Hanken Grotesk",system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  /* Same type as the iOS app: New York for headings, San Francisco for text (Apple devices); close fallbacks elsewhere */
+  --f-display:ui-serif,"New York",Georgia,"Times New Roman",serif;
+  --f-body:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro",system-ui,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
   color-scheme:light;
   box-sizing:border-box;
   padding-top:env(safe-area-inset-top,0px);
@@ -157,7 +155,21 @@ textarea.input{min-height:84px;resize:vertical}
 .rail button.on{background:var(--surface);color:var(--ink);box-shadow:var(--sh-1)}
 .rail button.on .n{background:var(--ink);color:var(--bg);border-color:var(--ink)}
 .rail button.done .n{background:var(--keep);border-color:var(--keep);color:#fff}
-.workspace{display:grid;grid-template-columns:minmax(0,1fr) 430px;gap:16px;padding:0 20px 20px;max-width:1440px;margin:0 auto;height:calc(100vh - 128px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));min-height:560px}
+/* bottom tab bar inside a room */
+.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:40;display:grid;grid-template-columns:repeat(4,1fr);background:var(--surface);border-top:1px solid var(--line);padding:6px 8px calc(6px + env(safe-area-inset-bottom,0px))}
+.tabbar button{border:0;background:transparent;display:flex;flex-direction:column;align-items:center;gap:2px;padding:4px 0;font-size:12px;font-weight:600;color:var(--muted);cursor:pointer;-webkit-tap-highlight-color:transparent}
+.tabbar button.on{color:var(--ink)}
+.tabbar button.on svg.i{stroke-width:2.3}
+.tabbar-pad{height:84px}
+.tabbar .tb-ic{position:relative;display:grid}
+.tabbar .badge{position:absolute;top:-4px;left:16px;min-width:18px;height:18px;padding:0 5px;border-radius:99px;background:var(--letgo);color:#fff;font-size:11px;font-weight:700;display:grid;place-items:center}
+.home-title{display:flex;align-items:center;gap:12px;padding:22px 0 18px}
+.home-title .mark{width:40px;height:40px}
+.home-title h1{font-size:34px}
+.cur-tag{display:inline-flex;align-items:center;gap:4px;font-size:13.5px;font-weight:600;padding:4px 10px;border-radius:999px;background:var(--keep-soft);color:var(--keep);margin:6px 0 0 6px}
+.cur-tag svg.i{width:14px;height:14px}
+body.phone .tabbar{padding-bottom:26px}
+.workspace{display:grid;grid-template-columns:minmax(0,1fr) 430px;gap:16px;padding:0 20px 20px;max-width:1440px;margin:0 auto;height:calc(100vh - 160px -env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));min-height:560px}
 .workspace>*{min-width:0}
 .stagebox{position:relative;border-radius:var(--r-l);background:var(--stage);overflow:hidden;min-height:0}
 .stage3d{position:absolute;inset:0}
@@ -399,6 +411,53 @@ body.phone .photo-choices{grid-template-columns:1fr}
 body.phone .proj-title h1{font-size:20px}
 body.phone .scrim{position:absolute;align-items:flex-end}
 body.phone .modal{border-radius:26px 26px 0 0;max-height:88%;padding-bottom:40px}
+
+/* ===== iOS look (matches the Swift app) ===== */
+h1,h2,h3{letter-spacing:0}
+.btn{min-height:50px}
+/* floating tab bar */
+.tabbar{left:16px;right:16px;bottom:calc(10px + env(safe-area-inset-bottom,0px));padding:6px;border-radius:999px;border:1px solid var(--line);background:color-mix(in srgb,var(--surface) 82%,transparent);-webkit-backdrop-filter:blur(20px) saturate(1.6);backdrop-filter:blur(20px) saturate(1.6);box-shadow:0 8px 30px rgba(29,42,37,.14)}
+.tabbar button{border-radius:999px;padding:6px 0 5px;font-size:11px;color:var(--ink)}
+.tabbar button.on{background:var(--surface-2)}
+.tabbar svg.i.lg{width:24px;height:24px}
+body.phone .tabbar{bottom:22px;padding-bottom:6px}
+.tabbar-pad{height:100px}
+/* top navigation bar */
+.navbar{display:grid;grid-template-columns:44px 1fr 44px;align-items:center;gap:8px;padding:10px 16px 8px;max-width:760px;margin:0 auto;position:sticky;top:0;z-index:30;background:color-mix(in srgb,var(--bg) 86%,transparent);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px)}
+.navbar .nav-title{text-align:center;font-weight:600;font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.navbar .nav-r{display:flex;gap:8px;justify-content:flex-end}
+.circ{width:44px;height:44px;border-radius:999px;border:1px solid var(--line);background:var(--surface);display:grid;place-items:center;cursor:pointer;color:var(--ink);box-shadow:0 2px 10px rgba(29,42,37,.08);flex:none}
+.navbar.wide{grid-template-columns:96px 1fr 96px}
+.tabbar{max-width:520px;margin:0 auto}
+/* page + grouped lists */
+.pg{max-width:760px;margin:0 auto;padding:8px 20px 20px;display:grid;gap:16px;align-content:start}
+.preview{height:230px;border-radius:24px;background:var(--stage);overflow:hidden;display:grid;place-items:center;position:relative}
+.preview>img{width:100%;height:100%;object-fit:cover}
+.preview .plan-svg{background:transparent;max-height:200px;width:auto;max-width:90%}
+.sec-h{display:flex;justify-content:space-between;align-items:baseline;font-weight:600;font-size:17px;margin-bottom:-6px}
+.sec-label{font-size:13px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.02em;padding:0 16px;margin-bottom:-8px}
+.sec-foot{font-size:13px;color:var(--muted);padding:0 16px;margin-top:-8px}
+.ios-list{background:var(--surface);border-radius:22px;border:1px solid var(--line);overflow:hidden}
+.ios-row{display:flex;align-items:center;gap:12px;padding:12px 16px;width:100%;border:0;background:transparent;text-align:left;cursor:pointer;color:inherit;position:relative}
+.ios-row+.ios-row::before{content:"";position:absolute;top:0;left:16px;right:0;border-top:1px solid var(--line)}
+.ios-row .grow{flex:1;min-width:0}
+.ios-row .t{font-weight:600}
+.ios-row .chev{color:var(--muted)}
+.ios-row.link{color:var(--send);font-weight:500}
+.ios-row .thumb{width:48px;height:48px;border-radius:12px}
+.ic-thumb{width:48px;height:48px;border-radius:12px;background:var(--surface-2);display:grid;place-items:center;color:var(--muted);flex:none}
+.filterbar{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding:2px 20px 4px;max-width:760px;margin:0 auto}
+.filterbar::-webkit-scrollbar{display:none}
+.note-bar{display:flex;align-items:center;gap:10px;background:var(--accent-soft);color:var(--accent-ink);border-radius:14px;padding:12px;font-size:15px}
+.note-bar .grow{flex:1}
+.note-bar button{border:0;background:transparent;color:inherit;font-weight:700;cursor:pointer;font-size:15px}
+.seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;background:var(--surface-2);border-radius:10px;padding:2px;gap:2px}
+.seg button{border:0;background:transparent;border-radius:8px;min-height:34px;font-weight:600;font-size:14px;cursor:pointer;color:var(--ink)}
+.seg button.on{background:var(--surface);box-shadow:0 1px 4px rgba(0,0,0,.12)}
+.decide.four{grid-template-columns:1fr 1fr}
+.modal .ios-list{border-radius:18px}
+.modal .sec-label{padding:0 4px}
+.modal .sec-foot{padding:0 4px}
 @media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
 </style>
 </head>
@@ -466,6 +525,8 @@ const IP = {
   door: '<path d="M6 20V4h10v16M3.5 20h17"/><circle cx="13" cy="12" r=".8"/>',
   reset: '<path d="M5 12a7 7 0 1 0 2.1-5"/><path d="M5 4.5V9h4.5"/>',
   pin: '<path d="M12 21s-6.5-6.2-6.5-11a6.5 6.5 0 0 1 13 0c0 4.8-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/>',
+  list: '<path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r=".9"/><circle cx="4.5" cy="12" r=".9"/><circle cx="4.5" cy="18" r=".9"/>',
+  cards: '<rect x="4.5" y="7.5" width="15" height="12.5" rx="2.5"/><path d="M7.5 4.5h9"/>',
   link: '<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>'
 };
 const ic = (n, cls = '') => `<svg class="i ${cls}" viewBox="0 0 24 24" aria-hidden="true">${IP[n] || ''}</svg>`;
@@ -1408,12 +1469,17 @@ function openProject(pid, role) {
   S.loaded = { p: false, i: false, l: false };
   S.role = role || LS.get('role.' + pid, 'host'); LS.set('role.' + pid, S.role);
   if (!S.myProjects.includes(pid)) { S.myProjects.unshift(pid); LS.set('mine', S.myProjects); }
-  S.view = 'project'; S.seenPins = new Set(); S.gStarted = false; S.gSkip = []; S.gtab = 'things';
+  S.view = 'project'; S.editing = false; S.showHidden = false; S.seenPins = new Set(); S.gStarted = false; S.gSkip = []; S.gtab = S.openAs || 'things'; S.openAs = null;
+  LS.set('lastRoom', pid);
   setHash('room-' + pid);
   subs.push(Store.watchDoc('projects/' + pid, d => {
     const first = !S.loaded.p; S.P = d; S.loaded.p = true;
     if (!d) { render(); return; }
-    if (first) S.stage = S.role === 'host' ? (d.stage || 'capture') : 'guest';
+    if (first) {
+      // Opened from Home: land on the room overview. Opened from a tab: go straight to that tab.
+      S.stage = S.role === 'host' ? 'capture' : 'guest';
+      if (S.pendingTab) { const t = S.pendingTab; S.pendingTab = null; selectTab(t); return; }
+    }
     maybeAutoDetect();
     render();
   }));
@@ -1492,7 +1558,8 @@ function render() {
   try {
     switch (S.view) {
       case 'boot': html = `<div style="display:grid;place-items:center;height:80vh" class="muted">Opening Shared Space</div>`; break;
-      case 'home': html = viewHome(); break;
+      case 'home': html = viewHome() + appTabBar(); break;
+      case 'noroom': html = viewNoRoom() + appTabBar(); break;
       case 'create': html = viewCreate(); break;
       case 'join': html = viewJoin(); break;
       case 'project': html = viewProject(); break;
@@ -1540,7 +1607,8 @@ function hydrateCrops() {
   loadPhoto(im => {
     for (const el of els) {
       const [x, y] = el.dataset.crop.split(',').map(Number);
-      if (!im || isNaN(x)) { el.removeAttribute('data-crop'); continue; }
+      // Items without a photo pin have an empty crop; skip them instead of failing the whole render.
+      if (!im || !el.dataset.crop || isNaN(x) || isNaN(y)) { el.removeAttribute('data-crop'); continue; }
       const key = photoImgSrc.length + ':' + photoImgSrc.slice(-40) + ':' + x.toFixed(3) + ',' + y.toFixed(3);
       if (!cropCache.has(key)) {
         const c = document.createElement('canvas'); c.width = c.height = 220;
@@ -1599,18 +1667,15 @@ function avatar(role, name, online, extra = '') {
 /* ---------- home ---------- */
 function viewHome() {
   const mine = S.projects.filter(p => S.myProjects.includes(p.id)).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-  return `${topbar(`<button class="btn soft sm" data-act="openJoin">Join with a code</button>`)}
-  <main class="wrap">
-    <section class="hero">
-      <h1>Turn a full room into the room you want.</h1>
-      <p>Sort what’s there together with the people it belongs to, then plan the new space in 3D.</p>
-      <div class="home-actions">
-        <button class="btn" data-act="startCreate">${ic('plus')} Start a new room</button>
-        <button class="btn secondary" data-act="openJoin">${ic('users')} I’ve been invited</button>
-      </div>
-    </section>
-    ${mine.length ? `<h2 style="font-size:26px;margin-bottom:14px">Your rooms</h2><div class="proj-grid">${mine.map(projCard).join('')}</div>` :
-      `<div class="empty-home" style="margin-bottom:48px"><h3 style="font-size:22px;margin-bottom:6px">No rooms yet</h3><p>Start with the room you want to change. It takes about two minutes.</p></div>`}
+  // Home tab: logo + title, two actions, your rooms. No intro; tap a room to go into it.
+  return `<main class="wrap">
+    <div class="home-title">${MARK}<h1>Shared Space</h1></div>
+    <div class="home-actions" style="margin:0 0 26px">
+      <button class="btn" data-act="startCreate">${ic('plus')} New room</button>
+      <button class="btn secondary" data-act="openJoin">${ic('users')} I’ve been invited</button>
+    </div>
+    ${mine.length ? `<h2 style="font-size:24px;margin-bottom:14px">Your rooms</h2><div class="proj-grid">${mine.map(projCard).join('')}</div>` :
+      `<div class="empty-home" style="margin-bottom:48px"><h3 style="font-size:22px;margin-bottom:6px">No rooms yet</h3><p>Add the room you want to change, or join one you were invited to.</p></div>`}
     <p class="tiny muted" style="text-align:center;padding-bottom:28px"><button class="btn ghost sm" data-act="wizard" style="font-weight:500;color:var(--muted)">Facilitator console</button></p>
   </main>`;
 }
@@ -1620,7 +1685,7 @@ function projCard(p) {
   const role = LS.get('role.' + p.id, 'host');
   return `<button class="proj" data-act="open" data-id="${p.id}"><div class="ph">${img}</div><div class="bd"><h3>${esc(p.name)}</h3>
   <div class="transform">${esc(p.from)} ${ic('next')} ${esc(p.to)}</div>
-  <span class="stage-pill">${role === 'guest' ? 'Invited by ' + esc(p.hostName) : stage}</span></div></button>`;
+  <div><span class="stage-pill">${role === 'guest' ? 'Invited by ' + esc(p.hostName) : stage}</span>${p.id === lastRoomId() ? `<span class="cur-tag">${ic('check')} Current room</span>` : ''}</div></div></button>`;
 }
 
 /* ---------- create flow ---------- */
@@ -1693,28 +1758,154 @@ function viewJoin() {
 /* ---------- project shell ---------- */
 function viewProject() {
   const p = S.P;
-  if (!S.loaded.p) return `${topbar()}<div class="wrap muted" style="padding:40px">Loading room</div>`;
-  if (!p) return `${topbar()}<div class="wrap" style="padding:40px"><h2>This room no longer exists.</h2><button class="btn" style="margin-top:16px" data-act="home">Go home</button></div>`;
-  const here = Presence.inProject(S.pid);
-  const hostOn = S.role === 'host' || here.some(x => x.role === 'host');
-  const guestOn = S.role === 'guest' || here.some(x => x.role === 'guest');
-  const avs = `<div class="avatars">${avatar('host', p.hostName, S.role !== 'host' ? hostOn : undefined)}${p.guestName ? avatar('guest', p.guestName, S.role !== 'guest' ? (guestOn || false) : undefined) : ''}</div>`;
-  const head = `<div class="proj-top">
-    ${S.role === 'host' ? `<button class="iconbtn" data-act="home" aria-label="All rooms">${ic('back')}</button>` : `<button class="iconbtn plain" data-act="home" aria-label="Home" style="padding:0">${MARK}</button>`}
-    <div class="proj-title"><h1>${esc(p.name)}</h1><div class="transform">${esc(p.from)} ${ic('next')} ${esc(p.to)}</div></div>
-    <div class="spacer"></div>${avs}<button class="iconbtn" data-act="menu" aria-label="Room options">${ic('more')}</button></div>`;
-  if (S.role === 'guest') return head + viewGuest();
-  const undecided = S.items.filter(i => !i.decision).length;
-  const rail = `<nav class="rail" aria-label="Steps">
-    ${[['capture', 'Room & things'], ['sort', 'Decide together'], ['plan', 'Plan the new room']].map(([k, l], i) => {
-      const done = (k === 'capture' && S.items.length && S.stage !== 'capture') || (k === 'sort' && S.items.length && !undecided && S.stage === 'plan');
-      return `<button class="${S.stage === k ? 'on' : ''} ${done ? 'done' : ''}" data-act="stage" data-v="${k}" ${S.stage === k ? 'aria-current="step"' : ''}><span class="n">${done ? ic('check') : i + 1}</span>${l}</button>`;
-    }).join('')}</nav>`;
-  let ws = '';
-  if (S.stage === 'capture') ws = viewCapture();
-  else if (S.stage === 'sort') ws = viewSort();
-  else ws = viewPlan();
-  return head + rail + ws;
+  if (!S.loaded.p) return `<div class="wrap muted" style="padding:40px">Loading room</div>${appTabBar()}`;
+  if (!p) return `<div class="wrap" style="padding:40px"><h2>This room no longer exists.</h2><button class="btn" style="margin-top:16px" data-act="home">Go home</button></div>${appTabBar()}`;
+  const guest = S.role === 'guest', tab = currentTab();
+  const editing = tab === 'plan' && S.editing;
+  // iOS-style bar: back (room overview → Home, 3D editor → Redesign), centred title, ⋯ menu.
+  const left = tab === 'home' ? `<button class="circ" data-act="home" aria-label="Home">${ic('back')}</button>`
+    : editing ? `<button class="circ" data-act="endEdit" aria-label="Back to Redesign">${ic('back')}</button>` : '<span></span>';
+  const toggle = guest && (S.gtab === 'things' || S.gtab === 'list')
+    ? `<button class="circ" data-act="gtab" data-v="${S.gtab === 'list' ? 'things' : 'list'}" aria-label="${S.gtab === 'list' ? 'Review one at a time' : 'Show as a list'}">${ic(S.gtab === 'list' ? 'cards' : 'list')}</button>` : '';
+  const title = editing && curLayout() ? curLayout().name : p.name;
+  const head = `<div class="navbar ${toggle ? 'wide' : ''}">${left}<div class="nav-title">${esc(title)}</div><div class="nav-r">${toggle}<button class="circ" data-act="menu" aria-label="Room options">${ic('more')}</button></div></div>`;
+  let ws;
+  if (guest) ws = viewGuest();
+  else if (S.stage === 'capture') ws = viewOverview();
+  else if (S.stage === 'sort') ws = viewSortList();
+  else if (S.stage === 'people') ws = viewPeople();
+  else ws = S.editing ? viewPlan() : viewRedesignHome();
+  return head + ws + appTabBar();
+}
+function thumbOf(it) {
+  return it.pin && photoSrc() ? `<img class="thumb" alt="" data-crop="${it.pin.x},${it.pin.y}">` : `<span class="ic-thumb">${ic('cube')}</span>`;
+}
+function relevantItems() { return S.role === 'guest' ? S.items.filter(i => i.owner === 'guest' || i.owner === 'both') : S.items; }
+/* Sort / Redesign with no items yet: friendly empty state, not an error. */
+function emptyItems(msg) {
+  const host = S.role === 'host';
+  return `<main class="g-wrap" style="text-align:center;padding-top:14vh"><div class="muted">${ic('bag', 'lg')}</div>
+    <h2 style="font-size:24px;margin-top:10px">Nothing in this room yet</h2>
+    <p class="muted" style="margin:10px auto 22px;max-width:36ch">${host ? msg : `${esc(P().hostName)} hasn’t added any things to this room yet. You’ll see them here as soon as they do.`}</p>
+    ${host ? `<div class="home-actions" style="justify-content:center;margin:0"><button class="btn" data-act="scan">Scan this room</button><button class="btn secondary" data-act="addItem">Add items by hand</button></div>` : ''}</main>`;
+}
+/* Room (pushed from Home): preview, name, size, scan / add, and the things in it. */
+function viewOverview() {
+  const p = S.P, host = S.role === 'host', n = S.items.length;
+  const src = photoSrc(), scanning = ['requested', 'running'].includes(p.scan);
+  const preview = src ? `<img src="${src}" alt="Photo of the room">${scanning ? `<div class="scanline"></div><div class="scan-status"><span class="spin"></span>Looking for furniture and objects${wozTag()}</div>` : ''}`
+    : n ? planSVG(null, false, true) : `<div class="muted" style="text-align:center">${ic('image', 'lg')}<p class="small" style="margin-top:6px">No photo yet</p></div>`;
+  return `<main class="pg">
+    <div class="preview">${preview}</div>
+    <div><h1 style="font-size:30px">${esc(p.name)}</h1>
+      <p style="color:var(--ink-2);margin-top:4px">${esc(p.from)} → ${esc(p.to)}</p>
+      <p class="small muted" style="margin-top:6px;display:flex;gap:6px;align-items:center">${ic('ruler')} ${fmtM(p.W)} × ${fmtM(p.L)} m, ${m2(p.W * p.L)} m², ceiling ${fmtM(p.H || 250)} m</p></div>
+    ${host ? `<div style="display:grid;gap:10px">
+      ${p.scan !== 'done' && !scanning ? `<button class="btn block" data-act="scan">${ic('sparkle')} Scan room${wozTag()}</button>` : ''}
+      <button class="btn secondary block" data-act="addItem">${ic('plus')} Add items by hand</button></div>` : ''}
+    <div class="sec-h"><span>Things in this room</span><span class="muted" style="font-weight:400">${n}</span></div>
+    ${n ? `<div class="ios-list">${S.items.map(it => `<button class="ios-row" data-act="itemSheet" data-id="${it.id}">${thumbOf(it)}<span class="grow"><span class="t" style="display:block">${esc(it.name)}</span><span class="tiny muted">${esc(KINDS[it.kind]?.label || 'Object')}, about ${it.w} × ${it.d} cm</span></span><span class="chev">${ic('next')}</span></button>`).join('')}</div>`
+      : `<p class="muted small">${host ? 'Nothing yet. Scan the room or add things by hand.' : `${esc(p.hostName)} hasn’t added anything yet.`}</p>`}
+  </main>`;
+}
+/* Sort: filter chips + list. Tap a row for the item sheet. */
+function sortRow(it) {
+  const status = it.decision ? `<span class="tag ${it.decision}">${ic(DEC[it.decision].icon)}${esc(statusText(it))}</span>` : '';
+  const sugg = !it.decision && it.suggestion && it.suggestion.by !== S.role ? `<span class="tag sugg">${esc(nameOf(it.suggestion.by))} suggests: ${DEC[it.suggestion.d].label.toLowerCase()}</span>` : '';
+  return `<button class="ios-row" data-act="itemSheet" data-id="${it.id}">${thumbOf(it)}<span class="grow"><span class="t" style="display:block;margin-bottom:4px">${esc(it.name)}</span><span class="row-sub">${ownerTag(it)}${status}${sugg}${it.note ? `<span class="tag">${ic('message')}Note</span>` : ''}</span></span></button>`;
+}
+function viewSortList() {
+  if (!S.items.length) return emptyItems('Scan the room to find the furniture, or add things by hand. Then decide what stays, what goes back to its owner, and what you let go.');
+  const c = sortCounts(), p = S.P;
+  const defs = [['all', 'All', S.items.length], ['todo', 'To decide', c.none], ['mine', 'Yours', S.items.filter(i => i.owner === S.role).length]];
+  if (p.guestName || S.role === 'guest') defs.push(['theirs', possessive(nameOf(otherRole())), S.items.filter(i => i.owner === otherRole()).length]);
+  defs.push(['both', 'Shared', S.items.filter(i => i.owner === 'both').length]);
+  const unassigned = S.items.filter(i => !i.owner).length;
+  if (unassigned) defs.splice(1, 0, ['none', 'No owner yet', unassigned]);
+  const mine = relevantItems(), allDone = mine.length && !mine.some(i => !i.decision), list = filterItems();
+  return `<div class="filterbar">${defs.map(([k, l, n]) => `<button class="chip sm ${S.filter === k ? 'on' : ''}" data-act="filter" data-v="${k}">${esc(l)} ${n}</button>`).join('')}</div>
+  <main class="pg">
+    ${allDone ? `<div class="ios-list"><button class="ios-row" data-act="summary" style="color:var(--keep);font-weight:600">${ic('check')} ${S.role === 'guest' ? 'All your things are decided' : 'Everything’s decided'}</button></div>` : ''}
+    ${unassigned && S.role === 'host' ? `<div class="ios-list"><div class="ios-row small" style="cursor:default;color:var(--ink-2)">${ic('users')} Start by saying whose each thing is. Then the owner decides.</div></div>` : ''}
+    <div class="ios-list">${list.length ? list.map(sortRow).join('') : `<div class="ios-row muted" style="cursor:default">Nothing here.</div>`}</div>
+  </main>`;
+}
+/* Redesign: options, the plan, hidden note, likes. "Edit in 3D" opens the full editor. */
+function viewRedesignHome() {
+  const p = P(), host = S.role === 'host', L = curLayout();
+  if (!S.items.length && !S.layouts.length) return emptyItems('Redesign starts with the room exactly as it is. Scan it or add its furniture by hand, then try moving things around and adding new pieces. You don’t need to sort first.');
+  const gone = S.items.filter(removed), lg = gone.filter(i => i.decision === 'letgo').length, sd = gone.length - lg, n = gone.length;
+  const noun = n === 1 ? '1 item' : `${n} items`, verb = n === 1 ? 'is' : 'are';
+  const hidden = !sd ? `${noun} marked Let go ${verb} hidden` : !lg ? `${noun} marked Send to owner ${verb} hidden` : `${noun} ${verb} hidden: ${lg} marked Let go, ${sd} marked Send to owner`;
+  const other = otherRole();
+  const chips = `<div class="chips scroll">${!S.layouts.length ? `<button class="chip sm on">As it is now</button>` : ''}${S.layouts.map(l => `<button class="chip sm ${L && l.id === L.id ? 'on' : ''}" data-act="layout" data-v="${l.id}">${esc(l.name)}${l.likes && l.likes[other] ? ' ♥' : ''}</button>`).join('')}${host && S.layouts.length < 3 ? `<button class="chip sm" data-act="newLayout">${ic('plus')} New option</button>` : ''}</div>`;
+  const like = L ? `<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><button class="btn sm ${L.likes && L.likes[S.role] ? 'accent' : 'secondary'}" data-act="like">${ic('heart')} ${L.likes && L.likes[S.role] ? 'You like this' : 'I like this one'}</button>${L.likes && L.likes[other] ? `<span class="tag sugg">${ic('heart')}${esc(nameOf(other))} likes this</span>` : ''}${S.layouts.length > 1 ? `<button class="btn ghost sm" data-act="compare">${ic('compare')} Compare</button>` : ''}</div>` : '';
+  const primary = host ? `<button class="btn block" data-act="editDesign">${ic('cube')} ${L ? `Edit ${esc(L.name)} in 3D` : 'Start a design'}</button>`
+    : L ? `<button class="btn secondary block" data-act="editDesign">${ic('cube')} View ${esc(L.name)} in 3D</button>` : `<p class="small muted">${esc(p.hostName)} hasn’t made any designs yet. You can see the room as it is above.</p>`;
+  return `<main class="pg">${S.layouts.length || host ? chips : ''}
+    <div><div class="preview" style="height:auto;padding:16px">${planSVG(L, false, S.showHidden)}</div>
+      <p class="small muted" style="font-weight:600;margin-top:8px">${L ? esc(L.name) : 'The room as it is now'}</p></div>
+    ${n ? `<div class="note-bar">${ic('eye')}<span class="grow">${hidden}</span><button data-act="toggleHidden">${S.showHidden ? 'Hide them' : 'Show them'}</button></div>` : ''}
+    ${like}${primary}
+    <p class="tiny muted">Undecided things stay where they are. Redesigning never changes your Sort decisions.</p></main>`;
+}
+
+/* ---------- bottom tab bar: Home · Sort · Redesign · People (always visible, like the iOS app) ---------- */
+function lastRoomId() {
+  const mine = S.projects.filter(p => S.myProjects.includes(p.id)).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+  const last = LS.get('lastRoom', null);
+  return mine.some(p => p.id === last) ? last : (mine[0] ? mine[0].id : null);
+}
+function currentTab() {
+  if (S.view === 'project') {
+    if (S.role === 'guest') return { room: 'home', things: 'sort', list: 'sort', plans: 'plan', people: 'people' }[S.gtab] || 'home';
+    return { capture: 'home', sort: 'sort', plan: 'plan', people: 'people' }[S.stage] || 'home';
+  }
+  return S.view === 'noroom' ? S.noroomTab : 'home';
+}
+function appTabBar() {
+  const inRoom = S.view === 'project' && S.P;
+  const guest = inRoom && S.role === 'guest';
+  const undecided = inRoom ? S.items.filter(i => !i.decision && (!guest || i.owner === 'guest' || i.owner === 'both')).length : 0;
+  const cur = currentTab();
+  const defs = [['home', 'Home', 'keep'], ['sort', guest ? 'Your things' : 'Sort', 'check'], ['plan', 'Redesign', 'cube'], ['people', 'People', 'users']];
+  return `<nav class="tabbar" aria-label="Sections">${defs.map(([k, l, icon]) => `<button class="${cur === k ? 'on' : ''}" data-act="tab" data-v="${k}" ${cur === k ? 'aria-current="page"' : ''}><span class="tb-ic">${ic(icon, 'lg')}${k === 'sort' && undecided ? `<span class="badge">${undecided}</span>` : ''}</span><span>${l}</span></button>`).join('')}</nav><div class="tabbar-pad"></div>`;
+}
+/* Switch tools inside the open room. */
+function selectTab(v) {
+  S.editing = false;
+  if (S.role === 'guest') { S.gtab = { home: 'room', sort: 'things', plan: 'plans', people: 'people' }[v]; S.sel = null; render(); return; }
+  if (v === 'sort') ACT.toSort();
+  else if (v === 'plan') ACT.toPlan();
+  else { S.stage = v === 'home' ? 'capture' : 'people'; S.sel = null; render(); }
+}
+/* Sort / Redesign / People before any room has been opened. */
+function viewNoRoom() {
+  const t = { sort: 'Sort', plan: 'Redesign', people: 'People' }[S.noroomTab] || 'Sort';
+  const none = !S.projects.some(p => S.myProjects.includes(p.id));
+  return `<main class="g-wrap" style="text-align:center;padding-top:22vh">
+    <h2 style="font-size:28px">${none ? 'No rooms yet' : 'Choose a room'}</h2>
+    <p class="muted" style="margin:10px auto 22px;max-width:34ch">${none ? `${t} works on a room. Add the room you want to change, or join one you were invited to.` : `Open a room from Home and ${t} will show it here.`}</p>
+    <div class="home-actions" style="justify-content:center">${none ? `<button class="btn" data-act="startCreate">${ic('plus')} New room</button>` : ''}<button class="btn secondary" data-act="tab" data-v="home">Go to Home</button></div>
+  </main>`;
+}
+function viewPeople() {
+  const p = S.P, isHost = S.role === 'host', here = Presence.inProject(S.pid);
+  const guestOn = here.some(x => x.role === 'guest'), hostOn = here.some(x => x.role === 'host');
+  const things = (r, mine) => { const n = S.items.filter(i => i.owner === r || i.owner === 'both').length; return n ? `. ${n} thing${n === 1 ? ' is' : 's are'} ${mine ? 'yours' : 'theirs'} or shared` : ''; };
+  const row = (role, name, sub, online) => `<div class="ios-row" style="cursor:default">${avatar(role, name, online)}<span class="grow"><span class="t" style="display:block">${esc(name)}${role === S.role ? ' (you)' : ''}</span><span class="small muted">${sub}</span></span></div>`;
+  const joined = p.guestJoinedAt || guestOn;
+  let rows = row('host', p.hostName, (isHost ? 'You set up this room' : 'Set up this room') + things('host', isHost), isHost ? undefined : hostOn);
+  if (p.guestName) rows += row('guest', p.guestName, (joined ? (guestOn ? 'Here now' : 'Has joined') : p.invitedAt ? 'Invite sent, not joined yet' : 'Not invited yet') + things('guest', !isHost), isHost ? !!(joined && guestOn) : undefined);
+  else if (isHost) rows += `<button class="ios-row link" data-act="addGuest">${ic('plus')} Add a person</button>`;
+  return `<main class="pg">
+    <div class="sec-label">In this room</div><div class="ios-list">${rows}</div>
+    ${isHost && !p.guestName ? `<p class="sec-foot">If some things here belong to another person, add them so they can decide on their own things. This is optional; you can sort on your own.</p>` : ''}
+    ${isHost && p.guestName && !joined ? `<div class="ios-list"><button class="ios-row link" data-act="invite">${ic('send')} ${p.invitedAt ? `Invite ${esc(p.guestName)} again` : `Invite ${esc(p.guestName)}`}</button><button class="ios-row link" data-act="addGuest">${ic('edit')} Change name</button></div>` : ''}
+    <div class="sec-label">Room code</div>
+    <div class="ios-list"><div class="ios-row" style="cursor:default"><span class="grow code">${esc(S.pid)}</span><button class="btn secondary sm" data-act="copyCode">Copy</button></div></div>
+    <p class="sec-foot">Anyone with this code can open Shared Space, tap “I’ve been invited” and join as the second person.</p>
+  </main>`;
 }
 
 /* ---------- photo with pins ---------- */
@@ -1751,8 +1942,7 @@ function viewCapture() {
         <div class="row-main"><input class="input" style="min-height:42px;padding:8px 12px" value="${esc(it.name)}" data-itemname="${it.id}" aria-label="Name of item ${i + 1}"><div class="hint" style="margin-top:4px">${esc(KINDS[it.kind]?.label || 'Object')}, about ${it.w} × ${it.d} cm</div></div>
         <button class="iconbtn plain" data-act="delItem" data-id="${it.id}" aria-label="Remove ${esc(it.name)}">${ic('trash')}</button></div>
       </div>`).join('')}</div>
-      <button class="btn secondary block" style="margin-top:12px" data-act="addItem">${ic('plus')} Add something we missed</button></div>
-    <div class="panel-foot"><button class="btn block" data-act="toSort">Continue to sorting</button></div>`;
+      <button class="btn secondary block" style="margin-top:12px" data-act="addItem">${ic('plus')} Add something we missed</button></div>`;
   }
   return `<div class="workspace">${stage}<aside class="panel" data-keep="panel">${panel}</aside></div>`;
 }
@@ -1778,7 +1968,7 @@ function peopleBlock() {
   const guestItems = S.items.filter(i => i.owner === 'guest' || i.owner === 'both').length;
   const here = Presence.inProject(S.pid).some(x => x.role === 'guest');
   if (!p.guestName) {
-    return `<div class="person-card"><div style="flex:1"><div class="lbl">Do some things belong to someone else?</div><p class="hint">Add them so they can decide what happens to their things.</p></div><button class="btn secondary sm" data-act="addGuest">${ic('plus')} Add person</button></div>`;
+    return `<div class="person-card"><div style="flex:1"><div class="lbl">Sorting with another person?</div><p class="hint">Add them so they can decide what happens to their things.</p></div><button class="btn secondary sm" data-act="addGuest">${ic('plus')} Add person</button></div>`;
   }
   const joined = p.guestJoinedAt || here;
   return `<div class="invite">
@@ -1797,7 +1987,7 @@ function itemRow(it) {
   if (!it.owner) {
     action = `<div class="owner-pick"><span class="hint" style="margin-right:4px">Whose is it?</span>
       <button class="chip sm" data-act="setOwner" data-id="${it.id}" data-v="${S.role}">Mine</button>
-      <button class="chip sm" data-act="setOwner" data-id="${it.id}" data-v="${otherRole()}">${P().guestName && S.role === 'host' ? esc(possessive(P().guestName)) : S.role === 'guest' ? esc(possessive(P().hostName)) : 'Someone else’s'}</button>
+      <button class="chip sm" data-act="setOwner" data-id="${it.id}" data-v="${otherRole()}">${S.role === 'guest' ? esc(possessive(P().hostName)) : P().guestName ? esc(possessive(P().guestName)) : `${ic('plus')} Add a person`}</button>
       <button class="chip sm" data-act="setOwner" data-id="${it.id}" data-v="both">Shared</button></div>`;
   } else if (canDecide(it)) {
     action = `<div class="decide" role="group" aria-label="Decide what happens to the ${esc(it.name)}">${['keep', 'send', 'letgo'].map(d => `<button class="dbtn ${d} ${it.decision === d ? 'on' : ''}" data-act="decide" data-id="${it.id}" data-v="${d}" aria-pressed="${it.decision === d}">${ic(DEC[d].icon)}<span>${DEC[d].label}</span></button>`).join('')}</div>`;
@@ -1830,13 +2020,11 @@ function viewSort() {
     <div class="stage-note"><div class="small">${S.sel ? `${ic('pin')}<b>${esc(S.items.find(i => i.id === S.sel)?.name || '')}</b> selected` : `${ic('eye')} The room changes as you decide. Tap an object to select it.`}</div></div></div>`;
   const panel = `
     <div class="panel-sec">${progressBlock()}</div>
-    ${S.role === 'host' ? `<div class="panel-sec">${peopleBlock()}</div>` : ''}
     <div class="panel-sec" style="flex:1">
       ${unassigned ? `<div class="freed" style="background:var(--surface-2);color:var(--ink);margin:0 0 12px">${ic('users')} Start by saying whose each thing is. Then you can decide.</div>` : ''}
       <div class="tabs" role="tablist" style="margin-bottom:12px">${tabsDef.map(([k, l, n]) => `<button class="${S.filter === k ? 'on' : ''}" data-act="filter" data-v="${k}">${esc(l)}<b>${n}</b></button>`).join('')}</div>
       <div class="list">${list.length ? list.map(itemRow).join('') : `<p class="muted" style="padding:20px 0;text-align:center">Nothing here.</p>`}</div>
-    </div>
-    ${S.role === 'host' ? `<div class="panel-foot"><button class="btn block ${c.none ? 'secondary' : ''}" data-act="toPlan">${c.none ? `Plan the new room (${c.none} undecided)` : 'Plan the new room'}</button></div>` : ''}`;
+    </div>`;
   return `<div class="workspace">${stage}<aside class="panel" data-keep="panel">${panel}</aside></div>`;
 }
 
@@ -1886,11 +2074,11 @@ function viewPlan() {
 }
 
 /* ---------- 2D plan (fallback + compare) ---------- */
-function planSVG(L, compact) {
+function planSVG(L, compact, ghosts) {
   const p = P(); if (!p.W) return '';
   const pad = 20, W = p.W, Ln = p.L;
   const showRemoved = S.stage !== 'plan' && !L;
-  const kept = S.items.filter(i => showRemoved || !removed(i));
+  const kept = S.items.filter(i => showRemoved || ghosts || !removed(i));
   const pcs = (L ? L.pieces : []).map(x => ({ ...CATMAP[x.fid], ...x })).filter(x => x.kind);
   const rect = (o, fill, stroke, label, dash) => { const f = fp(o); return `<g><rect x="${f.x}" y="${f.z}" width="${f.w}" height="${f.d}" rx="4" fill="${fill}" stroke="${stroke}" stroke-width="2" ${dash ? 'stroke-dasharray="6 5"' : ''}/>${label && f.w > 40 && f.d > 22 ? `<text x="${f.x + f.w / 2}" y="${f.z + f.d / 2}" text-anchor="middle" dominant-baseline="middle" font-size="${Math.min(13, f.w / 7)}" fill="var(--ink)" font-family="var(--f-body)">${esc(label)}</text>` : ''}</g>`; };
   return `<svg class="plan-svg" viewBox="${-pad} ${-pad} ${W + pad * 2} ${Ln + pad * 2}" role="img" aria-label="Floor plan">
@@ -1908,24 +2096,20 @@ function viewGuest() {
   const p = S.P;
   const mine = S.items.filter(i => i.owner === 'guest' || i.owner === 'both');
   const q = guestQueue();
-  const tabs = `<nav class="rail"><button class="${S.gtab === 'things' ? 'on' : ''}" data-act="gtab" data-v="things"><span class="n">${ic('user')}</span>Your things</button><button class="${S.gtab === 'room' ? 'on' : ''}" data-act="gtab" data-v="room"><span class="n">${ic('cube')}</span>The whole room</button>${p.stage === 'plan' ? `<button class="${S.gtab === 'plans' ? 'on' : ''}" data-act="gtab" data-v="plans"><span class="n">${ic('heart')}</span>Plans</button>` : ''}</nav>`;
-  if (S.gtab === 'room') return tabs + viewSort();
-  if (S.gtab === 'plans') { if (!S.layouts.length) return tabs + `<div class="g-wrap"><p class="muted">No plans yet.</p></div>`; return tabs + viewPlan(); }
+  const tabs = ''; // the bottom tab bar is added by viewProject
+  if (S.gtab === 'room') return tabs + viewOverview();
+  if (S.gtab === 'list') return tabs + viewSortList();
+  if (S.gtab === 'plans') return tabs + (S.editing ? viewPlan() : viewRedesignHome());
+  if (S.gtab === 'people') return tabs + viewPeople();
   if (!S.loaded.i) return tabs + `<div class="g-wrap muted">Loading</div>`;
   if (!mine.length) {
     return tabs + `<div class="g-wrap"><div class="g-hero"><h1>Hi ${esc(p.guestName || ME.name)}</h1><p class="muted" style="margin-top:10px;font-size:17px">${esc(p.hostName)} hasn’t marked any of the things in the ${esc(p.name.toLowerCase())} as yours yet. You’ll get a message here as soon as they do.</p></div>
     <button class="btn secondary" data-act="gtab" data-v="room">${ic('cube')} Look at the room</button></div>`;
   }
-  if (q.length && !S.gStarted) {
-    return tabs + `<div class="g-wrap"><div class="g-hero"><h1>${esc(p.hostName)} needs your help with ${q.length} thing${q.length === 1 ? '' : 's'}</h1>
-      <p class="muted" style="margin-top:10px;font-size:17px">The ${esc(p.name.toLowerCase())} is becoming a ${esc(p.to.toLowerCase())}. For each thing of yours, choose what should happen to it.</p></div>
-      <div class="g-choices" style="margin-bottom:24px">${['keep', 'send', 'letgo'].map(d => guestChoiceInfo(d)).join('')}</div>
-      <button class="btn block" data-act="gStart">Start</button></div>`;
-  }
   if (q.length) {
     const it = q[0], idx = mine.length - q.length;
     const s = it.suggestion;
-    return tabs + `<div class="g-wrap"><div class="g-progress">${mine.map((_, i) => `<i class="${i < idx ? 'on' : ''}"></i>`).join('')}</div>
+    return tabs + `<div class="g-wrap"><p class="small muted" style="margin:4px 0 14px">${esc(p.hostName)} is turning this room into a ${esc(p.to.toLowerCase())}. ${q.length} of your things need${q.length === 1 ? 's' : ''} a decision.</p>
     <div class="g-card" id="gcard">
       <img class="thumb lg" alt="Photo of the ${esc(it.name)}" data-crop="${it.pin ? it.pin.x + ',' + it.pin.y : ''}">
       <div><div class="row-sub" style="margin:0 0 6px">${it.owner === 'both' ? `<span class="tag both">Shared with ${esc(p.hostName)}</span>` : `<span class="tag guest">Yours</span>`}${s && s.by === 'host' ? `<span class="tag sugg">${esc(p.hostName)} suggests: ${DEC[s.d].label.toLowerCase()}</span>` : ''}</div>
@@ -1936,8 +2120,8 @@ function viewGuest() {
   }
   const c = { keep: 0, send: 0, letgo: 0 }; mine.forEach(i => i.decision && c[i.decision]++);
   return tabs + `<div class="g-wrap"><div class="g-hero"><h1>All done, thank you</h1><p class="muted" style="margin-top:10px;font-size:17px">${esc(p.hostName)} can see your choices now. You can change any of them until the room is finished.</p></div>
-    <div class="list" style="margin-bottom:20px">${mine.map(itemRow).join('')}</div>
-    <button class="btn secondary block" data-act="gtab" data-v="room">${ic('cube')} See the whole room</button></div>`;
+    <div class="ios-list" style="margin-bottom:20px">${mine.map(sortRow).join('')}</div>
+    <button class="btn secondary block" data-act="gtab" data-v="list">See everything in the room</button></div>`;
 }
 function guestChoiceInner(d) {
   const t = { keep: ['Keep it in the room', 'It stays where it is'], send: ['Send it to me', 'It’ll be packed up for you'], letgo: ['Let it go', 'Donate, sell or recycle'] }[d];
@@ -1949,7 +2133,34 @@ function guestChoiceInfo(d) { return `<div class="g-choice ${d}" style="cursor:d
 function viewModal() {
   const m = S.modal; let inner = '', wide = false;
   const head = (t, sub) => `<div class="modal-head"><div><h2>${t}</h2>${sub ? `<p class="muted">${sub}</p>` : ''}</div><button class="iconbtn" data-act="closeModal" aria-label="Close">${ic('x')}</button></div>`;
-  if (m.type === 'addItem') {
+  if (m.type === 'item') {
+    const it = S.items.find(i => i.id === m.id), p = P();
+    if (!it) { S.modal = null; return ''; }
+    const host = S.role === 'host', can = it.owner && canDecide(it);
+    const owners = [[S.role, 'Mine'], [otherRole(), S.role === 'guest' ? p.hostName : (p.guestName || '+ Add a person')], ['both', 'Shared']];
+    let dec;
+    if (!it.owner) dec = `<p class="sec-foot" style="margin:0">Say whose it is first. Then the owner decides what happens to it.</p>`;
+    else {
+      const s = it.suggestion && it.suggestion.by !== S.role ? it.suggestion : null;
+      dec = `<div class="sec-label" style="margin:0">${can ? 'What happens to it?' : `${esc(nameOf(it.owner))} decides. You can suggest:`}</div>
+        ${s && !it.decision ? `<div class="note-bar">${ic('message')}<span class="grow">${esc(nameOf(s.by))} suggests: ${DEC[s.d].label.toLowerCase()}</span>${can ? `<button data-act="decide" data-id="${it.id}" data-v="${s.d}">Use it</button>` : ''}</div>` : ''}
+        ${!can && it.decision ? `<p class="small muted">${esc(nameOf(it.decidedBy || it.owner))} decided: ${esc(statusText(it))}. It’s their call, but you can suggest something else.</p>` : ''}
+        <div class="decide">${['keep', 'send', 'letgo'].map(d => { const on = can ? it.decision === d : !!(it.suggestion && it.suggestion.by === S.role && it.suggestion.d === d); return `<button class="dbtn ${d} ${can ? '' : 'suggest'} ${on ? 'on' : ''}" data-act="decide" data-id="${it.id}" data-v="${d}">${ic(DEC[d].icon)}<span>${d === 'send' && !can ? 'Send back' : DEC[d].label}</span></button>`; }).join('')}</div>
+        ${can && it.decision ? `<p class="sec-foot" style="margin:0">${esc(statusText(it))}. Tap it again to undo.</p>` : ''}`;
+    }
+    inner = head(esc(it.name)) + `<div class="stack" style="gap:18px">
+      <div class="ios-list"><div class="ios-row" style="cursor:default">${thumbOf(it)}<span class="grow">${host ? `<input class="input" style="min-height:40px;padding:6px 10px;font-weight:600" value="${esc(it.name)}" data-itemname="${it.id}" aria-label="Name">` : `<span class="t">${esc(it.name)}</span>`}<span class="tiny muted" style="display:block;margin-top:4px">About ${it.w} × ${it.d} × ${it.h} cm</span></span></div></div>
+      <div style="display:grid;gap:8px"><div class="sec-label" style="margin:0">Whose is it?</div><div class="seg">${owners.map(([v, l]) => `<button class="${it.owner === v ? 'on' : ''}" data-act="setOwner" data-id="${it.id}" data-v="${v}">${esc(l)}</button>`).join('')}</div></div>
+      <div style="display:grid;gap:10px">${dec}</div>
+      <div style="display:grid;gap:8px"><div class="sec-label" style="margin:0">Note</div><textarea class="input" data-itemnote="${it.id}" placeholder="For example: the left drawer sticks">${esc(it.note || '')}</textarea></div>
+      ${host ? `<button class="btn danger block" data-act="removeItem" data-id="${it.id}">Remove from this room’s list</button>` : ''}</div>`;
+  } else if (m.type === 'summary') {
+    const c = { keep: 0, send: 0, letgo: 0 }; relevantItems().forEach(i => i.decision && c[i.decision]++);
+    const fa = freedArea();
+    const rows = [['keep', 'Staying in the room'], ['send', 'Going back to their owner'], ['letgo', 'Letting go']].filter(([k]) => c[k]).map(([k, l]) => `<div class="ios-row" style="cursor:default;color:var(--${k})">${ic(DEC[k].icon)}<span class="grow">${l}</span><b style="color:var(--ink)">${c[k]}</b></div>`).join('');
+    inner = `<div class="modal-head"><div><h2>${S.role === 'guest' ? 'All done, thank you' : 'Everything’s decided'}</h2></div><button class="btn sm" data-act="closeModal">Done</button></div>
+      <div class="stack" style="gap:14px"><div class="ios-list">${rows}</div><p class="sec-foot" style="margin:0">You can change any decision at any time.</p>${fa ? `<div class="freed" style="margin:0">${ic('sparkle')} ${m2(fa)} m² of floor freed up</div>` : ''}</div>`;
+  } else if (m.type === 'addItem') {
     inner = head('Add something', 'What did we miss?') + `<div class="stack">
       <div class="field"><label for="m-name">What is it?</label><input class="input" id="m-name" data-bind="modal.name" value="${esc(m.name || '')}" placeholder="For example, sewing machine"></div>
       <div class="field"><span class="lbl">Closest type</span><div class="chips">${ADD_KINDS.map(k => `<button class="chip sm ${m.kind === k ? 'on' : ''}" data-act="mset" data-k="kind" data-v="${k}">${KINDS[k].label}</button>`).join('')}</div></div>
@@ -1978,8 +2189,6 @@ function viewModal() {
       <button class="btn secondary block" data-act="copyCode">${ic('copy')} Copy room code</button>
       ${p.guestName ? `<button class="btn secondary block" data-act="switchRole">${ic('users')} View as ${esc(S.role === 'host' ? p.guestName : p.hostName)}</button>` : ''}
       <button class="btn ghost block" data-act="wizard">Facilitator console</button></div>`;
-  } else if (m.type === 'confirmPlan') {
-    inner = head(`${m.n} thing${m.n === 1 ? ' is' : 's are'} still undecided`, 'They’ll stay in the room while you plan. You can come back and decide any time.') + `<div style="display:grid;gap:10px"><button class="btn block" data-act="toPlan" data-force="1">Plan the new room</button><button class="btn secondary block" data-act="closeModal">Keep sorting</button></div>`;
   } else if (m.type === 'gNote') {
     inner = head('Add a note', `${esc(P().hostName)} will see it next to this item.`) + `<div class="stack"><textarea class="input" data-bind="modal.text" rows="4" placeholder="For example: please keep the case too">${esc(m.text || '')}</textarea><button class="btn block" data-act="saveGNote">Save note</button></div>`;
   } else if (m.type === 'shop') {
@@ -2083,7 +2292,14 @@ const ACT = {
   wizard() { S.modal = null; unsubAll(); S.view = 'wizard'; setHash('wizard'); if (S.wz.pid) openProject(S.wz.pid, null, { wizard: true }); render(); },
   startCreate() { S.create = { step: 0, from: '', to: '', name: '', W: 340, L: 380, H: 250, myName: '' }; S.view = 'create'; render(); },
   openJoin() { S.join = { code: '' }; S.view = 'join'; render(); },
-  open(d) { openProject(d.id); },
+  open(d) { S.openAs = 'room'; openProject(d.id); },
+  tab(d) {
+    if (d.v === 'home') { if (S.view !== 'home') goHome(); return; }
+    if (S.view === 'project' && S.P) { selectTab(d.v); return; }
+    const pid = lastRoomId();
+    if (!pid) { unsubAll(); S.view = 'noroom'; S.noroomTab = d.v; render(); return; }
+    S.pendingTab = d.v; openProject(pid);
+  },
   cset(d) { S.create[d.k] = d.v; render(); },
   cnext() {
     const c = S.create;
@@ -2150,15 +2366,14 @@ const ACT = {
     if (S.P.scan === 'none') Store.update('projects/' + S.pid, { scan: 'done' });
   },
   toSort() { if (P().stage === 'capture') Store.update('projects/' + S.pid, { stage: 'sort' }); S.stage = 'sort'; S.sel = null; S.filter = S.items.some(i => !i.owner) ? 'none' : 'all'; render(); },
-  toPlan(d) {
-    const n = S.items.filter(i => !i.decision).length;
-    if (n && !(d && d.force) && P().stage !== 'plan') { S.modal = { type: 'confirmPlan', n }; render(); return; }
+  // Redesign opens any time. Nothing sorted yet? Every item simply stays where it is.
+  toPlan() {
     S.modal = null;
     const first = P().stage !== 'plan';
     if (first) Store.update('projects/' + S.pid, { stage: 'plan' });
-    ensureLayout();
+    // No ensureLayout() here: designs may still be loading. Option A is created by the first added piece.
     S.stage = 'plan'; S.sel = null; S.planView = '3d';
-    if (first || d?.force) {
+    if (first) {
       S.clearing = true; setTimeout(() => { S.clearing = false; }, 3000);
       const fa = freedArea(); if (fa) setTimeout(() => toast(`You freed up ${m2(fa)} m² of floor. Here’s your space.`, 'info', 'sparkle'), 900);
     }
@@ -2174,8 +2389,17 @@ const ACT = {
     if (d.v === 'guest' && !P().guestName && S.role === 'host') { S.modal = { type: 'addGuest', name: '', pending: d.id }; render(); return; }
     Store.update(`projects/${S.pid}/items/${d.id}`, { owner: d.v, decision: null, decidedBy: null });
   },
+  itemSheet(d) { S.modal = { type: 'item', id: d.id }; render(); },
+  removeItem(d) { Store.del(`projects/${S.pid}/items/${d.id}`); S.modal = null; render(); },
+  summary() { S.modal = { type: 'summary' }; render(); },
+  editDesign() { if (S.role === 'host') ensureLayout(); S.editing = true; S.selPiece = null; render(); },
+  endEdit() { S.editing = false; S.selPiece = null; render(); },
+  toggleHidden() { S.showHidden = !S.showHidden; render(); },
   decide(d) {
     const it = S.items.find(i => i.id === d.id); if (!it) return;
+    // When the last undecided thing gets a decision, show the summary (ends with "Done", no next step).
+    const open = () => relevantItems().filter(i => !i.decision).length, before = open();
+    setTimeout(() => { if (before > 0 && open() === 0 && currentTab() === 'sort') { S.modal = { type: 'summary' }; render(); } }, 400);
     if (navigator.vibrate) try { navigator.vibrate(8); } catch (e) {}
     if (canDecide(it)) {
       const nd = it.decision === d.v ? null : d.v;

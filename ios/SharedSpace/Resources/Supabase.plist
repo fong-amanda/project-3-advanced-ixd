@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Paste your Supabase project's values here.
+     Supabase dashboard → Project Settings → API. The anon key is safe to ship in an app;
+     row-level security in supabase/schema.sql protects the data.
+     While these are placeholders, the app runs on this device only (no sharing). -->
+<plist version="1.0">
+<dict>
+	<key>SUPABASE_URL</key>
+	<string>https://YOUR-PROJECT.supabase.co</string>
+	<key>SUPABASE_ANON_KEY</key>
+	<string>YOUR-ANON-KEY</string>
+	<key>WEB_BASE_URL</key>
+	<string>https://YOUR-SITE.netlify.app</string>
+</dict>
+</plist>
