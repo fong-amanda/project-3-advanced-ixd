@@ -32,14 +32,14 @@ enum RoomGeometry {
     /// Finds a free spot for a new w×d thing, preferring places along a wall.
     /// Returns the centre point. Falls back to the middle of the room when nothing fits.
     static func findSpot(w: Double, d: Double, avoiding obstacles: [FloorRect],
-                         roomWidth W: Double, roomLength L: Double) -> (x: Double, z: Double) {
+                         roomWidth W: Double, roomLength L: Double, inside shape: RoomShape? = nil) -> (x: Double, z: Double) {
         var best: (x: Double, z: Double, score: Double)?
         var z = d / 2 + 4
         while z <= L - d / 2 - 4 {
             var x = w / 2 + 4
             while x <= W - w / 2 - 4 {
                 let r = FloorRect(x: x - w / 2, z: z - d / 2, w: w, d: d)
-                if !obstacles.contains(where: { r.overlaps($0, padding: 1) }) {
+                if !obstacles.contains(where: { r.overlaps($0, padding: 1) }), shape?.contains(r) ?? true {
                     let wallDistance = min(r.x, r.z, W - r.maxX, L - r.maxZ)
                     let score = wallDistance + abs(z - L * 0.4) * 0.05
                     if best == nil || score < best!.score { best = (x, z, score) }
@@ -48,7 +48,19 @@ enum RoomGeometry {
             }
             z += 10
         }
-        return best.map { ($0.x, $0.z) } ?? (W / 2, L / 2)
+        if let best { return (best.x, best.z) }
+        // Nothing fits: the floor point nearest the middle.
+        if let shape {
+            var near: (x: Double, z: Double, d: Double)?
+            for z in stride(from: 10.0, to: L, by: 10) {
+                for x in stride(from: 10.0, to: W, by: 10) where shape.contains(x: x, z: z) {
+                    let dist = hypot(x - W / 2, z - L / 2)
+                    if near == nil || dist < near!.d { near = (x, z, dist) }
+                }
+            }
+            if let near { return (near.x, near.z) }
+        }
+        return (W / 2, L / 2)
     }
 
     /// Obstacles for placement: every live item that stands on the floor.

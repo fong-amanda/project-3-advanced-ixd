@@ -1,28 +1,33 @@
 import Observation
 import SwiftUI
 
-/// State for the current room, shared by the Home, Sort, Redesign and People tabs.
+/// "Add something" request: optionally at a spot the host tapped on a room photo.
+struct AddItemRequest: Identifiable {
+    let id = UUID()
+    var pin: CGPoint?
+    var photo = 0
+}
+
+/// State for the open room, shared by its Items and Room plan tabs.
 @MainActor
 @Observable
 final class RoomSession {
-    private(set) var roomId: UUID?
-
-    /// Host only: see the room the way the guest does.
+    /// Host only: see the room the way the guest does ("View as Alex").
     var previewAsGuest = false
 
+    var addItem: AddItemRequest?
+    /// LiDAR room scan (RoomPlan). Only offered on phones that can scan.
     var showScan = false
-    var showScanUnsupported = false
-    var showAddItem = false
     var showSettings = false
-    var redesignPath: [RoomRoute] = []
+    /// Set when People opens right after creating a room with "Invite someone".
+    var showInviteOnPeople = false
 
-    /// Clears per-room state when a different room becomes current.
-    func reset(for roomId: UUID?) {
-        guard roomId != self.roomId else { return }
-        self.roomId = roomId
-        previewAsGuest = false
-        redesignPath = []
-    }
+    var itemsPath: [RoomRoute] = []
+    var planPath: [RoomRoute] = []
+
+    /// The plan version on screen in Room plan (nil = the room as it is now).
+    var planDesignId: UUID?
+    var planDesignPicked = false
 
     /// The role the screens should act as (the guest's, while the host previews their view).
     func me(in room: Room, userId: UUID) -> Role {
@@ -35,8 +40,12 @@ final class RoomSession {
         previewAsGuest && room.guestHasJoined
     }
 
-    func startScan() {
-        if DeviceCapabilities.canScanRooms { showScan = true } else { showScanUnsupported = true }
+    /// Pushes a screen onto the given tab's stack.
+    func show(_ route: RoomRoute, on tab: RoomTab) {
+        switch tab {
+        case .items: if itemsPath.last != route { itemsPath.append(route) }
+        case .plan: if planPath.last != route { planPath.append(route) }
+        }
     }
 }
 
@@ -47,7 +56,7 @@ struct RoomContext {
     let realRole: Role
     let readOnly: Bool
 
-    /// The real host, not previewing: may edit the room itself (scan, add items, details).
+    /// The real host, not previewing: may edit the room itself (photos, things, details, plans).
     var canEditRoom: Bool { realRole == .host && me == .host }
 }
 

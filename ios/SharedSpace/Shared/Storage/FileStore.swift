@@ -8,7 +8,8 @@ import Foundation
 ///         worldMap.arworldmap    ARKit world map saved at the end of the scan, to re-anchor AR
 ///         roomFrame.json         transform from AR world space to room coordinates
 ///         geometry.json          simplified walls/doors/windows (also uploaded for other devices)
-///         thumbnail.jpg          shown on the home screen
+///         thumbnail.jpg          shown on the home screen (a copy of photo 0)
+///         photos/<n>.jpg         room photos with the item pins (also uploaded for the other phone)
 ///         items/<item id>.jpg    item photos
 enum FileStore {
     static var roomsRoot: URL {
@@ -37,6 +38,17 @@ enum FileStore {
         let folder = roomFolder(roomId).appending(path: "items", directoryHint: .isDirectory)
         try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         return folder.appending(path: "\(itemId.uuidString).jpg")
+    }
+
+    static func roomPhotoURL(_ roomId: UUID, index: Int) -> URL {
+        let folder = roomFolder(roomId).appending(path: "photos", directoryHint: .isDirectory)
+        try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        return folder.appending(path: "\(index).jpg")
+    }
+
+    /// Path inside the "rooms" Storage bucket. Lower-case so it matches the room id the policies check.
+    static func roomPhotoStoragePath(_ roomId: UUID, index: Int) -> String {
+        "\(roomId.uuidString.lowercased())/photos/\(index).jpg"
     }
 
     static func exists(_ url: URL) -> Bool { FileManager.default.fileExists(atPath: url.path()) }

@@ -24,6 +24,8 @@ final class SyncEngine {
     private(set) var presentUserIds: Set<UUID> = []
     /// Most recent change made by the other person, for the in-app banner.
     var activity: ActivityEvent?
+    /// Bumped whenever a room photo arrives on disk, so views showing photos redraw.
+    private(set) var photoRevision = 0
 
     private(set) var openRoomId: UUID?
     private var channel: RealtimeChannelV2?
@@ -167,6 +169,61 @@ final class SyncEngine {
         }
     }
 
+    /// Guest's reaction to a plan version: "Looks good" (`note == nil`) or "One thing…" with a note.
+    func setReaction(_ design: Design, ok: Bool, note: String?, as role: Role) {
+        if role == .host { design.hostLikes = ok } else { design.guestLikes = ok }
+        design.reactionNote = ok ? nil : note
+        design.reactionAt = .now
+        persist()
+        guard let client = Backend.client, isSignedIn else { return }
+        Task {
+            do {
+                try await client.rpc("set_design_reaction",
+                                     params: SetReactionParams(pDesign: design.id, pOk: ok, pNote: ok ? nil : note)).execute()
+            } catch { report(error) }
+        }
+    }
+
+    // MARK: - Room photos
+
+    /// Stores a room photo (JPEG) as photo `index`, locally first, then in Storage for the other phone.
+    func savePhoto(_ jpeg: Data, index: Int, of room: Room) {
+        try? jpeg.write(to: FileStore.roomPhotoURL(room.id, index: index), options: .atomic)
+        if index == 0 { try? jpeg.write(to: FileStore.thumbnailURL(room.id), options: .atomic) }
+        photoRevision += 1
+        if room.photoCount <= index { room.photoCount = index + 1 }
+        save(room)
+        Task { await uploadPhoto(roomId: room.id, index: index) }
+    }
+
+    private func uploadPhoto(roomId: UUID, index: Int) async {
+        guard let client = Backend.client, isSignedIn,
+              let data = try? Data(contentsOf: FileStore.roomPhotoURL(roomId, index: index)) else { return }
+        do {
+            try await client.storage.from("rooms").upload(
+                FileStore.roomPhotoStoragePath(roomId, index: index), data: data,
+                options: FileOptions(contentType: "image/jpeg", upsert: true))
+        } catch { report(error) }
+    }
+
+    /// Downloads room photos this phone doesn't have yet (the host's photos, on the guest's phone).
+    private func downloadMissingPhotos(of room: Room) async {
+        guard let client = Backend.client, isSignedIn else { return }
+        for index in 0..<min(room.photoCount, Room.maxPhotos) {
+            let url = FileStore.roomPhotoURL(room.id, index: index)
+            guard !FileStore.exists(url) else { continue }
+            do {
+                let data = try await client.storage.from("rooms").download(path: FileStore.roomPhotoStoragePath(room.id, index: index))
+                try data.write(to: url, options: .atomic)
+                if index == 0 { try? data.write(to: FileStore.thumbnailURL(room.id), options: .atomic) }
+                photoRevision += 1
+            } catch {
+                // The host's upload may still be in flight; we try again on the next refresh.
+                print("Photo not available yet:", error)
+            }
+        }
+    }
+
     // MARK: - Upload
 
     private func upload(_ room: Room) async {
@@ -227,6 +284,10 @@ final class SyncEngine {
     /// Retries everything that failed to upload earlier (offline, app killed, …).
     func pushPending() async {
         for room in fetchAll(Room.self) where room.needsUpload { await upload(room) }
+        // Photos taken offline: upload any the server may be missing (upsert, so repeats are harmless).
+        for room in fetchAll(Room.self) where room.role(of: userId) == .host && room.needsUpload {
+            for index in 0..<room.photoCount { await uploadPhoto(roomId: room.id, index: index) }
+        }
         for item in fetchAll(Item.self) where item.needsUpload { await upload(item) }
         for design in fetchAll(Design.self) where design.needsUpload { await upload(design) }
         for p in fetchAll(DesignPlacement.self) where p.needsUpload { await upload(p) }
@@ -262,6 +323,7 @@ final class SyncEngine {
         designs.forEach { applyDesign($0) }
         placements.forEach { applyPlacement($0) }
         persist()
+        if let room = fetch(Room.self, id: roomId) { await downloadMissingPhotos(of: room) }
     }
 
     // MARK: - Realtime
@@ -286,7 +348,11 @@ final class SyncEngine {
         channelTasks = [
             Task { [weak self] in
                 for await action in roomChanges {
-                    if let dto: RoomDTO = Self.record(action) { self?.applyRoom(dto); self?.persist() }
+                    if let dto: RoomDTO = Self.record(action) {
+                        self?.applyRoom(dto)
+                        self?.persist()
+                        if let self, let room = self.fetch(Room.self, id: dto.id) { await self.downloadMissingPhotos(of: room) }
+                    }
                 }
             },
             Task { [weak self] in
@@ -362,7 +428,8 @@ final class SyncEngine {
         guard let room = fetch(Room.self, id: dto.roomId) else { return }
         if let local = fetch(Item.self, id: dto.id) {
             guard !(local.needsUpload && local.updatedAt > dto.updatedAt) else { return }
-            let before = (status: local.status, suggestion: local.suggestion, owner: local.owner)
+            let before = ActivityEvent.Before(status: local.status, suggestion: local.suggestion,
+                                              owner: local.owner, askedAt: local.askedAt)
             local.apply(dto)
             if announce {
                 activity = ActivityEvent.describe(item: local, before: before, room: room, me: room.role(of: userId))
@@ -427,6 +494,12 @@ final class SyncEngine {
 private struct SetLikeParams: Encodable {
     let pDesign: UUID
     let pLiked: Bool
+}
+
+private struct SetReactionParams: Encodable {
+    let pDesign: UUID
+    let pOk: Bool
+    @NullCodable var pNote: String?
 }
 
 enum SyncError: LocalizedError {

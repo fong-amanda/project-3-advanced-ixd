@@ -1,64 +1,30 @@
 import SwiftUI
 
-/// A room on the home screen: thumbnail, name, "now → becoming", and where things stand.
-struct RoomCard: View {
+/// A room on the home screen. Works out the photo and status line, then uses the shared RoomCard.
+struct RoomSummaryCard: View {
     let room: Room
     let me: Role
-    /// The room Sort, Redesign and People are showing.
-    var isCurrent = false
+    @Environment(SyncEngine.self) private var sync
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            thumbnail
-                .frame(height: 150)
-                .frame(maxWidth: .infinity)
-                .clipped()
-            VStack(alignment: .leading, spacing: 4) {
-                Text(room.name).font(.display(22)).foregroundStyle(Color.ssInk)
-                if !room.transformLine.isEmpty {
-                    Text(room.transformLine).font(.subheadline).foregroundStyle(Color.ssInk2)
-                }
-                HStack(spacing: 6) {
-                    Tag(text: statusText)
-                    if isCurrent {
-                        Tag(text: "Current room", symbol: "checkmark", foreground: .ssKeep, background: .ssKeepSoft)
-                    }
-                }
-                .padding(.top, 6)
-            }
-            .padding(16)
-        }
-        .background(Color.ssSurface)
-        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 24, style: .continuous).strokeBorder(Color.ssLine))
-        .accessibilityElement(children: .combine)
+        RoomCard(name: room.name, plannedUse: room.futureUse, status: statusText,
+                 image: RoomPhotos.image(roomId: room.id, index: 0, revision: sync.photoRevision)
+                    ?? UIImage(contentsOfFile: FileStore.thumbnailURL(room.id).path()),
+                 tint: me == .guest ? .accent : .highlight)
     }
 
-    @ViewBuilder private var thumbnail: some View {
-        if let image = UIImage(contentsOfFile: FileStore.thumbnailURL(room.id).path()) {
-            Image(uiImage: image).resizable().scaledToFill()
-        } else {
-            ZStack {
-                Color.ssStage
-                Image(systemName: room.isScanned ? "cube.transparent" : "square.dashed")
-                    .font(.system(size: 40, weight: .light))
-                    .foregroundStyle(Color.ssMuted)
-            }
-        }
-    }
-
+    /// Matches the prototype: "4 waiting for Alex, 1 for you", "3 of 7 to decide", "All decided, 2 leaving".
     private var statusText: String {
-        if me == .guest { return "Invited by \(room.name(of: .host))" }
+        if me == .guest { return "Shared by \(room.name(of: .host))" }
         let items = room.liveItems
+        guard !items.isEmpty else { return "Nothing listed yet" }
         let progress = SortProgress(items)
-        var parts: [String] = []
-        if items.isEmpty {
-            parts.append(room.isScanned ? "Scanned" : "Getting started")
-        } else {
-            parts.append(progress.isComplete ? "All decided" : "\(progress.undecided) to decide")
+        let waiting = items.filter { !$0.isDecided && $0.owner == .guest }.count
+        if waiting > 0 && room.hasGuest {
+            let mine = progress.undecided - waiting
+            return "\(waiting) waiting for \(room.name(of: .guest))" + (mine > 0 ? ", \(mine) for you" : "")
         }
-        let designs = room.liveDesigns.count
-        if designs > 0 { parts.append("\(designs) design\(designs == 1 ? "" : "s")") }
-        return parts.joined(separator: " · ")
+        if progress.undecided > 0 { return "\(progress.undecided) of \(progress.total) to decide" }
+        return progress.leaving > 0 ? "All decided, \(progress.leaving) leaving" : "All decided"
     }
 }

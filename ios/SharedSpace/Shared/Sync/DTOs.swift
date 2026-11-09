@@ -23,11 +23,19 @@ struct RoomDTO: Codable {
     @NullCodable var guestJoinedAt: Date?
     var scanVersion: Int
     @NullCodable var geometryPath: String?
+    // Added Nov 2026 (sharedSpaceCharline7). Optional so rows from an older database still decode.
+    @NullCodable var units: String?
+    @NullCodable var measured: Bool?
+    @NullCodable var photoCount: Int?
+    @NullCodable var sharedDesignId: UUID?
+    @NullCodable var shape: RoomShape?
     var createdAt: Date
     var updatedAt: Date
     @NullCodable var deletedAt: Date?
 
     init(_ r: Room) {
+        units = r.units; measured = r.measured; photoCount = r.photoCount; sharedDesignId = r.sharedDesignId
+        shape = r.shapeData == nil ? nil : r.shape
         id = r.id; code = r.code; name = r.name; currentUse = r.currentUse; futureUse = r.futureUse
         widthCm = r.widthCm; lengthCm = r.lengthCm; heightCm = r.heightCm
         hostUserId = r.hostUserId; hostName = r.hostName
@@ -52,10 +60,17 @@ struct RoomPatchDTO: Encodable {
     @NullCodable var invitedAt: Date?
     var scanVersion: Int
     @NullCodable var geometryPath: String?
+    var units: String
+    var measured: Bool
+    var photoCount: Int
+    @NullCodable var sharedDesignId: UUID?
+    @NullCodable var shape: RoomShape?
     var updatedAt: Date
     @NullCodable var deletedAt: Date?
 
     init(_ r: Room) {
+        units = r.units; measured = r.measured; photoCount = r.photoCount; sharedDesignId = r.sharedDesignId
+        shape = r.shapeData == nil ? nil : r.shape
         name = r.name; currentUse = r.currentUse; futureUse = r.futureUse
         widthCm = r.widthCm; lengthCm = r.lengthCm; heightCm = r.heightCm
         hostName = r.hostName; guestName = r.guestName; invitedAt = r.invitedAt
@@ -72,6 +87,10 @@ extension Room {
         guestUserId = d.guestUserId; guestName = d.guestName
         invitedAt = d.invitedAt; guestJoinedAt = d.guestJoinedAt
         scanVersion = d.scanVersion; geometryPath = d.geometryPath
+        units = d.units ?? units; measured = d.measured ?? measured
+        photoCount = d.photoCount ?? photoCount; sharedDesignId = d.sharedDesignId
+        // A shape is only ever replaced, never removed; a missing one (older database) keeps ours.
+        if let s = d.shape { shapeData = try? JSONEncoder().encode(s) }
         createdAt = d.createdAt; updatedAt = d.updatedAt; deletedAt = d.deletedAt
         needsUpload = false
         existsRemotely = true
@@ -112,12 +131,21 @@ struct ItemDTO: Codable {
     @NullCodable var noteBy: String?
     @NullCodable var pickupDate: Date?
     @NullCodable var photoPath: String?
+    // Added Nov 2026 (sharedSpaceCharline7).
+    @NullCodable var askBy: String?
+    @NullCodable var askTo: String?
+    @NullCodable var askedAt: Date?
+    @NullCodable var pinX: Double?
+    @NullCodable var pinY: Double?
+    @NullCodable var pinPhoto: Int?
     var sortOrder: Int
     var createdAt: Date
     var updatedAt: Date
     @NullCodable var deletedAt: Date?
 
     init(_ i: Item) {
+        askBy = i.askByRaw; askTo = i.askToRaw; askedAt = i.askedAt
+        pinX = i.pinX; pinY = i.pinY; pinPhoto = i.pinPhoto
         id = i.id; roomId = i.roomId; name = i.name; category = i.categoryRaw; source = i.sourceRaw
         scanObjectId = i.scanObjectId
         widthCm = i.widthCm; depthCm = i.depthCm; heightCm = i.heightCm
@@ -139,6 +167,8 @@ extension Item {
         decidedByRaw = d.decidedBy; decidedAt = d.decidedAt
         suggestionRaw = d.suggestion; suggestedByRaw = d.suggestedBy; suggestedAt = d.suggestedAt
         note = d.note; noteByRaw = d.noteBy; pickupDate = d.pickupDate; photoPath = d.photoPath
+        askByRaw = d.askBy; askToRaw = d.askTo; askedAt = d.askedAt
+        pinX = d.pinX; pinY = d.pinY; pinPhoto = d.pinPhoto ?? 0
         sortOrder = d.sortOrder; createdAt = d.createdAt; updatedAt = d.updatedAt; deletedAt = d.deletedAt
         needsUpload = false
     }
@@ -159,6 +189,10 @@ struct DesignDTO: Codable {
     var sortOrder: Int
     var hostLikes: Bool
     var guestLikes: Bool
+    // Added Nov 2026 (sharedSpaceCharline7).
+    @NullCodable var locked: Bool?
+    @NullCodable var reactionNote: String?
+    @NullCodable var reactionAt: Date?
     var createdAt: Date
     var updatedAt: Date
     @NullCodable var deletedAt: Date?
@@ -166,23 +200,25 @@ struct DesignDTO: Codable {
     init(_ d: Design) {
         id = d.id; roomId = d.roomId; name = d.name; sortOrder = d.sortOrder
         hostLikes = d.hostLikes; guestLikes = d.guestLikes
+        locked = d.locked; reactionNote = d.reactionNote; reactionAt = d.reactionAt
         createdAt = d.createdAt; updatedAt = d.updatedAt; deletedAt = d.deletedAt
     }
 }
 
-/// What the host uploads for a design. Likes are left out: they change only through the
-/// `set_design_like` function, so a host edit never clobbers the guest's like.
+/// What the host uploads for a design. Likes and reactions are left out: they change only through
+/// the `set_design_like` / `set_design_reaction` functions, so a host edit never clobbers the guest's.
 struct DesignUpsertDTO: Encodable {
     var id: UUID
     var roomId: UUID
     var name: String
     var sortOrder: Int
+    var locked: Bool
     var createdAt: Date
     var updatedAt: Date
     @NullCodable var deletedAt: Date?
 
     init(_ d: Design) {
-        id = d.id; roomId = d.roomId; name = d.name; sortOrder = d.sortOrder
+        id = d.id; roomId = d.roomId; name = d.name; sortOrder = d.sortOrder; locked = d.locked
         createdAt = d.createdAt; updatedAt = d.updatedAt; deletedAt = d.deletedAt
     }
 }
@@ -190,6 +226,7 @@ struct DesignUpsertDTO: Encodable {
 extension Design {
     func apply(_ d: DesignDTO) {
         name = d.name; sortOrder = d.sortOrder; hostLikes = d.hostLikes; guestLikes = d.guestLikes
+        locked = d.locked ?? locked; reactionNote = d.reactionNote; reactionAt = d.reactionAt
         createdAt = d.createdAt; updatedAt = d.updatedAt; deletedAt = d.deletedAt
         needsUpload = false
         existsRemotely = true

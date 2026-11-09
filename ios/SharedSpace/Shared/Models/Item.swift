@@ -39,6 +39,17 @@ final class Item {
     /// Storage path ("<room>/items/<item>.jpg"). The local copy lives in FileStore.
     var photoPath: String?
 
+    // Ask: one person asks the other what should happen to this thing.
+    var askByRaw: String? = nil
+    var askToRaw: String? = nil
+    var askedAt: Date? = nil
+
+    // Numbered pin on one of the room photos (fractions of the photo's width and height).
+    var pinX: Double? = nil
+    var pinY: Double? = nil
+    /// Which room photo the pin is on (0 = the first).
+    var pinPhoto: Int = 0
+
     var sortOrder: Int
     var createdAt: Date
     var updatedAt: Date
@@ -113,6 +124,24 @@ final class Item {
         get { noteByRaw.flatMap(Role.init(rawValue:)) }
         set { noteByRaw = newValue?.rawValue }
     }
+
+    var askBy: Role? {
+        get { askByRaw.flatMap(Role.init(rawValue:)) }
+        set { askByRaw = newValue?.rawValue }
+    }
+
+    var askTo: Role? {
+        get { askToRaw.flatMap(Role.init(rawValue:)) }
+        set { askToRaw = newValue?.rawValue }
+    }
+
+    /// Where the pin sits on room photo `photo`, if it has one there.
+    func pin(on photo: Int) -> CGPoint? {
+        guard let x = pinX, let y = pinY, pinPhoto == photo else { return nil }
+        return CGPoint(x: x, y: y)
+    }
+
+    var hasPin: Bool { pinX != nil && pinY != nil }
 
     var isDecided: Bool { status != .undecided }
 }
