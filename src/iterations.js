@@ -11,17 +11,17 @@ export const team = {
       {
         title: "Shared Space 2",
         description: "November 3, 2026 - P3.2: (GROUP) Concept Lock",
-        href: "/sharedSpaceAmanda0.html",
+        href: "/sharedSpaceAmanda2.html",
       },
             {
         title: "Shared Space 2 Simple Flow Walk through",
         description: "November 3, 2026 - P3.2: (GROUP) Concept Lock",
-        href: "/sharedSpaceSimple.html",
+        href: "/sharedSpace2Simple.html",
       },
         {
         title: "Shared Space 3",
         description: "November 9, 2026",
-        href: "/sharedSpaceAmanda.html",
+        href: "/sharedSpaceAmanda3.html",
       },
     ],
   };

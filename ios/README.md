@@ -1,61 +1,23 @@
-# Shared Space for iOS
+## Which device
 
-Native SwiftUI rebuild of `public/sharedSpaceAmanda.html`. iOS 18+, iPhone, built primarily for LiDAR iPhones.
+- **iPhone 16 Pro**, or any iPhone with a LiDAR scanner (iPhone 12 Pro or newer Pro models), running **iOS 18** or later.
 
-## Folder layout
+## How to open it
 
-```
-ios/
-  project.yml              XcodeGen spec (source of truth for the Xcode project)
-  SharedSpace.xcodeproj    generated; regenerate with `xcodegen generate` after adding files outside Xcode
-  supabase/schema.sql      tables, security rules, realtime, storage. Run once in Supabase.
-  SharedSpace/
-    App/                   app entry, navigation (Router, RootView)
-    Shared/Models/         SwiftData models (Room, Item, Design, DesignPlacement), enums, Sort rules
-    Shared/Sync/           Supabase client, DTOs, SyncEngine (local-first writes + Realtime)
-    Shared/Storage/        on-disk files (scans, photos), device capability checks
-    Shared/UI/             colours, type, shared components
-    Rooms/                 home, room hub, new/join/settings sheets
-    Scanning/              RoomPlan capture and review           (stage 2)
-    Sort/                  list + one-at-a-time cards            (stage 3)
-    Redesign/              dollhouse 3D, catalogue, live AR      (stage 4–5)
-    Resources/             assets, Supabase.plist, catalogue + USDZ models
-```
+You'll need a Mac with **Xcode 16** or later (free from the App Store; open it once and let it install the iOS components). 
 
-## One-time setup
+1. Download the repo (**Code › Download ZIP**, then unzip, or clone it) and double-click `ios/SharedSpace.xcodeproj`. Xcode downloads the supabase-swift package the first time it opens
+   -  If Xcode doesn't open, open Xcode yourself. In the welcome window, click **Open…**, go to the unzipped folder, open the **ios** folder, select **SharedSpace.xcodeproj**, and click **Open**.
 
-1. **Install Xcode 16 or later** from the App Store, open it once and let it install the iOS components.
-2. **Supabase**
-   1. Create a project at supabase.com.
-   2. Authentication → Sign In / Providers → turn on **Allow anonymous sign-ins**.
-   3. SQL Editor → New query → paste all of `supabase/schema.sql` → Run.
-   4. Project Settings → API: copy the Project URL and the `anon` public key into
-      `SharedSpace/Resources/Supabase.plist`. (Until you do, the app runs on one phone only.)
-3. **Open the project**: double-click `SharedSpace.xcodeproj`. Xcode downloads the supabase-swift package on first open.
-4. **Signing**: select the SharedSpace target → Signing & Capabilities → choose your Team, and change the
-   Bundle Identifier from `com.example.sharedspace` to something unique, e.g. `edu.northeastern.yourname.sharedspace`.
-   To make the change permanent, also edit `PRODUCT_BUNDLE_IDENTIFIER` and `DEVELOPMENT_TEAM` in `project.yml`.
+   The first time the project opens, Xcode downloads the supabase-swift package. Wait for it to finish before running the app.
 
-## Running on your iPhone
+2. In Xcode's toolbar, click the run destination menu (next to the SharedSpace scheme) and choose an iPhone Simulator, such as **iPhone 16 Pro**.
+   
+3. Click the **Run** button (▶) in the top-left corner of Xcode, or press **Command (⌘) + R**. The Simulator opens and launches the app. The first build takes a minute or two.
+4. On the phone: Settings › Privacy & Security › **Developer Mode** → on (the phone restarts).
 
-Scanning (RoomPlan) and the live AR view **only run on a real LiDAR iPhone**. The Simulator can run the home
-screen, rooms, Sort and the 3D dollhouse, but shows "can’t scan" for everything camera-based.
-
-1. Connect the iPhone 16 Pro with a cable (first time) and tap **Trust** on the phone.
-2. On the phone: Settings → Privacy & Security → **Developer Mode** → on (it restarts).
-3. In Xcode’s toolbar pick your iPhone as the run destination, then press ⌘R.
-4. First run only: on the phone go to Settings → General → VPN & Device Management → trust your developer certificate.
-
-To test two people at once: run on your iPhone as the host, and join as the guest from the Simulator
-(or a second phone) using the room code.
-
-## Placeholders to fill before TestFlight
-
-| What | Where |
-|---|---|
-| Bundle identifier | `PRODUCT_BUNDLE_IDENTIFIER` in `project.yml` (or Xcode target settings) |
-| Signing team | `DEVELOPMENT_TEAM` in `project.yml` (or Signing & Capabilities) |
-| Display name | `INFOPLIST_KEY_CFBundleDisplayName` in `project.yml` |
-| Version / build | `MARKETING_VERSION` / `CURRENT_PROJECT_VERSION` in `project.yml`; bump the build for every upload |
-| App icon | replace `Resources/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png` (1024×1024, no transparency) |
-| Privacy strings | camera text is set in `project.yml` (`INFOPLIST_KEY_NSCameraUsageDescription`) |
+## What's faked
+- **Scanning a room with RoomPlan:** [not built yet]
+- **3D dollhouse redesign:** [not built yet]
+- **Live AR view of a design in the room:** [not built yet]
+- **Furniture catalogue, prices and store links:** [not built yet]
