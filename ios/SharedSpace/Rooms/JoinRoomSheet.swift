@@ -32,9 +32,9 @@ struct JoinRoomSheet: View {
                         enterCode
                     }
                 }
-                .padding(Space.xl)
+                .padding(Space.page)
             }
-            .background(Color.pageBackground)
+            .appSheet()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
             }
@@ -47,7 +47,7 @@ struct JoinRoomSheet: View {
     private var enterCode: some View {
         VStack(alignment: .leading, spacing: Space.l) {
             Text("Join a room").font(.screenTitle)
-            Text("Five letters and numbers, from the person who shared the room.").foregroundStyle(Color.textSecondary)
+            Text("Five letters and numbers, from the person who shared the room.").textRole(.secondary)
             TextField("K7M2Q", text: $code)
                 .font(.code)
                 .kerning(Tracking.code)
@@ -56,15 +56,15 @@ struct JoinRoomSheet: View {
                 .autocorrectionDisabled()
                 .focused($codeFocused)
                 .padding(.vertical, Space.m)
-                .background(Color.surface, in: RoundedRectangle(cornerRadius: Radius.control))
-                .overlay(RoundedRectangle(cornerRadius: Radius.control).strokeBorder(Color.outline, lineWidth: Stroke.regular))
+                .background(Color.surface, in: RoundedRectangle(cornerRadius: Radius.tile))
+                .overlay(RoundedRectangle(cornerRadius: Radius.tile).strokeBorder(Color.outlineStrong, lineWidth: Stroke.regular))
                 .onChange(of: code) { _, new in
                     let normal = RoomCode.normalize(new)
                     if normal != new { code = normal }
                     error = nil
                 }
                 .onSubmit { Task { await find() } }
-            if let error { Text(error).foregroundStyle(Color.letGo).fontWeight(.semibold) }
+            if let error { Text(error).textRole(.error) }
             Button { Task { await find() } } label: {
                 if busy { ProgressView() } else { Text("Find room") }
             }
@@ -77,32 +77,32 @@ struct JoinRoomSheet: View {
         VStack(alignment: .leading, spacing: Space.l) {
             if peek.isHost {
                 Text("This is your room").font(.screenTitle)
-                Text("You created \(peek.name). Open it from your rooms.").foregroundStyle(Color.textSecondary)
+                Text("You created \(peek.name). Open it from your rooms.").textRole(.secondary)
                 Button("Open \(peek.name)") { dismiss(); onJoined(peek.id) }.buttonStyle(.app)
             } else {
                 Text("Join room").font(.screenTitle)
                 HStack(spacing: Space.m) {
                     Avatar(name: peek.hostName, role: .host)
-                    VStack(alignment: .leading, spacing: Space.xxs) {
-                        Text(peek.name).font(.bodyStrong)
+                    VStack(alignment: .leading, spacing: Space.xs) {
+                        Text(peek.name).textRole(.bodyStrong)
                         Text("Shared by \(peek.hostName)").textRole(.secondary)
                     }
                 }
                 .accessibilityElement(children: .combine)
                 VStack(alignment: .leading, spacing: Space.s) {
-                    Text("Your first name").font(.detailStrong)
+                    SectionLabel("Your first name")
                     TextField("Your name", text: $name)
                         .textContentType(.givenName)
                         .textFieldStyle(.app)
                 }
-                if let error { Text(error).foregroundStyle(Color.letGo).fontWeight(.semibold) }
+                if let error { Text(error).textRole(.error) }
                 Button { Task { await join(peek) } } label: {
                     if busy { ProgressView() } else { Text("Join the room") }
                 }
                 .buttonStyle(.app)
                 .disabled(name.trimmed.isEmpty || busy)
                 Button("Use a different code") { self.peek = nil; code = "" }
-                    .buttonStyle(.link)
+                    .buttonStyle(.app(.primary, size: .compact))
             }
         }
     }

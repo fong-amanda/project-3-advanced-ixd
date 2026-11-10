@@ -75,26 +75,23 @@ struct NewRoomFlow: View {
                     default: reviewStep
                     }
                     if let problem {
-                        Text(problem).font(.detailStrong).foregroundStyle(Color.letGo)
+                        Text(problem).textRole(.error)
                     }
                 }
-                .padding(.horizontal, Space.l)
-                .padding(.vertical, Space.m)
+                .pagePadding()
             }
             .scrollDismissesKeyboard(.interactively)
-            .background(Color.pageBackground)
+            .pageBackground()
             .safeAreaInset(edge: .bottom) { footer }
-            .navigationTitle(titles[step])
-            .navigationBarTitleDisplayMode(.inline)
+            .appNavigation(titles[step])
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    if step == 0 {
-                        Button("Cancel") { dismiss() }
-                    } else {
-                        Button { withAnimation { step -= 1; problem = nil } } label: {
-                            Label("Back", systemImage: "chevron.left").labelStyle(.titleAndIcon)
-                        }
+                if step == 0 {
+                    ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
+                } else {
+                    ToolbarItem(placement: .cancellationAction) {
+                        BackButton { withAnimation { step -= 1; problem = nil } }
                     }
+                    .plainToolbarBackground()
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Text("\(step + 1) of \(stepCount)").textRole(.secondary)
@@ -186,7 +183,7 @@ struct NewRoomFlow: View {
             LengthStepper(label: "Length", value: Binding(get: { length }, set: { shape = shape.scaled(toWidth: width, length: $0) }),
                           range: 150...2000, units: units)
             LengthStepper(label: "Ceiling", value: $height, range: 200...400, units: units)
-            PickRow(title: "I measured the room", subtitle: "Turns on fit checks in the room plan", isSelected: measured) { measured.toggle() }
+            ToggleRow(title: "I measured the room", subtitle: "Turns on fit checks in the room plan", isOn: $measured)
         }
     }
 
@@ -200,7 +197,7 @@ struct NewRoomFlow: View {
                     items.removeAll { $0.photo == photoIndex }
                     photoIndex = max(0, min(photoIndex, photos.count - 1))
                 }
-                .buttonStyle(.link(.destructive))
+                .buttonStyle(.app(.destructive, size: .compact))
             }
             if photos.count < Room.maxPhotos {
                 PhotoSourceButtons(takeTitle: photos.isEmpty ? "Take a photo" : "Take another") { image in
@@ -220,12 +217,12 @@ struct NewRoomFlow: View {
                 Text("Add the things in the room. You can add more later.").textRole(.secondary)
             }
             if !items.isEmpty {
-                VStack(spacing: Space.xxs) {
+                VStack(spacing: Space.xs) {
                     ForEach(Array(items.enumerated()), id: \.element.id) { i, item in
                         Button { editing = DraftEdit(index: i) } label: {
                             HStack(spacing: Space.m) {
                                 NumberBadge(number: i + 1, size: Size.tick)
-                                VStack(alignment: .leading, spacing: Space.xxs) {
+                                VStack(alignment: .leading, spacing: Space.xs) {
                                     Text(item.name).textRole(.bodyStrong)
                                     Text(ownerText(item.owner)).textRole(.secondary)
                                 }
@@ -236,13 +233,13 @@ struct NewRoomFlow: View {
                             .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
-                        if i < items.count - 1 { Divider() }
+                        if i < items.count - 1 { Hairline() }
                     }
                 }
                 .card(padding: Space.m)
             }
             Button { editing = DraftEdit() } label: { Label("Add an item", systemImage: "plus") }
-                .buttonStyle(.link)
+                .buttonStyle(.app(.primary, size: .compact))
         }
     }
 
@@ -257,16 +254,16 @@ struct NewRoomFlow: View {
                           onMovePin: withPins ? { id, point in
                               if let i = items.firstIndex(where: { $0.id == id }) { items[i].pin = point }
                           } : nil)
-                .clipShape(RoundedRectangle(cornerRadius: Radius.l, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: Radius.cardLarge, style: .continuous))
             if photos.count > 1 {
                 HStack(spacing: Space.s) {
                     ForEach(photos.indices, id: \.self) { i in
                         Button { photoIndex = i } label: {
                             Image(uiImage: photos[i]).resizable().scaledToFill()
                                 .frame(width: Size.photoStrip.width, height: Size.photoStrip.height)
-                                .clipShape(RoundedRectangle(cornerRadius: Radius.xs))
-                                .padding(Space.xxs)
-                                .overlay(RoundedRectangle(cornerRadius: Radius.s).strokeBorder(i == photoIndex ? Color.accent : .clear, lineWidth: Stroke.bold))
+                                .clipShape(RoundedRectangle(cornerRadius: Radius.drawing))
+                                .padding(Space.xs)
+                                .overlay(RoundedRectangle(cornerRadius: Radius.thumb).strokeBorder(i == photoIndex ? Color.accent : .clear, lineWidth: Stroke.bold))
                         }
                         .buttonStyle(.plain)
                         .frame(minWidth: Size.row, minHeight: Size.control)
@@ -287,13 +284,12 @@ struct NewRoomFlow: View {
                 .disabled((step == 2 && photos.isEmpty) || (step == 1 && shape.selfIntersects))
             if step == 2 && photos.isEmpty {
                 Button("Skip photos for now") { withAnimation { step += 1 } }
-                    .buttonStyle(.link)
+                    .buttonStyle(.app(.neutral, size: .compact))
             }
         }
-        .padding(.horizontal, Space.l)
+        .padding(.horizontal, Space.page)
         .padding(.vertical, Space.m)
-        .background(Color.pageBackground)
-        .overlay(alignment: .top) { Divider() }
+        .barBackground()
     }
 
     private var isLastStep: Bool { step == stepCount - 1 }
@@ -420,14 +416,13 @@ private struct DraftItemSheet: View {
                 .disabled(name.trimmed.isEmpty)
                 if draft != nil {
                     Button("Remove item", role: .destructive) { onDone(nil); dismiss() }
-                        .buttonStyle(.link(.destructive))
+                        .buttonStyle(.app(.destructive, size: .compact))
                 }
                 Spacer()
             }
-            .padding(Space.l)
-            .background(Color.surface)
-            .navigationTitle(draft == nil ? "Add an item" : "Edit item")
-            .navigationBarTitleDisplayMode(.inline)
+            .padding(Space.page)
+            .appSheet()
+            .appNavigation(draft == nil ? "Add an item" : "Edit item")
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } } }
             .onAppear {
                 name = draft?.name ?? ""

@@ -71,18 +71,17 @@ struct AddItemSheet: View {
                             .padding(.top, Space.m)
                         }
                         .font(.detailStrong)
-                        .tint(Color.accentText)
+                        .tint(Color.iconNeutral)
                         .frame(minHeight: Size.tapTarget)
                     }
                     Button("Add to the room", action: add)
                         .buttonStyle(.app)
                         .disabled(name.trimmed.isEmpty && category == .other)
                 }
-                .padding(Space.l)
+                .padding(Space.page)
             }
-            .background(Color.surface)
-            .navigationTitle("Add something")
-            .navigationBarTitleDisplayMode(.inline)
+            .appSheet()
+            .appNavigation("Add something")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
             }

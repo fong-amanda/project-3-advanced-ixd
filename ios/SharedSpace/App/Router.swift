@@ -116,16 +116,21 @@ struct RoomView: View {
                     ItemsView(room: room)
                         .navigationDestination(for: RoomRoute.self) { route in destination(route) }
                 }
+                .toolbar(.hidden, for: .tabBar)
             }
-            .badge(openCount)
             Tab("Room plan", systemImage: "cube", value: RoomTab.plan) {
                 NavigationStack(path: $session.planPath) {
                     RoomPlanView(room: room)
                         .navigationDestination(for: RoomRoute.self) { route in destination(route) }
                 }
+                .toolbar(.hidden, for: .tabBar)
             }
         }
-        .tint(.accent)
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            AppTabBar(items: [.init(value: RoomTab.items, title: "Items", symbol: "list.bullet", badge: openCount),
+                              .init(value: RoomTab.plan, title: "Room plan", symbol: "cube")],
+                      selection: $router.roomTab)
+        }
         .sheet(item: $session.addItem) { request in
             AddItemSheet(room: room, pin: request.pin, photo: request.photo)
         }

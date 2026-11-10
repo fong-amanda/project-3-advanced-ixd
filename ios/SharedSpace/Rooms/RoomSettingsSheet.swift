@@ -24,7 +24,7 @@ struct RoomSettingsSheet: View {
                     field("Planned use", text: $futureUse, placeholder: "Study")
                     VStack(alignment: .leading, spacing: Space.s) {
                         SectionLabel("Units")
-                        SegmentedControl(segments: UnitSystem.allCases.map { .init(value: $0, title: $0.label) },
+                        ChipPicker(options: UnitSystem.allCases.map { .init(value: $0, title: $0.label) },
                                          selection: $units)
                     }
                     VStack(alignment: .leading, spacing: Space.s) {
@@ -33,17 +33,16 @@ struct RoomSettingsSheet: View {
                         LengthStepper(label: "Length", value: $length, range: 150...800, units: units)
                         LengthStepper(label: "Ceiling", value: $height, range: 200...400, units: units)
                     }
-                    PickRow(title: "These are measured, not estimates",
-                            subtitle: "Turns on fit checks in the room plan", isSelected: measured) { measured.toggle() }
+                    ToggleRow(title: "These are measured, not estimates",
+                              subtitle: "Turns on fit checks in the room plan", isOn: $measured)
                     Button("Save", action: save)
                         .buttonStyle(.app)
                         .disabled(name.trimmed.isEmpty)
                 }
-                .padding(Space.l)
+                .padding(Space.page)
             }
-            .background(Color.pageBackground)
-            .navigationTitle("Room details")
-            .navigationBarTitleDisplayMode(.inline)
+            .appSheet()
+            .appNavigation("Room details")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
             }

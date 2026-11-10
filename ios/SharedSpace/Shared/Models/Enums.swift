@@ -54,29 +54,20 @@ enum ItemStatus: String, Codable, CaseIterable, Sendable {
         }
     }
 
-    var color: Color {
+    /// Colour family for tags, selected buttons and icon circles. The design system has three decision
+    /// colours; throwing out shares Brick with letting go, and "not sure" uses the neutral brown.
+    /// The icon and the words always tell them apart.
+    var tone: Tone {
         switch self {
-        case .undecided: .undecided
-        case .keep: .keep
-        case .keepMove: .moveElsewhere
-        case .sendToOwner: .send
-        case .letGo: .letGo
-        case .toss: .toss
-        case .unsure: .unsure
+        case .keep: .sage
+        case .keepMove, .sendToOwner: .slate
+        case .letGo, .toss: .brick
+        case .undecided, .unsure: .brown
         }
     }
 
-    var softColor: Color {
-        switch self {
-        case .undecided: .surfaceMuted
-        case .keep: .keepSoft
-        case .keepMove: .moveElsewhereSoft
-        case .sendToOwner: .sendSoft
-        case .letGo: .letGoSoft
-        case .toss: .tossSoft
-        case .unsure: .unsureSoft
-        }
-    }
+    /// Icon colour on white.
+    var color: Color { tone.icon }
 
     /// Full label, used on the one-at-a-time cards ("Keep it here").
     var label: String {

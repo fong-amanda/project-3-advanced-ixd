@@ -1,29 +1,29 @@
 import SwiftUI
 
-// Tags, text roles, cards, notes and layout helpers.
+// Tags, text roles, cards, notes, page and sheet backgrounds, navigation and layout helpers.
 
 // MARK: - Text roles
 
 /// How a piece of text is used. Sets both font and colour from Theme.
 enum TextRole: CaseIterable {
-    case screenTitle, sectionTitle, cardTitle, body, bodyStrong, label, secondary, hint, error
+    case largeTitle, screenTitle, sectionTitle, cardTitle, body, bodyStrong, label, secondary, hint, error
 
     var font: Font {
         switch self {
+        case .largeTitle: .largeTitleText
         case .screenTitle: .screenTitle
         case .sectionTitle: .sectionTitle
         case .cardTitle: .cardTitle
         case .body: .bodyText
-        case .bodyStrong: .bodyStrong
-        case .label, .error: .detailStrong
-        case .secondary: .detail
-        case .hint: .footnoteText
+        case .bodyStrong, .label: .bodyStrong
+        case .secondary, .hint: .detail
+        case .error: .detailStrong
         }
     }
 
     var color: Color {
         switch self {
-        case .secondary, .hint: .textTertiary
+        case .secondary, .hint: .textSecondary
         case .error: .danger
         default: .textPrimary
         }
@@ -36,15 +36,129 @@ extension View {
     }
 }
 
+// MARK: - Surfaces
+
+private struct OnWhiteSurfaceKey: EnvironmentKey { static let defaultValue = false }
+private struct PageBackgroundKey: EnvironmentKey { static let defaultValue = Theme.background }
+
+extension EnvironmentValues {
+    /// True inside sheets and other white areas: cards there use a Mist fill and no shadow.
+    var onWhiteSurface: Bool {
+        get { self[OnWhiteSurfaceKey.self] }
+        set { self[OnWhiteSurfaceKey.self] = newValue }
+    }
+
+    /// Which page gradient to draw (Theme.background unless a preview overrides it).
+    var pageBackgroundStyle: PageBackground {
+        get { self[PageBackgroundKey.self] }
+        set { self[PageBackgroundKey.self] = newValue }
+    }
+}
+
+private struct PageBackgroundModifier: ViewModifier {
+    @Environment(\.pageBackgroundStyle) private var style
+    func body(content: Content) -> some View {
+        content
+            .background { style.gradient.ignoresSafeArea() }
+            .environment(\.onWhiteSurface, false)
+    }
+}
+
+private struct BarBackgroundModifier: ViewModifier {
+    @Environment(\.pageBackgroundStyle) private var style
+    @Environment(\.onWhiteSurface) private var onWhite
+    func body(content: Content) -> some View {
+        content
+            .background { (onWhite ? Color.surface : style.bottom).ignoresSafeArea() }
+            .overlay(alignment: .top) { Hairline() }
+    }
+}
+
+private struct CardModifier: ViewModifier {
+    let padding: CGFloat
+    let radius: CGFloat
+    @Environment(\.onWhiteSurface) private var onWhite
+
+    func body(content: Content) -> some View {
+        content
+            .padding(padding)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(onWhite ? Color.surfaceMuted : Color.surface,
+                        in: RoundedRectangle(cornerRadius: radius, style: .continuous))
+            .elevation(.card, !onWhite)
+            .environment(\.onWhiteSurface, !onWhite)
+    }
+}
+
+extension View {
+    /// The soft gradient behind every main screen.
+    func pageBackground() -> some View { modifier(PageBackgroundModifier()) }
+
+    /// Behind a bar pinned to the bottom of a screen (the create flow's footer).
+    func barBackground() -> some View { modifier(BarBackgroundModifier()) }
+
+    /// A card: white with the card shadow on the page gradient, Mist with no shadow on white.
+    /// Never a grey outline.
+    func card(padding: CGFloat = Space.l, radius: CGFloat = Radius.card) -> some View {
+        modifier(CardModifier(padding: padding, radius: radius))
+    }
+
+    /// A rounded group of rows (no inner padding; rows bring their own).
+    func listGroup() -> some View {
+        card(padding: 0).clipShape(RoundedRectangle(cornerRadius: Radius.card, style: .continuous))
+    }
+
+    /// Page content padding: 24 points at the sides.
+    func pagePadding() -> some View { padding(.horizontal, Space.page).padding(.vertical, Space.m) }
+
+    /// The look behind photos and plans.
+    func stage(_ fill: Color = .stage) -> some View {
+        frame(maxWidth: .infinity)
+            .background(fill)
+            .clipShape(RoundedRectangle(cornerRadius: Radius.cardLarge, style: .continuous))
+    }
+
+    /// Sheets: white, 32-point corners; cards inside them switch to Mist.
+    func appSheet() -> some View {
+        self.background(Color.surface)
+            .environment(\.onWhiteSurface, true)
+            .presentationBackground(Color.surface)
+            .presentationCornerRadius(Radius.sheet)
+    }
+
+    /// Screen title with no heavy header bar: the page gradient shows through.
+    func appNavigation(_ title: String, large: Bool = false) -> some View {
+        navigationTitle(title)
+            .navigationBarTitleDisplayMode(large ? .large : .inline)
+            .toolbarBackground(.hidden, for: .navigationBar)
+    }
+}
+
+extension Theme {
+    /// UIKit parts SwiftUI can't style directly: semibold Ink large titles. Call once at launch.
+    @MainActor static func configureAppearance() {
+        let ink = UIColor(named: "textPrimary") ?? .label
+        let large = UIFontDescriptor.preferredFontDescriptor(withTextStyle: .largeTitle)
+            .addingAttributes([.traits: [UIFontDescriptor.TraitKey.weight: UIFont.Weight.semibold]])
+        let inline = UIFontDescriptor.preferredFontDescriptor(withTextStyle: .headline)
+            .addingAttributes([.traits: [UIFontDescriptor.TraitKey.weight: UIFont.Weight.medium]])
+        let bar = UINavigationBar.appearance()
+        bar.largeTitleTextAttributes = [.font: UIFont(descriptor: large, size: 0), .foregroundColor: ink]
+        bar.titleTextAttributes = [.font: UIFont(descriptor: inline, size: 0), .foregroundColor: ink]
+    }
+}
+
 // MARK: - Tags
 
-/// Small rounded label. The kind sets the colours; decisions also get their icon.
+/// A soft gradient capsule, 32 points tall: icon + medium-weight word, no outline. Not tappable.
+/// For owners ("Mine", "Sam’s") and decided status ("Staying", "Going to Sam").
 struct AppTag: View {
     enum Kind: Equatable {
-        case neutral, highlight, suggestion
+        case neutral, suggestion
         case decision(ItemStatus)
         case owner(Role)
         case fit(Fit)
+        case tone(Tone)
     }
 
     let kind: Kind
@@ -53,14 +167,15 @@ struct AppTag: View {
 
     var body: some View {
         HStack(spacing: Space.xs) {
-            if let icon = symbol ?? defaultSymbol { Image(systemName: icon).imageScale(.small).accessibilityHidden(true) }
+            if let icon = symbol ?? defaultSymbol { Image(systemName: icon).accessibilityHidden(true) }
             Text(text)
         }
-        .font(.captionStrong)
-        .padding(.horizontal, Space.s)
+        .font(.detailStrong)
+        .foregroundStyle(tone.text)
+        .padding(.horizontal, Space.m)
         .padding(.vertical, Space.xs)
-        .foregroundStyle(colors.fg)
-        .background(colors.bg, in: RoundedRectangle(cornerRadius: Radius.xs, style: .continuous))
+        .frame(minHeight: Size.tag)
+        .background(tone.fill, in: Capsule())
     }
 
     private var defaultSymbol: String? {
@@ -68,20 +183,21 @@ struct AppTag: View {
         case .decision(let s): s.icon
         case .suggestion: "text.bubble"
         case .fit(let f): f == .no ? "xmark" : "checkmark"
+        case .owner: "person"
         default: nil
         }
     }
 
-    private var colors: (fg: Color, bg: Color) {
+    private var tone: Tone {
         switch kind {
-        case .neutral: (.textSecondary, .surfaceMuted)
-        case .highlight: (.onHighlight, .highlightSoft)
-        case .suggestion: (.onAccentSoft, .accentSoft)
-        case .decision(let s): (s.color, s.softColor)
-        case .owner(let r): (.textPrimary, r.softColor)
-        case .fit(.ok): (.success, .successSoft)
-        case .fit(.tight): (.warning, .warningSoft)
-        case .fit(.no): (.danger, .dangerSoft)
+        case .neutral: .brown
+        case .suggestion: .sage
+        case .decision(let s): s.tone
+        case .owner(let r): r.tone
+        case .fit(.ok): .sage
+        case .fit(.tight): .brown
+        case .fit(.no): .brick
+        case .tone(let t): t
         }
     }
 }
@@ -111,12 +227,12 @@ struct NumberBadge: View {
 
     var body: some View {
         Text("\(number)")
-            .font(.captionStrong)
+            .font(.badge)
             .foregroundStyle(isSelected ? Color.onAccent : (placement == .onPhoto ? Color.onPhotoText : Color.textPrimary))
             .frame(minWidth: size, minHeight: size)
             .background(isSelected ? Color.accent : (placement == .onPhoto ? Color.photoBadge : Color.surface), in: Circle())
-            .overlay(Circle().strokeBorder(isSelected ? Color.accent : ring, lineWidth: size >= Size.pin ? Stroke.bold : Stroke.hairline))
-            .elevation(.segment, placement == .onPhoto)
+            .overlay(Circle().strokeBorder(isSelected ? Color.accent : ring, lineWidth: size >= Size.pin ? Stroke.bold : Stroke.regular))
+            .elevation(.card, placement == .onPhoto)
     }
 }
 
@@ -125,57 +241,26 @@ struct PhotoLabel: View {
     let text: String
     var body: some View {
         Text(text)
-            .font(.captionStrong)
+            .font(.badge)
             .foregroundStyle(Color.photoBadge)
             .padding(.horizontal, Space.s)
-            .padding(.vertical, Space.xxs)
-            .background(Color.onPhotoText.opacity(Opacity.pinLabel), in: RoundedRectangle(cornerRadius: Radius.xs))
+            .padding(.vertical, Space.xs)
+            .background(Color.onPhotoText.opacity(Opacity.pinLabel), in: Capsule())
             .fixedSize()
     }
 }
 
-// MARK: - Containers
+// MARK: - Rows and notes
 
-enum CardStyle { case plain, outlined, raised }
-
-extension View {
-    /// A white card. `.outlined` has a hairline, `.raised` a soft shadow.
-    func card(_ style: CardStyle = .outlined, padding: CGFloat = Space.l, radius: CGFloat = Radius.m) -> some View {
-        self.padding(padding)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color.surface, in: RoundedRectangle(cornerRadius: radius, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: radius, style: .continuous)
-                .strokeBorder(style == .outlined ? Color.outline : .clear))
-            .elevation(.card, style == .raised)
-    }
-
-    /// A rounded group of rows (no inner padding; rows bring their own).
-    func listGroup() -> some View {
-        self.background(Color.surface, in: RoundedRectangle(cornerRadius: Radius.m, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: Radius.m, style: .continuous).strokeBorder(Color.outline))
-            .clipShape(RoundedRectangle(cornerRadius: Radius.m, style: .continuous))
-    }
-
-    /// Page content padding.
-    func pagePadding() -> some View { padding(.horizontal, Space.l).padding(.vertical, Space.m) }
-
-    /// The look behind photos and plans.
-    func stage(_ fill: Color = .stage) -> some View {
-        frame(maxWidth: .infinity)
-            .background(fill)
-            .clipShape(RoundedRectangle(cornerRadius: Radius.l, style: .continuous))
-    }
-}
-
-/// A 1-point line in the outline colour (works inside any stack, unlike Divider in overlays).
+/// A 1-point decorative line (works inside any stack, unlike Divider in overlays).
 struct Hairline: View {
     var inset: CGFloat = 0
     var body: some View {
-        Rectangle().fill(Color.outline).frame(height: Stroke.hairline).padding(.leading, inset)
+        Rectangle().fill(Color.divider).frame(height: Stroke.hairline).padding(.leading, inset)
     }
 }
 
-/// A message bar with an optional action. `.info` is sage, `.warning` amber.
+/// A message on a soft gradient with an optional action. `.info` is sage, `.warning` brick.
 struct NoteBar<Accessory: View>: View {
     enum Tone: CaseIterable { case info, warning }
     let text: String
@@ -183,19 +268,19 @@ struct NoteBar<Accessory: View>: View {
     var tone: Tone = .info
     @ViewBuilder var accessory: Accessory
 
+    private var colours: SharedSpace.Tone { tone == .info ? .sage : .brick }
+
     var body: some View {
-        HStack(spacing: Space.s) {
+        HStack(spacing: Space.m) {
             Image(systemName: symbol).accessibilityHidden(true)
-            Text(text).font(.detail)
-            Spacer(minLength: Space.s)
-            accessory.font(.detailStrong).frame(minHeight: Size.tapTarget)
+            Text(text).font(.detail).frame(maxWidth: .infinity, alignment: .leading)
+            accessory
         }
-        .foregroundStyle(tone == .info ? Color.onAccentSoft : Color.warning)
-        .padding(.horizontal, Space.m)
-        .padding(.vertical, Space.xs)
+        .foregroundStyle(colours.text)
+        .padding(.horizontal, Space.l)
+        .padding(.vertical, Space.m)
         .frame(maxWidth: .infinity, minHeight: Size.tapTarget, alignment: .leading)
-        .background(tone == .info ? Color.accentSoft : Color.warningSoft,
-                    in: RoundedRectangle(cornerRadius: Radius.m, style: .continuous))
+        .background(colours.fill, in: RoundedRectangle(cornerRadius: Radius.tile, style: .continuous))
     }
 }
 
@@ -205,40 +290,55 @@ extension NoteBar where Accessory == EmptyView {
     }
 }
 
-/// "Room code   K7M2Q   Copy" — a label, a value and an optional action between hairlines.
+/// "Room code   K7M2Q   Copy": a label, a value and an optional action, on a card.
 struct KVRow<Accessory: View>: View {
     let label: String
     let value: String
     var valueFont: Font = .bodyStrong
+    var tracking: CGFloat = 0
     @ViewBuilder var accessory: Accessory
 
     var body: some View {
         HStack(spacing: Space.m) {
-            Text(label).foregroundStyle(Color.textTertiary)
-            Text(value).font(valueFont).foregroundStyle(Color.textPrimary).frame(maxWidth: .infinity, alignment: .leading)
+            VStack(alignment: .leading, spacing: Space.xs) {
+                Text(label).textRole(.secondary)
+                Text(value).font(valueFont).kerning(tracking).foregroundStyle(Color.textPrimary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .accessibilityElement(children: .combine)
             accessory
         }
-        .padding(.vertical, Space.s)
-        .frame(minHeight: Size.tapTarget)
-        .overlay(alignment: .top) { Hairline() }
-        .overlay(alignment: .bottom) { Hairline() }
-        .accessibilityElement(children: .combine)
+        .card(padding: Space.l, radius: Radius.tile)
     }
 }
 
 /// The ">" at the end of a tappable row.
 struct RowChevron: View {
     var body: some View {
-        Image(systemName: "chevron.right").font(.captionText).foregroundStyle(Color.textTertiary).accessibilityHidden(true)
+        Image(systemName: "chevron.right").font(.detail).foregroundStyle(Color.iconNeutral).accessibilityHidden(true)
     }
 }
 
-/// Small bold heading above a group ("Your decision", "Belongs to").
+/// Medium-weight heading above a group ("Your decision", "Belongs to").
 struct SectionLabel: View {
     let text: String
     init(_ text: String) { self.text = text }
     var body: some View {
         Text(text).textRole(.label).accessibilityAddTraits(.isHeader)
+    }
+}
+
+/// A tinted icon circle (choice tiles, rows).
+struct IconCircle: View {
+    let symbol: String
+    var tone: Tone = .sage
+    var body: some View {
+        Image(systemName: symbol)
+            .font(.button)
+            .foregroundStyle(tone.icon)
+            .frame(width: Size.iconCircle, height: Size.iconCircle)
+            .background(tone.tint, in: Circle())
+            .accessibilityHidden(true)
     }
 }
 
@@ -250,20 +350,18 @@ struct ChoiceTile: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Space.s) {
-            Image(systemName: symbol).font(.title2).foregroundStyle(Color.accentText).accessibilityHidden(true)
+            IconCircle(symbol: symbol)
             Text(title).textRole(.bodyStrong)
             Text(detail).textRole(.secondary)
         }
-        .padding(Space.l)
         .frame(maxWidth: .infinity, minHeight: Size.row * 2, alignment: .topLeading)
-        .background(Color.surface, in: RoundedRectangle(cornerRadius: Radius.m, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: Radius.m, style: .continuous).strokeBorder(Color.outline, lineWidth: Stroke.regular))
+        .card(padding: Space.l, radius: Radius.tile)
         .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
     }
 }
 
-/// Wraps children onto new lines, like CSS flex-wrap. Used for chip groups.
+/// Wraps children onto new lines, like CSS flex-wrap. Used for chip and tag groups.
 struct FlowLayout: Layout {
     var spacing: CGFloat = Space.s
 
@@ -307,6 +405,7 @@ struct FlowLayout: Layout {
 
 // MARK: - People and brand
 
+/// A circle with the person's initial (medium weight) on their tint.
 struct Avatar: View {
     let name: String
     let role: Role
@@ -316,15 +415,15 @@ struct Avatar: View {
 
     var body: some View {
         Text(String(name.trimmingCharacters(in: .whitespaces).first ?? "?").uppercased())
-            .font(.glyph(fitting: size, weight: .bold))
-            .foregroundStyle(role.onColor)
+            .font(.glyph(fitting: size, weight: .medium))
+            .foregroundStyle(Color.textPrimary)
             .frame(width: size, height: size)
-            .background(role.color, in: Circle())
+            .background(role.tone.tint, in: Circle())
             .overlay(alignment: .bottomTrailing) {
                 if online == true {
-                    Circle().fill(Color.online)
-                        .frame(width: size * 0.32, height: size * 0.32)
-                        .overlay(Circle().stroke(Color.pageBackground, lineWidth: Stroke.bold))
+                    Circle().fill(Color.accent)
+                        .frame(width: size * Size.onlineDotRatio, height: size * Size.onlineDotRatio)
+                        .overlay(Circle().stroke(Color.surface, lineWidth: Stroke.bold))
                 }
             }
             .opacity(online == false ? Opacity.offline : 1)
@@ -332,7 +431,7 @@ struct Avatar: View {
     }
 }
 
-/// The two overlapping squares from the prototype's logo. Drawn on a 32-unit grid.
+/// The two overlapping squares from the logo. Drawn on a 32-unit grid.
 struct BrandMark: View {
     var body: some View {
         GeometryReader { geo in
@@ -342,7 +441,7 @@ struct BrandMark: View {
                     .frame(width: 16 * s, height: 16 * s).offset(x: 3 * s, y: 7 * s)
                 RoundedRectangle(cornerRadius: 4 * s).fill(Color.logoSecondary)
                     .frame(width: 16 * s, height: 16 * s).offset(x: 13 * s, y: 11 * s)
-                Rectangle().fill(Color.logoOverlap.opacity(0.55))
+                Rectangle().fill(Color.logoOverlap.opacity(Opacity.logoOverlap))
                     .frame(width: 6 * s, height: 12 * s).offset(x: 13 * s, y: 11 * s)
             }
         }
@@ -353,63 +452,50 @@ struct BrandMark: View {
 
 // MARK: - Room card
 
-/// A room on the home screen: its photo, name, planned use, and a status pill.
+/// A room on the home screen: name, status and progress on the left, an 88-point tile in the
+/// room's tint on the right holding its photo.
 struct RoomCard: View {
-    enum Tint: CaseIterable { case highlight, accent, neutral }
-
     let name: String
     let plannedUse: String
     let status: String
+    /// 0...1 decided, or nil to leave out the bar.
+    var progress: Double?
     var image: UIImage?
-    var tint: Tint = .highlight
+    var tint: Tone = .sage
+    @Environment(\.dynamicTypeSize) private var typeSize
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Group {
-                if let image {
-                    Image(uiImage: image).resizable().scaledToFill()
-                } else {
-                    ZStack {
-                        Color.stage
-                        Image(systemName: "photo").font(.glyph(.medium)).foregroundStyle(Color.textTertiary)
-                    }
-                }
-            }
-            .frame(height: Size.roomCardImage)
-            .frame(maxWidth: .infinity)
-            .clipped()
+        let layout = typeSize.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: Space.l))
+                                                  : AnyLayout(HStackLayout(alignment: .center, spacing: Space.l))
+        layout {
             VStack(alignment: .leading, spacing: Space.xs) {
                 Text(name).textRole(.cardTitle)
                 if !plannedUse.isEmpty {
-                    HStack(spacing: Space.s) {
-                        Text("Planned use").foregroundStyle(Color.textTertiary)
-                        Text(plannedUse).fontWeight(.semibold).foregroundStyle(Color.textPrimary)
-                    }
-                    .font(.detail)
+                    Text("Planned use: \(plannedUse)").textRole(.secondary)
                 }
-                Text(status)
-                    .font(.detailStrong)
-                    .foregroundStyle(pill.fg)
-                    .padding(.horizontal, Space.m)
-                    .padding(.vertical, Space.xs)
-                    .background(pill.bg, in: Capsule())
-                    .padding(.top, Space.s)
+                Text(status).textRole(.secondary)
+                if let progress { ProgressBar(value: progress).padding(.top, Space.s) }
             }
-            .padding(Space.l)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            tile
         }
-        .background(Color.surface)
-        .clipShape(RoundedRectangle(cornerRadius: Radius.l, style: .continuous))
-        .elevation(.card)
+        .card(padding: Space.xl, radius: Radius.cardLarge)
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(.isButton)
     }
 
-    private var pill: (fg: Color, bg: Color) {
-        switch tint {
-        case .highlight: (.onHighlight, .highlightSoft)
-        case .accent: (.onAccentSoft, .accentSoft)
-        case .neutral: (.textSecondary, .surfaceMuted)
+    private var tile: some View {
+        ZStack {
+            tint.tint
+            if let image {
+                Image(uiImage: image).resizable().scaledToFill()
+            } else {
+                Image(systemName: "sofa").font(.glyph(.medium)).foregroundStyle(tint.icon)
+            }
         }
+        .frame(width: Size.roomTile, height: Size.roomTile)
+        .clipShape(RoundedRectangle(cornerRadius: Radius.tile, style: .continuous))
+        .accessibilityHidden(true)
     }
 }
 
@@ -425,12 +511,17 @@ struct NoItemsYetView: View {
         ContentUnavailableView {
             Label(context.canEditRoom ? "Nothing listed yet" : "Nothing from \(context.room.name(of: .host)) yet",
                   systemImage: "bag")
+                .font(.screenTitle)
+                .foregroundStyle(Color.textPrimary)
         } description: {
-            if context.canEditRoom {
-                Text(message)
-            } else {
-                Text("\(context.room.name(of: .host)) hasn’t added any things to this room yet. You’ll see them here as soon as they do.")
+            Group {
+                if context.canEditRoom {
+                    Text(message)
+                } else {
+                    Text("\(context.room.name(of: .host)) hasn’t added any things to this room yet. You’ll see them here as soon as they do.")
+                }
             }
+            .textRole(.secondary)
         } actions: {
             if context.canEditRoom {
                 Button("Add by hand", action: onAdd).buttonStyle(.app(.primary, width: .hug))
@@ -439,27 +530,23 @@ struct NoItemsYetView: View {
     }
 }
 
-/// Shows the other person's latest change at the top of the screen for a few seconds.
+/// Shows the other person's latest change at the top of the screen for a few seconds:
+/// a floating white card with a tinted icon circle.
 struct ActivityBanner: ViewModifier {
     @Binding var event: ActivityEvent?
 
     func body(content: Content) -> some View {
         content.overlay(alignment: .top) {
             if let event {
-                HStack(spacing: Space.s) {
-                    Image(systemName: event.symbol)
-                        .foregroundStyle(Color.onAccent)
-                        .frame(width: Size.tick, height: Size.tick)
-                        .background(event.status?.color ?? .accent, in: Circle())
-                        .accessibilityHidden(true)
-                    Text(event.text).font(.detail.weight(.medium))
+                HStack(spacing: Space.m) {
+                    IconCircle(symbol: event.symbol, tone: event.status?.tone ?? .sage)
+                    Text(event.text).font(.bodyStrong).foregroundStyle(Color.textPrimary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                .foregroundStyle(Color.pageBackground)
-                .padding(.horizontal, Space.l)
-                .padding(.vertical, Space.m)
-                .background(Color.textPrimary, in: RoundedRectangle(cornerRadius: Radius.m, style: .continuous))
+                .padding(Space.m)
+                .background(Color.surface, in: RoundedRectangle(cornerRadius: Radius.card, style: .continuous))
                 .elevation(.floating)
-                .padding(.horizontal, Space.l)
+                .padding(.horizontal, Space.page)
                 .transition(.move(edge: .top).combined(with: .opacity))
                 .task(id: event.id) {
                     UIAccessibility.post(notification: .announcement, argument: event.text)
@@ -477,4 +564,84 @@ struct ActivityBanner: ViewModifier {
 
 extension View {
     func activityBanner(_ event: Binding<ActivityEvent?>) -> some View { modifier(ActivityBanner(event: event)) }
+}
+
+// MARK: - Bottom bar
+
+/// The bottom bar: a white floating capsule; the selected item is the sage gradient tag.
+struct AppTabBar<Value: Hashable>: View {
+    struct Item: Identifiable {
+        let value: Value
+        let title: String
+        let symbol: String
+        var badge = 0
+        var id: Value { value }
+    }
+
+    let items: [Item]
+    @Binding var selection: Value
+
+    var body: some View {
+        HStack(spacing: Space.xs) {
+            ForEach(items) { item in
+                let on = item.value == selection
+                Button { selection = item.value } label: {
+                    HStack(spacing: Space.s) {
+                        Image(systemName: item.symbol)
+                            .overlay(alignment: .topTrailing) {
+                                if item.badge > 0 {
+                                    Text("\(item.badge)")
+                                        .font(.badge)
+                                        .foregroundStyle(Color.onAccent)
+                                        .padding(.horizontal, Space.xs)
+                                        .frame(minWidth: Size.badgeSmall, minHeight: Size.badgeSmall)
+                                        .background(Color.accent, in: Capsule())
+                                        .offset(x: Space.m, y: -Space.s)
+                                }
+                            }
+                        Text(item.title).lineLimit(1).minimumScaleFactor(0.8)
+                    }
+                    .font(.button)
+                    .foregroundStyle(on ? Tone.sage.text : Color.iconNeutral)
+                    .frame(maxWidth: .infinity, minHeight: Size.control)
+                    .background { if on { Capsule().fill(Tone.sage.fill) } }
+                    .contentShape(Capsule())
+                }
+                .buttonStyle(PressableStyle())
+                .accessibilityLabel(item.badge > 0 ? "\(item.title), \(item.badge) to do" : item.title)
+                .accessibilityAddTraits(on ? [.isSelected, .isButton] : .isButton)
+            }
+        }
+        .padding(Space.xs)
+        .background(Color.surface, in: Capsule())
+        .elevation(.floating)
+        .padding(.horizontal, Space.page)
+        .padding(.bottom, Space.xs)
+    }
+}
+
+// MARK: - Previews
+
+#Preview("Tags and notes") {
+    ScrollView {
+        VStack(alignment: .leading, spacing: Space.l) {
+            FlowLayout {
+                AppTag(kind: .owner(.host), text: "Mine")
+                AppTag(kind: .owner(.guest), text: "Sam’s")
+                ForEach(ItemStatus.decisions, id: \.self) { AppTag(kind: .decision($0), text: $0.statusLabel) }
+                AppTag(kind: .suggestion, text: "Sam: keep")
+            }
+            NoteBar(text: "Sam suggests: keep") { Button("Use it") {}.buttonStyle(.app(.primary, size: .compact)) }
+            NoteBar(text: "1 placement needs a look", symbol: "exclamationmark.triangle", tone: .warning)
+            KVRow(label: "Room code", value: "K7M2Q", valueFont: .codeSmall, tracking: Tracking.code) {
+                Button("Copy") {}.buttonStyle(.app(.primary, size: .compact))
+            }
+            RoomCard(name: "Alex’s old room", plannedUse: "Study", status: "3 of 7 to decide", progress: 0.57)
+            HStack { Avatar(name: "Linda", role: .host); Avatar(name: "Sam", role: .guest, online: true) }
+            AppTabBar(items: [.init(value: 0, title: "Items", symbol: "list.bullet", badge: 3),
+                              .init(value: 1, title: "Room plan", symbol: "cube")], selection: .constant(0))
+        }
+        .padding(Space.page)
+    }
+    .pageBackground()
 }

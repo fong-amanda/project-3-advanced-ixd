@@ -18,7 +18,7 @@ struct ItemThumb: View {
             }
         }
         .frame(width: size, height: size)
-        .clipShape(RoundedRectangle(cornerRadius: Radius.s, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: Radius.thumb, style: .continuous))
         .accessibilityHidden(true)
     }
 

@@ -22,6 +22,7 @@ struct ScanFlowView: View {
                     ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
                 }
                 .navigationBarTitleDisplayMode(.inline)
+                .toolbarBackground(.hidden, for: .navigationBar)
         }
     }
 
@@ -41,17 +42,18 @@ struct ScanFlowView: View {
                 .ignoresSafeArea()
                 VStack(spacing: Space.s) {
                     if case .processing = phase {
-                        ProgressView("Putting the room together…").tint(.onAccent).foregroundStyle(Color.onAccent)
+                        ProgressView("Putting the room together…").tint(.accent).foregroundStyle(Color.textPrimary)
                     } else {
                         Text("Walk slowly around the room and point at every wall, door and window.")
-                            .font(.detail).foregroundStyle(Color.onAccent).multilineTextAlignment(.center)
+                            .textRole(.body).multilineTextAlignment(.center)
                         Button("Done scanning") { phase = .processing; stopRequest += 1 }
                             .buttonStyle(.app(.primary))
                     }
                 }
                 .padding(Space.l)
-                .background(Color.textPrimary.opacity(Opacity.pinLabel), in: RoundedRectangle(cornerRadius: Radius.l))
-                .padding(Space.l)
+                .background(Color.surface, in: RoundedRectangle(cornerRadius: Radius.cardLarge, style: .continuous))
+                .elevation(.floating)
+                .padding(Space.page)
             }
             .navigationTitle("Scan the room")
         case .review(let result, let room):
@@ -91,8 +93,8 @@ private struct ScanReview: View {
                     for o in result.objects {
                         let f = RoomGeometry.footprint(x: o.x, z: o.z, w: o.w, d: o.d, yawDeg: o.yawDeg)
                         let r = t.rect(f)
-                        c.fill(Path(roundedRect: r, cornerRadius: Radius.xs), with: .color(.surfaceMuted))
-                        c.stroke(Path(roundedRect: r, cornerRadius: Radius.xs), with: .color(.outlineStrong), lineWidth: Stroke.regular)
+                        c.fill(Path(roundedRect: r, cornerRadius: Radius.drawing), with: .color(.surfaceMuted))
+                        c.stroke(Path(roundedRect: r, cornerRadius: Radius.drawing), with: .color(.outlineStrong), lineWidth: Stroke.regular)
                     }
                     ShapeDrawing.drawWalls(result.shape, t, in: &c)
                     ShapeDrawing.drawOpenings(result.shape, t, in: &c)
@@ -111,9 +113,9 @@ private struct ScanReview: View {
                     VStack(spacing: 0) {
                         ForEach(result.objects) { o in
                             HStack(spacing: Space.m) {
-                                CategoryGlyph(category: o.category, side: Size.iconTile)
-                                    .frame(width: Size.iconTile, height: Size.iconTile)
-                                    .clipShape(RoundedRectangle(cornerRadius: Radius.s))
+                                CategoryGlyph(category: o.category, side: Size.iconCircle)
+                                    .frame(width: Size.iconCircle, height: Size.iconCircle)
+                                    .clipShape(RoundedRectangle(cornerRadius: Radius.thumb))
                                 Text(o.name).textRole(.body)
                                 Spacer()
                                 Text(UnitSystem.feet.dims(o.w, o.d, o.h)).textRole(.secondary)
@@ -129,11 +131,11 @@ private struct ScanReview: View {
                         .textRole(.hint)
                 }
                 Button("Use this scan", action: onUse).buttonStyle(.app(.primary))
-                Button("Scan again", action: onRescan).buttonStyle(.link).frame(maxWidth: .infinity)
+                Button("Scan again", action: onRescan).buttonStyle(.app(.primary, size: .compact)).frame(maxWidth: .infinity)
             }
             .pagePadding()
         }
-        .background(Color.pageBackground)
+        .pageBackground()
     }
 }
 

@@ -22,7 +22,7 @@ struct SortCardsView: View {
                     .id(item.id)
                     .transition(.asymmetric(insertion: .move(edge: .trailing).combined(with: .opacity),
                                             removal: .move(edge: .leading).combined(with: .opacity)))
-                    .padding(Space.l)
+                    .padding(Space.page)
             }
         }
         .animation(.snappy, value: queue.first?.id)
@@ -39,7 +39,7 @@ struct SortCardsView: View {
                 Text("\(min(done + 1, max(total, 1))) of \(max(total, 1))")
             }
             .font(.detailStrong)
-            .foregroundStyle(Color.textTertiary)
+            .foregroundStyle(Color.textSecondary)
             .accessibilityElement(children: .combine)
 
             Color.stage
@@ -47,7 +47,7 @@ struct SortCardsView: View {
                 .frame(maxWidth: .infinity)
                 .frame(maxHeight: Size.cardImageMax)
                 .overlay { cardImage(item) }
-                .clipShape(RoundedRectangle(cornerRadius: Radius.l, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: Radius.cardLarge, style: .continuous))
 
             VStack(alignment: .leading, spacing: Space.s) {
                 FlowLayout(spacing: Space.s) {
@@ -74,10 +74,10 @@ struct SortCardsView: View {
 
             HStack {
                 Button { noteItem = item } label: { Label("Add a note", systemImage: "text.bubble") }
-                    .buttonStyle(.link)
+                    .buttonStyle(.app(.primary, size: .compact))
                 Spacer()
                 Button("Skip for now") { withAnimation { skipped.removeAll { $0 == item.id }; skipped.append(item.id) } }
-                    .buttonStyle(.link)
+                    .buttonStyle(.app(.primary, size: .compact))
                     .disabled(queue.count < 2)
             }
         }
@@ -124,12 +124,10 @@ private struct NotePrompt: View {
     var body: some View {
         NavigationStack {
             VStack(alignment: .leading, spacing: Space.l) {
-                Text("\(other) will see it next to this item.").foregroundStyle(Color.textTertiary)
+                Text("\(other) will see it next to this item.").foregroundStyle(Color.textSecondary)
                 TextField("For example: please keep the case too", text: $text, axis: .vertical)
                     .lineLimit(3...8)
-                    .padding(Space.m)
-                    .background(Color.surface, in: RoundedRectangle(cornerRadius: Radius.control))
-                    .overlay(RoundedRectangle(cornerRadius: Radius.control).strokeBorder(Color.outlineStrong))
+                    .textFieldStyle(.appArea)
                 Button("Save note") {
                     SortActions.setNote(text, for: item, as: me, sync: sync)
                     dismiss()
@@ -137,10 +135,9 @@ private struct NotePrompt: View {
                 .buttonStyle(.app)
                 Spacer()
             }
-            .padding(Space.l)
-            .background(Color.surface)
-            .navigationTitle("Add a note")
-            .navigationBarTitleDisplayMode(.inline)
+            .padding(Space.page)
+            .appSheet()
+            .appNavigation("Add a note")
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } } }
             .onAppear { text = item.note }
         }

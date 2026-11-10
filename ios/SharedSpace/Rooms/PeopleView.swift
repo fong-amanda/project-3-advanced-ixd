@@ -8,6 +8,7 @@ struct PeopleView: View {
     @Environment(SyncEngine.self) private var sync
     @Environment(RoomSession.self) private var session
     @Environment(Router.self) private var router
+    @Environment(\.dismiss) private var dismiss
     @Query private var items: [Item]
     @State private var showAddGuest = false
     @State private var showInvite = false
@@ -25,22 +26,19 @@ struct PeopleView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: Space.l) {
-                VStack(spacing: Space.xxs) {
+                VStack(spacing: Space.xs) {
                     personRow(.host)
                     if room.hasGuest {
-                        Divider().padding(.leading, Space.xxxl)
+                        Hairline(inset: Space.l + Size.avatar + Space.m)
                         personRow(.guest)
                     } else if isHost {
-                        Divider().padding(.leading, Space.l)
-                        Button { showAddGuest = true } label: {
-                            Label("Invite someone", systemImage: "plus").frame(maxWidth: .infinity, alignment: .leading)
-                        }
-                        .buttonStyle(.link)
-                        .padding(.horizontal, Space.l)
+                        Hairline(inset: Space.l)
+                        Button { showAddGuest = true } label: { Label("Invite someone", systemImage: "plus") }
+                            .buttonStyle(.app(.primary))
+                            .padding(Space.l)
                     }
                 }
-                .background(Color.surface, in: RoundedRectangle(cornerRadius: Radius.m))
-                .overlay(RoundedRectangle(cornerRadius: Radius.m).strokeBorder(Color.outline))
+                .listGroup()
 
                 if room.hasGuest {
                     let theirs = items.filter { $0.owner == .guest }.count
@@ -52,28 +50,27 @@ struct PeopleView: View {
                     Button { showInvite = true } label: {
                         Label(room.invitedAt == nil ? "Invite \(guest)" : "Invite \(guest) again", systemImage: "paperplane")
                     }
-                    .buttonStyle(.app(.highlight))
+                    .buttonStyle(.app(.primary))
                 }
 
                 if sync.isShared {
-                    KVRow(label: "Room code", value: room.code, valueFont: .title3.weight(.bold).monospaced()) {
+                    KVRow(label: "Room code", value: room.code, valueFont: .codeSmall, tracking: Tracking.code) {
                         Button(copied ? "Copied" : "Copy") {
                             UIPasteboard.general.string = room.code
                             copied = true
                         }
-                        .buttonStyle(.link)
+                        .buttonStyle(.app(.primary, size: .compact))
                     }
                     .accessibilityHint("Anyone with this code can join as the second person")
                 } else {
                     Label("Sharing is off in this build, so the room stays on this iPhone.", systemImage: "icloud.slash")
-                        .font(.detail)
-                        .foregroundStyle(Color.textSecondary)
+                        .textRole(.secondary)
                 }
 
-                VStack(alignment: .leading, spacing: Space.xxs) {
+                VStack(alignment: .leading, spacing: Space.xs) {
                     if isHost && !session.previewAsGuest {
                         Button { session.showSettings = true } label: { Label("Room details", systemImage: "pencil") }
-                            .buttonStyle(.link)
+                            .buttonStyle(.app(.primary, size: .compact))
                     }
                     if isHost && room.hasGuest {
                         Button {
@@ -84,19 +81,24 @@ struct PeopleView: View {
                         } label: {
                             Label(session.previewAsGuest ? "Switch back to my view" : "View as \(guest)", systemImage: "eye")
                         }
-                        .buttonStyle(.link)
+                        .buttonStyle(.app(.primary, size: .compact))
                     }
                     if isHost && room.hasGuest && !room.guestHasJoined {
                         Button { showAddGuest = true } label: { Label("Change their name", systemImage: "person") }
-                            .buttonStyle(.link)
+                            .buttonStyle(.app(.primary, size: .compact))
                     }
                 }
             }
-            .padding(Space.l)
+            .pagePadding()
+            .padding(.bottom, Size.floatingClearance)
         }
-        .background(Color.pageBackground)
-        .navigationTitle("People & sharing")
-        .navigationBarTitleDisplayMode(.inline)
+        .pageBackground()
+        .appNavigation("People & sharing", large: true)
+        .navigationBarBackButtonHidden()
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) { BackButton { dismiss() } }
+                .plainToolbarBackground()
+        }
         .sheet(isPresented: $showAddGuest) {
             AddGuestSheet(room: room, items: items) { if sync.isShared { showInvite = true } }
         }
@@ -116,8 +118,8 @@ struct PeopleView: View {
         return HStack(spacing: Space.m) {
             Avatar(name: name, role: role,
                    online: isMe || !sync.isShared ? nil : (userId == nil ? false : sync.isPresent(userId)))
-            VStack(alignment: .leading, spacing: Space.xxs) {
-                Text(isMe ? "\(name) (you)" : name).font(.bodyStrong)
+            VStack(alignment: .leading, spacing: Space.xs) {
+                Text(isMe ? "\(name) (you)" : name).textRole(.bodyStrong)
                 Text(statusLine(role, isMe: isMe)).textRole(.secondary)
             }
             Spacer()
@@ -157,7 +159,7 @@ struct AddGuestSheet: View {
                 if !room.hasGuest {
                     VStack(alignment: .leading, spacing: Space.s) {
                         SectionLabel("Whose things are in this room?")
-                        SegmentedControl(segments: Things.allCases.map { .init(value: $0, title: $0.rawValue) }, selection: $things)
+                        ChipPicker(options: Things.allCases.map { .init(value: $0, title: $0.rawValue) }, selection: $things)
                     }
                 }
                 Button(name.trimmed.isEmpty ? "Add person" : "Add \(name.trimmed)", action: save)
@@ -165,10 +167,9 @@ struct AddGuestSheet: View {
                     .disabled(name.trimmed.isEmpty)
                 Spacer()
             }
-            .padding(Space.l)
-            .background(Color.surface)
-            .navigationTitle(room.hasGuest ? "Change their name" : "Invite someone")
-            .navigationBarTitleDisplayMode(.inline)
+            .padding(Space.page)
+            .appSheet()
+            .appNavigation(room.hasGuest ? "Change their name" : "Invite someone")
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } } }
             .onAppear { name = room.guestName ?? "" }
         }
@@ -205,22 +206,19 @@ struct InviteSheet: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: Space.l) {
                     Text("Send \(room.name(of: .guest)) this message any way you like. They open Shared Space, tap Join with a code, and type it in.")
-                        .foregroundStyle(Color.textSecondary)
-                    VStack(spacing: Space.xxs) {
+                        .textRole(.secondary)
+                    VStack(spacing: Space.xs) {
                         Text("Room code").textRole(.secondary)
                         Text(room.code).font(.code).kerning(Tracking.code).textSelection(.enabled)
                     }
                     .frame(maxWidth: .infinity)
-                    .padding(Space.m)
-                    .background(Color.surfaceMuted, in: RoundedRectangle(cornerRadius: Radius.m))
+                    .card(padding: Space.m)
                     .accessibilityElement(children: .combine)
                     VStack(alignment: .leading, spacing: Space.s) {
                         SectionLabel("Message")
                         TextField("Message", text: $message, axis: .vertical)
                             .lineLimit(4...10)
-                            .padding(Space.m)
-                            .background(Color.surface, in: RoundedRectangle(cornerRadius: Radius.control))
-                            .overlay(RoundedRectangle(cornerRadius: Radius.control).strokeBorder(Color.outlineStrong))
+                            .textFieldStyle(.appArea)
                     }
                     HStack(spacing: Space.m) {
                         ShareLink(item: message) { Label("Send", systemImage: "paperplane") }
@@ -234,11 +232,10 @@ struct InviteSheet: View {
                             .buttonStyle(.app(.neutral))
                     }
                 }
-                .padding(Space.l)
+                .padding(Space.page)
             }
-            .background(Color.pageBackground)
-            .navigationTitle("Invite \(room.name(of: .guest))")
-            .navigationBarTitleDisplayMode(.inline)
+            .appSheet()
+            .appNavigation("Invite \(room.name(of: .guest))")
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
             .onAppear { if message.isEmpty { message = defaultMessage } }
         }

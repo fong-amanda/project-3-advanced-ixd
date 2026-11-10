@@ -50,6 +50,7 @@ targets:
         INFOPLIST_FILE: SharedSpace/Info.plist
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        ASSETCATALOG_COMPILER_GENERATE_ASSET_SYMBOLS: NO   # Theme names the colours by role
         ENABLE_PREVIEWS: YES
         INFOPLIST_KEY_CFBundleDisplayName: Shared Space       # ← name under the icon
         INFOPLIST_KEY_UILaunchScreen_Generation: YES

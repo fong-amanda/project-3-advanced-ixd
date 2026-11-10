@@ -80,7 +80,7 @@ struct DecisionButtons: View {
     private var suggesting: Bool { !SortRules.canDecide(item, as: me, in: room) }
 
     var body: some View {
-        VStack(spacing: Space.s) {
+        FlowLayout(spacing: Space.s) {
             ForEach(suggesting ? ItemStatus.suggestions : ItemStatus.decisions, id: \.self) { status in
                 let on = suggesting ? (item.suggestion == status && item.suggestedBy == me) : item.status == status
                 DecisionButton(decision: status, title: label(status), isSelected: on, layout: .compact, suggesting: suggesting) {
@@ -89,7 +89,6 @@ struct DecisionButtons: View {
             }
         }
         .disabled(disabled)
-        .opacity(disabled ? Opacity.disabled : 1)
     }
 
     /// "Send" reads oddly when it's someone else's thing: "Send to Alex".

@@ -14,7 +14,7 @@ struct SortSummarySheet: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: Space.l) {
-                    VStack(spacing: Space.xxs) {
+                    VStack(spacing: Space.xs) {
                         ForEach(ItemStatus.decisions + [.keepMove], id: \.self) { status in
                             let count = progress.byStatus[status] ?? 0
                             if count > 0 {
@@ -27,7 +27,7 @@ struct SortSummarySheet: View {
                                 }
                                 .padding(.vertical, Space.m)
                                 .accessibilityElement(children: .combine)
-                                Divider()
+                                Hairline()
                             }
                         }
                     }
@@ -44,11 +44,10 @@ struct SortSummarySheet: View {
                         .buttonStyle(.app)
                     }
                 }
-                .padding(Space.l)
+                .padding(Space.page)
             }
-            .background(Color.surface)
-            .navigationTitle(me == .guest ? "All done, thank you" : "Everything’s decided")
-            .navigationBarTitleDisplayMode(.inline)
+            .appSheet()
+            .appNavigation(me == .guest ? "All done, thank you" : "Everything’s decided")
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } }
             }

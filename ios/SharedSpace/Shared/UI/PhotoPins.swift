@@ -67,7 +67,7 @@ struct PhotoWithPins: View {
 
     private func marker(_ pin: PhotoPin) -> some View {
         Button { onTapPin?(pin.id) } label: {
-            VStack(spacing: Space.xxs) {
+            VStack(spacing: Space.xs) {
                 NumberBadge(number: pin.number, isSelected: pin.isSelected, ring: ring(pin), placement: .onPhoto)
                     .scaleEffect(dragging?.id == pin.id ? Motion.dragScale : 1)
                 if pin.isSelected { PhotoLabel(text: pin.label) }

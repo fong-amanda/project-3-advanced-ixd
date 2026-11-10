@@ -4,13 +4,21 @@ import SwiftUI
 struct RoomSummaryCard: View {
     let room: Room
     let me: Role
+    var tint: Tone = .sage
     @Environment(SyncEngine.self) private var sync
 
     var body: some View {
-        RoomCard(name: room.name, plannedUse: room.futureUse, status: statusText,
+        RoomCard(name: room.name, plannedUse: room.futureUse, status: statusText, progress: progress,
                  image: RoomPhotos.image(roomId: room.id, index: 0, revision: sync.photoRevision)
                     ?? UIImage(contentsOfFile: FileStore.thumbnailURL(room.id).path()),
-                 tint: me == .guest ? .accent : .highlight)
+                 tint: tint)
+    }
+
+    /// Share of things decided, for the bar. None until something is listed.
+    private var progress: Double? {
+        let items = me == .guest ? SortRules.items(room.liveItems, belongingTo: .guest) : room.liveItems
+        guard !items.isEmpty else { return nil }
+        return Double(items.filter(\.isDecided).count) / Double(items.count)
     }
 
     /// Matches the prototype: "4 waiting for Alex, 1 for you", "3 of 7 to decide", "All decided, 2 leaving".
