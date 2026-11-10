@@ -15,22 +15,22 @@ struct HomeView: View {
                 if rooms.isEmpty {
                     emptyState
                 } else {
-                    LazyVStack(spacing: Space.xl) {
-                        ForEach(rooms) { room in
+                    LazyVStack(spacing: Space.l) {
+                        ForEach(Array(rooms.enumerated()), id: \.element.id) { i, room in
                             Button { router.openRoom(room.id) } label: {
-                                RoomSummaryCard(room: room, me: room.role(of: sync.userId))
+                                RoomSummaryCard(room: room, me: room.role(of: sync.userId),
+                                                tint: Theme.roomTints[i % Theme.roomTints.count])
                             }
-                            .buttonStyle(.plain)
+                            .buttonStyle(PressableStyle())
                         }
                     }
                 }
             }
-            .padding(.horizontal, Space.l)
-            .padding(.vertical, Space.m)
+            .pagePadding()
+            .padding(.bottom, Size.floatingClearance)
         }
-        .background(Color.pageBackground)
-        .navigationTitle("Rooms")
-        .navigationBarTitleDisplayMode(.inline)
+        .pageBackground()
+        .appNavigation("Rooms", large: true)
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
                 BrandMark().frame(width: Size.brandMark, height: Size.brandMark)
@@ -38,13 +38,9 @@ struct HomeView: View {
                     .onLongPressGesture { showDesignSystem = true }
                     #endif
             }
-            ToolbarItem(placement: .topBarTrailing) {
-                Button { router.showAddRoom = true } label: {
-                    Image(systemName: "plus").frame(minWidth: Size.tapTarget, minHeight: Size.tapTarget)
-                }
-                .accessibilityLabel("Add a room")
-            }
+            .plainToolbarBackground()
         }
+        .floatingAction("New room") { router.showAddRoom = true }
         .refreshable { await sync.refresh() }
         #if DEBUG
         .sheet(isPresented: $showDesignSystem) { DesignSystemGallery() }
@@ -56,15 +52,15 @@ struct HomeView: View {
 
     private var emptyState: some View {
         VStack(spacing: Space.l) {
-            Text("No rooms yet").font(.cardTitle)
+            IconCircle(symbol: "house")
+            Text("No rooms yet").textRole(.cardTitle)
             Button { router.showNewRoom = true } label: { Label("Add a room", systemImage: "plus") }
                 .buttonStyle(.app(.primary, width: .hug))
             Button("Join with a code") { router.joinRequest = JoinRequest(code: "") }
-                .buttonStyle(.link)
+                .buttonStyle(.app(.neutral, size: .compact))
         }
         .frame(maxWidth: .infinity)
-        .padding(Space.xxxl)
-        .overlay(RoundedRectangle(cornerRadius: Radius.l).strokeBorder(Color.outlineStrong, style: StrokeStyle(lineWidth: Stroke.bold, dash: Stroke.dashed)))
+        .card(padding: Space.xxxl, radius: Radius.cardLarge)
     }
 }
 
@@ -85,8 +81,9 @@ struct AddRoomSheet: View {
                     router.joinRequest = JoinRequest(code: "")
                 }
             }
-            .navigationTitle("Add a room")
-            .navigationBarTitleDisplayMode(.inline)
+            .scrollContentBackground(.hidden)
+            .appSheet()
+            .appNavigation("Add a room")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
             }
@@ -97,8 +94,8 @@ struct AddRoomSheet: View {
     private func row(_ title: String, detail: String, symbol: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             HStack(spacing: Space.l) {
-                Image(systemName: symbol).foregroundStyle(Color.accentText).frame(width: Size.iconColumn)
-                VStack(alignment: .leading, spacing: Space.xxs) {
+                IconCircle(symbol: symbol)
+                VStack(alignment: .leading, spacing: Space.xs) {
                     Text(title).textRole(.bodyStrong)
                     Text(detail).textRole(.secondary)
                 }
@@ -106,7 +103,9 @@ struct AddRoomSheet: View {
                 RowChevron()
             }
             .padding(.vertical, Space.s)
+            .frame(minHeight: Size.row)
         }
+        .listRowBackground(Color.surfaceMuted)
     }
 }
 
@@ -114,11 +113,11 @@ struct LocalOnlyNotice: View {
     var body: some View {
         Label {
             Text("Sharing is off in this build, so rooms stay on this iPhone. Add your Supabase keys to Supabase.plist to sort together.")
-                .font(.footnoteText)
+                .font(.detail)
         } icon: {
             Image(systemName: "icloud.slash")
         }
         .foregroundStyle(Color.textSecondary)
-        .card(padding: Space.m)
+        .card(padding: Space.l)
     }
 }

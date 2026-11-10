@@ -55,13 +55,13 @@ struct ItemsView: View {
                 list
             }
         }
-        .background(Color.pageBackground)
+        .pageBackground()
         .roomChrome(room) {
             if !queue.isEmpty {
                 Button {
                     withAnimation { cards = !showingCards }
                 } label: {
-                    Image(systemName: showingCards ? "list.bullet" : "rectangle.stack").frame(minWidth: Size.tapTarget, minHeight: Size.tapTarget)
+                    ToolbarIcon(symbol: showingCards ? "list.bullet" : "rectangle.stack")
                 }
                 .accessibilityLabel(showingCards ? "Show as a list" : "One at a time")
             }
@@ -104,11 +104,11 @@ struct ItemsView: View {
                         Spacer()
                         if context.canEditRoom && room.hasGuest {
                             Button(selecting ? "Cancel" : "Select") { selecting.toggle(); selectedIds = [] }
-                                .buttonStyle(.link)
+                                .buttonStyle(.app(.primary, size: .compact))
                         }
-                        SegmentedControl(segments: [.init(value: Stage.photo, title: "Photo"), .init(value: Stage.model, title: "3D view")],
-                                         selection: $stage)
-                            .frame(maxWidth: Size.segmentedMax)
+                        ChipPicker(options: [.init(value: Stage.photo, title: "Photo"), .init(value: Stage.model, title: "3D view")],
+                                   selection: $stage, accessibilityLabel: "Show")
+                            .fixedSize(horizontal: true, vertical: false)
                     }
                     stageView(numbers: numbers)
                     if context.canEditRoom && stage == .photo && !photos.isEmpty && items.contains(where: \.hasPin) {
@@ -116,12 +116,12 @@ struct ItemsView: View {
                             .textRole(.hint)
                     }
 
-                    SegmentedControl(segments: [
+                    ChipPicker(options: [
                         .init(value: Bucket.needs, title: "For you to decide", count: sets[.needs]?.count),
                         .init(value: Bucket.waiting, title: room.hasGuest ? "Waiting for \(room.name(of: me.other))" : "Waiting for a decision",
                               count: sets[.waiting]?.count),
                         .init(value: Bucket.decided, title: "Decided", count: sets[.decided]?.count),
-                    ], selection: $view)
+                    ], selection: $view, accessibilityLabel: "Items")
 
                     HStack {
                         Text("\(shown.count) of \(sets[view]?.count ?? 0)\(filter.isActive ? " · filtered" : "")")
@@ -130,10 +130,10 @@ struct ItemsView: View {
                         Button { showFilter = true } label: {
                             Label(filter.isActive ? "Filter · on" : "Filter", systemImage: "line.3.horizontal.decrease")
                         }
-                        .buttonStyle(.link)
+                        .buttonStyle(.app(.primary, size: .compact))
                     }
 
-                    VStack(spacing: Space.xxs) {
+                    VStack(spacing: Space.xs) {
                         if shown.isEmpty {
                             Text(emptyText)
                                 .textRole(.secondary)
@@ -143,19 +143,17 @@ struct ItemsView: View {
                         ForEach(shown) { item in
                             row(item, number: numbers[item.id])
                                 .id(item.id)
-                            if item.id != shown.last?.id { Divider().padding(.leading, Space.xxxl) }
+                            if item.id != shown.last?.id { Hairline(inset: Space.l + Size.thumbnail + Space.m) }
                         }
                     }
-                    .background(Color.surface, in: RoundedRectangle(cornerRadius: Radius.m))
-                    .overlay(RoundedRectangle(cornerRadius: Radius.m).strokeBorder(Color.outline))
+                    .listGroup()
 
                     if context.canEditRoom && !selecting {
                         Button { session.addItem = AddItemRequest() } label: { Label("Add something", systemImage: "plus") }
-                            .buttonStyle(.link)
+                            .buttonStyle(.app(.primary, size: .compact))
                     }
                 }
-                .padding(.horizontal, Space.l)
-                .padding(.vertical, Space.m)
+                .pagePadding()
             }
             .onChange(of: selectedId) { _, id in
                 if let id { withAnimation { proxy.scrollTo(id, anchor: .center) } }
@@ -176,8 +174,8 @@ struct ItemsView: View {
                 }
                 .buttonStyle(.app)
                 .disabled(selectedIds.isEmpty)
-                .padding(.horizontal, Space.l).padding(.vertical, Space.s)
-                .background(Color.pageBackground)
+                .padding(.horizontal, Space.page).padding(.vertical, Space.s)
+                .barBackground()
             }
         }
     }
@@ -203,7 +201,7 @@ struct ItemsView: View {
             ItemRow(item: item, room: room, me: me, number: number,
                     selection: selecting ? selectedIds.contains(item.id) : nil)
                 .padding(.horizontal, Space.l)
-                .background(selectedId == item.id && !selecting ? Color.accentSoft : .clear)
+                .background { if selectedId == item.id && !selecting { Tone.sage.fill } }
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -230,8 +228,9 @@ struct ItemsView: View {
     private var photoBar: some View {
         HStack(spacing: Space.m) {
             if photos.count > 1 {
-                SegmentedControl(segments: photos.map { .init(value: $0, title: "Photo \($0 + 1)") },
-                                 selection: Binding(get: { photoIndex }, set: { photoIndex = $0; selectedId = nil }))
+                ChipPicker(options: photos.map { .init(value: $0, title: "Photo \($0 + 1)") },
+                           selection: Binding(get: { photoIndex }, set: { photoIndex = $0; selectedId = nil }),
+                           accessibilityLabel: "Photos")
             }
             Spacer(minLength: 0)
             if context.canEditRoom && room.photoCount < Room.maxPhotos {
@@ -244,11 +243,8 @@ struct ItemsView: View {
                     sync.activity = ActivityEvent(text: "Tap anything the first photo missed to add it", symbol: "plus", status: nil)
                 }
             }
-            Button { showZoom = true } label: {
-                Image(systemName: "plus.magnifyingglass").frame(minWidth: Size.tapTarget, minHeight: Size.tapTarget)
-            }
-            .accessibilityLabel("Zoom in on the photo")
-            .disabled(photos.isEmpty)
+            IconButton(symbol: "plus.magnifyingglass", label: "Zoom in on the photo", filled: true) { showZoom = true }
+                .disabled(photos.isEmpty)
         }
     }
 
@@ -284,12 +280,12 @@ struct ItemsView: View {
         }
         .frame(maxWidth: .infinity)
         .background(Color.stage)
-        .clipShape(RoundedRectangle(cornerRadius: Radius.l, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: Radius.cardLarge, style: .continuous))
     }
 
     @ViewBuilder private var noPhoto: some View {
         VStack(spacing: Space.m) {
-            Image(systemName: "photo").font(.glyph(.large)).foregroundStyle(Color.textTertiary).accessibilityHidden(true)
+            Image(systemName: "photo").font(.glyph(.large)).foregroundStyle(Color.textSecondary).accessibilityHidden(true)
             Text(context.canEditRoom ? "Add a photo of the room to number the things in it." : "No photo yet")
                 .textRole(.secondary).multilineTextAlignment(.center)
             if context.canEditRoom {
@@ -323,7 +319,7 @@ struct ItemsView: View {
                     }
                 }
             }
-            .padding(Space.l)
+            .padding(Space.page)
         }
     }
 }
@@ -374,14 +370,13 @@ struct FilterSheet: View {
                         }
                     }
                     Button("Show items") { dismiss() }.buttonStyle(.app)
-                    Button("Clear filters") { filter = ItemFilter() }.buttonStyle(.link)
+                    Button("Clear filters") { filter = ItemFilter() }.buttonStyle(.app(.neutral, size: .compact))
                         .frame(maxWidth: .infinity)
                 }
-                .padding(Space.l)
+                .padding(Space.page)
             }
-            .background(Color.pageBackground)
-            .navigationTitle("Filter items")
-            .navigationBarTitleDisplayMode(.inline)
+            .appSheet()
+            .appNavigation("Filter items")
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
         }
     }
@@ -403,10 +398,9 @@ struct AddPhotoMenu: View {
             Button("Choose from library", systemImage: "photo.on.rectangle") { showLibrary = true }
         } label: {
             Label(title, systemImage: "camera")
-                .font(.detailStrong)
-                .foregroundStyle(Color.accentText)
-                .frame(minHeight: Size.tapTarget)
         }
+        .menuStyle(.button)
+        .buttonStyle(.app(.primary, size: .compact))
         .photosPicker(isPresented: $showLibrary, selection: $item, matching: .images)
         .fullScreenCover(isPresented: $showCamera) { CameraPicker(onPick: onPick).ignoresSafeArea() }
         .onChange(of: item) { _, new in
@@ -447,8 +441,7 @@ struct PhotoZoomView: View {
             .gesture(MagnifyGesture().updating($pinch) { value, state, _ in state = value.magnification }
                 .onEnded { value in scale = min(max(scale * value.magnification, 1), 4) })
             .background(Color.stage)
-            .navigationTitle("Photo")
-            .navigationBarTitleDisplayMode(.inline)
+            .appNavigation("Photo")
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } }
                 ToolbarItemGroup(placement: .bottomBar) {

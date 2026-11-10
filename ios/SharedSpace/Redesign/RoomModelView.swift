@@ -6,7 +6,7 @@ import SwiftUI
 /// as a block of its real size. Drag to orbit, pinch to zoom, tap a thing to select it.
 ///
 /// Things leaving the room are see-through (or left out, in the plan); pieces placed in a plan
-/// are drawn in the highlight colour.
+/// are drawn in the sage tint.
 struct RoomModelView: View {
     let room: Room
     let entries: [PlanEntry]
@@ -145,7 +145,7 @@ private struct RoomScene {
     private func thing(_ entry: PlanEntry) -> Entity {
         let isPiece = entry.style == .newPiece
         let h = Float(max(entry.isFlat ? 1 : heightOf(entry), 1) / 100)
-        let colour: Color = isPiece ? .highlight : .material(entry.colorHex)
+        let colour: Color = isPiece ? .tintSage : .material(entry.colorHex)
         var mat: any RealityKit.Material = material(colour, roughness: 0.8)
         if entry.isGhost {
             var pbr = PhysicallyBasedMaterial()

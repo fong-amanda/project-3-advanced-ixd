@@ -17,6 +17,7 @@ struct SharedSpaceApp: App {
         }
         self.container = container
         _sync = State(initialValue: SyncEngine(context: container.mainContext))
+        Theme.configureAppearance()
     }
 
     var body: some Scene {
@@ -25,7 +26,7 @@ struct SharedSpaceApp: App {
                 .environment(sync)
                 .environment(router)
                 .modelContainer(container)
-                .tint(.accent)
+                .tint(.iconNeutral)
                 .task {
                     #if DEBUG
                     if DemoData.requested {

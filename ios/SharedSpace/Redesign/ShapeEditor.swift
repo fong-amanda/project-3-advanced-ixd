@@ -32,7 +32,7 @@ struct ShapeEditor: View {
 
             canvas
                 .aspectRatio(1, contentMode: .fit)
-                .card(.outlined, padding: 0, radius: Radius.l)
+                .card(padding: 0, radius: Radius.cardLarge)
 
             FlowLayout(spacing: Space.s) {
                 AppChip(title: "+ Door", isSelected: false) { addOpening(.door) }
@@ -74,24 +74,24 @@ struct ShapeEditor: View {
                 while x < size.width { grid.move(to: CGPoint(x: x, y: 0)); grid.addLine(to: CGPoint(x: x, y: size.height)); x += step }
                 var y = t.origin.y.truncatingRemainder(dividingBy: step)
                 while y < size.height { grid.move(to: CGPoint(x: 0, y: y)); grid.addLine(to: CGPoint(x: size.width, y: y)); y += step }
-                c.stroke(grid, with: .color(.outline), lineWidth: Stroke.hairline)
+                c.stroke(grid, with: .color(.divider), lineWidth: Stroke.hairline)
 
-                ShapeDrawing.drawFloor(shape, t, fill: .accentSoft, in: &c)
-                c.stroke(ShapeDrawing.outline(shape, t), with: .color(.accent),
+                ShapeDrawing.drawFloor(shape, t, fill: .tintSage, in: &c)
+                c.stroke(ShapeDrawing.outline(shape, t), with: .color(.textPrimary),
                          style: StrokeStyle(lineWidth: Stroke.heavy, lineJoin: .round))
 
                 for e in shape.edges {
                     let mid = e.point(at: 0.5)
                     let n = shape.inwardNormal(e)
                     if e.length >= 50 {
-                        let label = Text(units.roomLength(e.length)).font(.captionStrong).foregroundStyle(Color.textSecondary)
+                        let label = Text(units.roomLength(e.length)).font(.badge).foregroundStyle(Color.textSecondary)
                         c.draw(label, at: t.point(mid.x - n.x * 24 / t.scale * 1.2, mid.z - n.z * 24 / t.scale * 1.2))
                     }
                     if e.length >= 60 {
                         let p = t.point(mid.x, mid.z)
                         let r = Size.tick / 4
                         c.fill(Path(ellipseIn: CGRect(x: p.x - r, y: p.y - r, width: r * 2, height: r * 2)), with: .color(.accent))
-                        c.draw(Text(Image(systemName: "plus")).font(.captionStrong).foregroundStyle(Color.onAccent), at: p)
+                        c.draw(Text(Image(systemName: "plus")).font(.badge).foregroundStyle(Color.onAccent), at: p)
                     }
                 }
                 ShapeDrawing.drawOpenings(shape, t, selected: selectedOpening, handles: true, in: &c)
@@ -203,7 +203,7 @@ struct ShapeEditor: View {
                 shape.openings.remove(at: k)
                 selectedOpening = nil
             }
-            .buttonStyle(.link(.destructive))
+            .buttonStyle(.app(.destructive, size: .compact))
         }
     }
 
@@ -222,7 +222,7 @@ struct ShapeEditor: View {
                     shape.removeCorner(i)
                     selectedCorner = nil
                 }
-                .buttonStyle(.link(.destructive))
+                .buttonStyle(.app(.destructive, size: .compact))
             }
         }
     }
@@ -258,9 +258,8 @@ struct ShapeEditorSheet: View {
                 }
                 .pagePadding()
             }
-            .background(Color.pageBackground)
-            .navigationTitle("Walls, door & windows")
-            .navigationBarTitleDisplayMode(.inline)
+            .appSheet()
+            .appNavigation("Walls, door & windows")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {

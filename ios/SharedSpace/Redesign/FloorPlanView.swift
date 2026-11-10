@@ -51,8 +51,8 @@ struct FloorPlanView: View {
         for zone in zones {
             let r = map.rect(zone.rect)
             let on = zone.id == selectedZone
-            context.fill(Path(roundedRect: r, cornerRadius: Radius.xs), with: .color(Color.highlight.opacity(on ? Opacity.zoneFillSelected : Opacity.zoneFill)))
-            context.stroke(Path(roundedRect: r, cornerRadius: Radius.xs), with: .color(.highlight),
+            context.fill(Path(roundedRect: r, cornerRadius: Radius.drawing), with: .color(Color.tintSage.opacity(on ? Opacity.zoneFillSelected : Opacity.zoneFill)))
+            context.stroke(Path(roundedRect: r, cornerRadius: Radius.drawing), with: .color(.accent),
                            style: StrokeStyle(lineWidth: on ? Stroke.bold : Stroke.regular, dash: Stroke.dashed))
         }
 
@@ -69,14 +69,14 @@ struct FloorPlanView: View {
             c.rotate(by: .degrees(entry.yawDeg))
             let rect = CGRect(x: -entry.widthCm * map.scale / 2, y: -entry.depthCm * map.scale / 2,
                               width: entry.widthCm * map.scale, height: entry.depthCm * map.scale)
-            let shape = Path(roundedRect: rect, cornerRadius: Radius.xs)
+            let shape = Path(roundedRect: rect, cornerRadius: Radius.drawing)
             style(entry, shape: shape, in: &c)
 
             if showLabels && !entry.isFlat && rect.width > 40 && rect.height > 20 {
                 c.rotate(by: .degrees(-entry.yawDeg))
                 let text = Text(entry.name)
                     .font(.planLabel(fitting: rect.width))
-                    .foregroundStyle(entry.isGhost ? Color.textTertiary : Color.textPrimary)
+                    .foregroundStyle(entry.isGhost ? Color.textSecondary : Color.textPrimary)
                 c.draw(text, in: CGRect(x: -rect.width / 2 + 2, y: -rect.height / 2, width: rect.width - 4, height: rect.height))
             }
         }
@@ -94,22 +94,22 @@ struct FloorPlanView: View {
         let selected = entry.id == selectedId
         switch entry.style {
         case .normal:
-            c.fill(shape, with: .color(entry.isFlat ? Color.material(entry.colorHex).opacity(Opacity.rugFill) : .surfaceMuted))
-            c.stroke(shape, with: .color(entry.isFlat ? .clear : .outlineStrong), lineWidth: Stroke.regular)
+            c.fill(shape, with: .color(entry.isFlat ? Color.material(entry.colorHex).opacity(Opacity.rugFill) : .tintBrown))
+            c.stroke(shape, with: .color(entry.isFlat ? .clear : .iconNeutral), lineWidth: Stroke.regular)
         case .moved:
-            c.fill(shape, with: .color(.surfaceMuted))
-            c.stroke(shape, with: .color(.textSecondary), lineWidth: Stroke.bold)
+            c.fill(shape, with: .color(.tintBrown))
+            c.stroke(shape, with: .color(.iconNeutral), lineWidth: Stroke.bold)
         case .newPiece:
-            c.fill(shape, with: .color(entry.isFlat ? Color.highlight.opacity(Opacity.newRugFill) : .highlightSoft))
+            c.fill(shape, with: .color(entry.isFlat ? Color.tintSage.opacity(Opacity.zoneFill) : .tintSage))
             if entry.problem != nil {
                 c.stroke(shape, with: .color(.letGo), style: StrokeStyle(lineWidth: Stroke.bold, dash: Stroke.dashed))
             } else {
-                c.stroke(shape, with: .color(.highlight), style: StrokeStyle(lineWidth: Stroke.bold, dash: entry.isFlat ? Stroke.dashed : []))
+                c.stroke(shape, with: .color(.accent), style: StrokeStyle(lineWidth: Stroke.bold, dash: Stroke.dashed))
             }
         case .leaving(let status):
             c.stroke(shape, with: .color(status.color), style: StrokeStyle(lineWidth: Stroke.regular, dash: Stroke.dashed))
         case .hiddenInDesign:
-            c.stroke(shape, with: .color(.textTertiary), style: StrokeStyle(lineWidth: Stroke.regular, dash: Stroke.dotted))
+            c.stroke(shape, with: .color(.textSecondary), style: StrokeStyle(lineWidth: Stroke.regular, dash: Stroke.dotted))
         }
         if selected { c.stroke(shape, with: .color(.accent), lineWidth: Stroke.heavy) }
     }

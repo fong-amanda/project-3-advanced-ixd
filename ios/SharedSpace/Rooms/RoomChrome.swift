@@ -14,22 +14,19 @@ struct RoomChrome<Trailing: View>: ViewModifier {
 
     func body(content: Content) -> some View {
         content
-            .navigationTitle(room.name)
-            .navigationBarTitleDisplayMode(.inline)
+            .appNavigation(room.name, large: true)
             .navigationBarBackButtonHidden()
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button { router.closeRoom() } label: {
-                        Label("Rooms", systemImage: "chevron.left").labelStyle(.titleAndIcon)
-                    }
-                    .accessibilityLabel("Back to rooms")
+                    BackButton(label: "Back to rooms") { router.closeRoom() }
                 }
+                .plainToolbarBackground()
                 ToolbarItemGroup(placement: .topBarTrailing) {
                     trailing
                     menu
                 }
             }
-            .safeAreaInset(edge: .top, spacing: Space.xxs) {
+            .safeAreaInset(edge: .top, spacing: Space.xs) {
                 if session.previewAsGuest { previewBanner }
             }
             .confirmationDialog(realRole == .host ? "Delete \(room.name) for everyone?" : "Leave \(room.name)?",
@@ -63,8 +60,7 @@ struct RoomChrome<Trailing: View>: ViewModifier {
                        role: .destructive) { confirmDelete = true }
             }
         } label: {
-            Image(systemName: "ellipsis")
-                .frame(minWidth: Size.tapTarget, minHeight: Size.tapTarget)
+            ToolbarIcon(symbol: "ellipsis")
         }
         .accessibilityLabel("Room options")
     }
@@ -73,19 +69,19 @@ struct RoomChrome<Trailing: View>: ViewModifier {
         let guest = room.name(of: .guest)
         return HStack(spacing: Space.m) {
             Image(systemName: "eye").accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: Space.xxs) {
+            VStack(alignment: .leading, spacing: Space.xs) {
                 Text("Viewing as \(guest)").font(.detailStrong)
                 Text(session.isReadOnly(in: room) ? "Only \(guest) can change their things."
                                                   : "Decisions you make here count as \(guest)’s.")
-                    .font(.captionText)
+                    .font(.detail)
             }
             Spacer()
             Button("Switch back") { togglePreview() }
-                .buttonStyle(.link(.onTint))
+                .buttonStyle(.app(.neutral, size: .compact))
         }
-        .foregroundStyle(Color.onAccentSoft)
-        .padding(.horizontal, Space.l).padding(.vertical, Space.s)
-        .background(Color.accentSoft)
+        .foregroundStyle(Tone.sage.text)
+        .padding(.horizontal, Space.page).padding(.vertical, Space.s)
+        .background(Tone.sage.fill)
     }
 
     private func togglePreview() {

@@ -56,13 +56,13 @@ struct RoomPlanView: View {
             VStack(alignment: .leading, spacing: Space.l) {
                 header(resolved)
                 versions
-                SegmentedControl(segments: [.init(value: PlanViewMode.floorPlan, title: "Floor plan"),
+                ChipPicker(options: [.init(value: PlanViewMode.floorPlan, title: "Floor plan"),
                                             .init(value: PlanViewMode.model, title: "3D")], selection: $planView)
                 if planView == .model {
                     RoomModelView(room: room, entries: resolved.entries, showGhosts: showHidden || design == nil,
                                   selectedId: selectedPiece) { id in selectedPiece = id }
                         .aspectRatio(1, contentMode: .fit)
-                        .clipShape(RoundedRectangle(cornerRadius: Radius.l, style: .continuous))
+                        .clipShape(RoundedRectangle(cornerRadius: Radius.cardLarge, style: .continuous))
                 } else {
                     plan(resolved)
                 }
@@ -89,10 +89,9 @@ struct RoomPlanView: View {
                     pieceList(resolved)
                 }
             }
-            .padding(.horizontal, Space.l)
-            .padding(.vertical, Space.m)
+            .pagePadding()
         }
-        .background(Color.pageBackground)
+        .pageBackground()
         .roomChrome(room)
         .sheet(isPresented: $showShape) { ShapeEditorSheet(room: room) }
         #if DEBUG
@@ -132,7 +131,7 @@ struct RoomPlanView: View {
             Button { if isHost { session.showSettings = true } } label: {
                 KVRow(label: "Room",
                       value: "\(units.roomLength(Double(room.widthCm))) × \(units.roomLength(Double(room.lengthCm)))\(room.measured ? "" : " · estimate")") {
-                    if isHost { Text(room.measured ? "Edit" : "Measure").font(.detailStrong).foregroundStyle(Color.accentText) }
+                    if isHost { Text(room.measured ? "Edit" : "Measure").font(.detailStrong).foregroundStyle(Color.accent) }
                 }
                 .contentShape(Rectangle())
             }
@@ -141,12 +140,12 @@ struct RoomPlanView: View {
             if isHost {
                 FlowLayout(spacing: Space.l) {
                     Button { showShape = true } label: { Label("Walls, door & windows", systemImage: "square.on.square.dashed") }
-                        .buttonStyle(.link)
+                        .buttonStyle(.app(.primary, size: .compact))
                     if DeviceCapabilities.canScanRooms {
                         Button { session.showScan = true } label: {
                             Label(room.isScanned ? "Rescan with LiDAR" : "Scan with LiDAR", systemImage: "viewfinder")
                         }
-                        .buttonStyle(.link)
+                        .buttonStyle(.app(.primary, size: .compact))
                     }
                 }
             }
@@ -175,13 +174,13 @@ struct RoomPlanView: View {
 
     private var versions: some View {
         VStack(alignment: .leading, spacing: Space.s) {
-            ScrollingSegments(
+            ChipPicker(
                 options: [.init(value: UUID?.none, title: "Current room")] + designs.map {
-                    .init(value: Optional($0.id), title: $0.name, badge: $0.guestLikes ? "hand.thumbsup.fill" : nil,
-                          badgeLabel: "Looks good to \(room.name(of: .guest))")
+                    .init(value: Optional($0.id), title: $0.name, symbol: $0.guestLikes ? "hand.thumbsup.fill" : nil,
+                          symbolLabel: "Looks good to \(room.name(of: .guest))")
                 },
-                selection: design?.id) { id in pick(designs.first { $0.id == id }) }
-                .accessibilityLabel("Room versions")
+                selection: Binding(get: { design?.id }, set: { id in pick(designs.first { $0.id == id }) }),
+                accessibilityLabel: "Room versions")
             if isHost {
                 FlowLayout(spacing: Space.l) {
                     if let design, !design.locked, !design.livePlacements.isEmpty {
@@ -189,11 +188,11 @@ struct RoomPlanView: View {
                             let v = DesignActions.saveVersion(of: design, room: room, existing: designs, sync: sync)
                             sync.activity = ActivityEvent(text: "Saved as \(v.name)", symbol: "checkmark", status: nil)
                         } label: { Label("Save a version", systemImage: "plus") }
-                            .buttonStyle(.link)
+                            .buttonStyle(.app(.primary, size: .compact))
                     }
                     if let design, !design.livePlacements.isEmpty {
                         Button { showPreview = true } label: { Label("Preview plan", systemImage: "eye") }
-                            .buttonStyle(.app(.highlight, size: .compact, width: .hug))
+                            .buttonStyle(.app(.primary, size: .compact, width: .hug))
                     }
                 }
                 if let sharedDesign, room.hasGuest {
@@ -224,39 +223,34 @@ struct RoomPlanView: View {
                     DesignActions.move(p, x: x, z: z, sync: sync)
                 }
             } : nil)
-            .padding(Space.l)
-            .frame(maxWidth: .infinity)
-            .background(Color.surface, in: RoundedRectangle(cornerRadius: Radius.l, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: Radius.l, style: .continuous).strokeBorder(Color.outline))
+            .card(padding: Space.l, radius: Radius.cardLarge)
     }
 
     private func pieceBar(_ entry: PlanEntry, placement: DesignPlacement, piece: CatalogPiece) -> some View {
         VStack(alignment: .leading, spacing: Space.m) {
             HStack(alignment: .firstTextBaseline) {
-                VStack(alignment: .leading, spacing: Space.xxs) {
+                VStack(alignment: .leading, spacing: Space.xs) {
                     Text(piece.name).textRole(.bodyStrong)
                     if let problem = entry.problem {
                         Label(problem, systemImage: "exclamationmark.triangle").font(.detailStrong).foregroundStyle(Color.letGo)
                     } else {
                         Label(room.measured ? "Fits the floor space" : "Estimate · measure to check fit",
                               systemImage: room.measured ? "checkmark" : "ruler")
-                            .font(.detailStrong).foregroundStyle(room.measured ? Color.keep : Color.textTertiary)
+                            .font(.detailStrong).foregroundStyle(room.measured ? Color.keep : Color.textSecondary)
                     }
                 }
                 Spacer()
             }
             HStack(spacing: Space.s) {
                 Button { DesignActions.turn(placement, sync: sync) } label: { Label("Turn", systemImage: "arrow.clockwise") }
-                    .buttonStyle(.app(.quiet, size: .compact, width: .hug))
+                    .buttonStyle(.app(.neutral, size: .compact, width: .hug))
                 Button("Details") { detailPiece = piece }
-                    .buttonStyle(.app(.quiet, size: .compact, width: .hug))
+                    .buttonStyle(.app(.neutral, size: .compact, width: .hug))
                 Spacer()
-                Button(role: .destructive) {
+                IconButton(symbol: "trash", label: "Remove \(piece.name)", role: .destructive, filled: true) {
                     DesignActions.remove(placement, sync: sync)
                     selectedPiece = nil
-                } label: { Image(systemName: "trash").frame(minWidth: Size.tapTarget, minHeight: Size.tapTarget) }
-                    .foregroundStyle(Color.letGo)
-                    .accessibilityLabel("Remove \(piece.name)")
+                }
             }
             // Moving without dragging (VoiceOver, Switch Control, or just precision).
             HStack(spacing: Space.s) {
@@ -267,10 +261,7 @@ struct RoomPlanView: View {
                 nudge("arrow.right", "Move right") { DesignActions.move(placement, x: placement.xCm + 10, z: placement.zCm, sync: sync) }
             }
         }
-        .padding(Space.m)
-        .background(Color.surface, in: RoundedRectangle(cornerRadius: Radius.control))
-        .overlay(RoundedRectangle(cornerRadius: Radius.control).strokeBorder(Color.outline))
-        .elevation(.raised)
+        .card(padding: Space.l, radius: Radius.tile)
     }
 
     private func nudge(_ symbol: String, _ label: String, action: @escaping () -> Void) -> some View {
@@ -342,11 +333,11 @@ struct RoomPlanView: View {
                         Spacer()
                         Text(entry.piece.price > 0 ? entry.piece.price.formatted(.currency(code: "USD").precision(.fractionLength(0)))
                                                    : (entry.piece.source == .custom ? "Own piece" : "Yours"))
-                            .foregroundStyle(Color.textTertiary)
+                            .foregroundStyle(Color.textSecondary)
                     }
                     .padding(.vertical, Space.s)
                     .accessibilityElement(children: .combine)
-                    Divider()
+                    Hairline()
                 }
             }
         }
@@ -386,7 +377,8 @@ struct RoomPlanView: View {
 
         return VStack(alignment: .leading, spacing: Space.m) {
             Text("Add furniture").font(.cardTitle).accessibilityAddTraits(.isHeader)
-            UnderlineTabs(tabs: CatalogPiece.Category.allCases.map { ($0, $0.label) }, selection: $category)
+            ChipPicker(options: CatalogPiece.Category.allCases.map { .init(value: $0, title: $0.label) }, selection: $category,
+                       accessibilityLabel: "Furniture categories")
 
             DisclosureGroup(isExpanded: $showFit) {
                 VStack(alignment: .leading, spacing: Space.s) {
@@ -406,27 +398,27 @@ struct RoomPlanView: View {
                     Label("Fit filter", systemImage: "ruler")
                     Spacer()
                     Text(fitMode == .any ? "Any size" : fitMode == .custom ? "Custom dimensions" : (zoneLabel ?? "Room space"))
-                        .fontWeight(.semibold).foregroundStyle(Color.textPrimary)
+                        .fontWeight(.medium).foregroundStyle(Color.textPrimary)
                 }
                 .font(.detail)
                 .foregroundStyle(Color.textSecondary)
                 .frame(minHeight: Size.tapTarget)
             }
-            .tint(Color.textTertiary)
+            .tint(Color.iconNeutral)
 
             if let space {
                 HStack(spacing: Space.xs) {
                     Text("\(fitting.count) piece\(fitting.count == 1 ? "" : "s") fit \(zoneLabel.map { "the \($0.lowercased())" } ?? "\(units.roomLength(space.w)) × \(units.roomLength(space.d))").")
                     if all.count > fitting.count {
                         Button(showNoFit ? "Hide ones that don’t fit" : "Show \(all.count - fitting.count) that don’t") { showNoFit.toggle() }
-                            .buttonStyle(.link)
+                            .buttonStyle(.app(.primary, size: .compact))
                     }
                 }
                 .textRole(.secondary)
             }
             if category == .custom {
                 Button { showCustom = true } label: { Label("Add a piece by its size", systemImage: "plus") }
-                    .buttonStyle(.link)
+                    .buttonStyle(.app(.primary, size: .compact))
             }
             if category == .existing {
                 Text("Things that are staying. They’re already in the plan; place a copy to try it somewhere else.")
@@ -475,7 +467,7 @@ private struct PieceCard: View {
                     PieceImage(piece: piece, room: room)
                         .frame(maxWidth: .infinity)
                         .aspectRatio(1.2, contentMode: .fit)
-                        .clipShape(RoundedRectangle(cornerRadius: Radius.s))
+                        .clipShape(RoundedRectangle(cornerRadius: Radius.thumb))
                     if let fit {
                         AppTag(kind: .fit(fit), text: fit.label)
                             .padding(Space.s)
@@ -483,19 +475,15 @@ private struct PieceCard: View {
                 }
                 Text(piece.name).font(.detailStrong).foregroundStyle(Color.textPrimary)
                     .multilineTextAlignment(.leading)
-                Text(units.dims(piece.w, piece.d, piece.h)).font(.captionText).foregroundStyle(Color.textTertiary)
-                HStack {
-                    Text(piece.style).font(.captionText).foregroundStyle(Color.textTertiary)
-                    Spacer(minLength: 4)
-                    Label("Place", systemImage: "plus").font(.captionStrong).foregroundStyle(Color.accentText)
-                }
+                Text(units.dims(piece.w, piece.d, piece.h)).font(.detail).foregroundStyle(Color.textSecondary)
+                Text(piece.style).font(.detail).foregroundStyle(Color.textSecondary)
+                Label("Place", systemImage: "plus").font(.detailStrong).foregroundStyle(Color.accent)
             }
-            .padding(Space.s)
             .frame(maxHeight: .infinity, alignment: .top)
-            .background(Color.surface, in: RoundedRectangle(cornerRadius: Radius.m))
+            .card(padding: Space.m, radius: Radius.tile)
             .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PressableStyle())
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Place \(piece.name), \(units.dims(piece.w, piece.d, piece.h))\(fit.map { ", \($0.label)" } ?? "")")
         .accessibilityAddTraits(.isButton)
@@ -529,26 +517,25 @@ private struct PieceDetailSheet: View {
             VStack(alignment: .leading, spacing: Space.l) {
                 CategoryGlyph(category: piece.kind, colorHex: piece.colorHex, glyph: .hero)
                 .aspectRatio(4 / 3, contentMode: .fit)
-                .clipShape(RoundedRectangle(cornerRadius: Radius.m))
+                .clipShape(RoundedRectangle(cornerRadius: Radius.card))
                 .accessibilityHidden(true)
                 HStack(alignment: .firstTextBaseline) {
                     Text(piece.price > 0 ? piece.price.formatted(.currency(code: "USD").precision(.fractionLength(0)))
                                          : (piece.source == .custom ? "Own piece" : "Yours"))
                         .font(.sectionTitle)
                     Spacer()
-                    Text(units.dims(piece.w, piece.d, piece.h)).foregroundStyle(Color.textTertiary)
+                    Text(units.dims(piece.w, piece.d, piece.h)).foregroundStyle(Color.textSecondary)
                 }
-                Text(piece.style).foregroundStyle(Color.textTertiary)
+                Text(piece.style).foregroundStyle(Color.textSecondary)
                 if piece.price > 0 {
                     Text("Sample price for planning. Store links aren’t part of the app yet.")
                         .textRole(.hint)
                 }
                 Spacer()
             }
-            .padding(Space.l)
-            .background(Color.surface)
-            .navigationTitle(piece.name)
-            .navigationBarTitleDisplayMode(.inline)
+            .padding(Space.page)
+            .appSheet()
+            .appNavigation(piece.name)
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
         }
         .presentationDetents([.medium, .large])
@@ -569,7 +556,7 @@ private struct CustomPieceSheet: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: Space.l) {
-                    Text("A piece you already own or plan to buy.").foregroundStyle(Color.textTertiary)
+                    Text("A piece you already own or plan to buy.").foregroundStyle(Color.textSecondary)
                     VStack(alignment: .leading, spacing: Space.s) {
                         SectionLabel("Name")
                         TextField("Grandma’s dresser", text: $name).textFieldStyle(.app)
@@ -582,11 +569,10 @@ private struct CustomPieceSheet: View {
                     .buttonStyle(.app)
                     .disabled(w < 5 || d < 5)
                 }
-                .padding(Space.l)
+                .padding(Space.page)
             }
-            .background(Color.surface)
-            .navigationTitle("Your own piece")
-            .navigationBarTitleDisplayMode(.inline)
+            .appSheet()
+            .appNavigation("Your own piece")
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } } }
         }
         .presentationDetents([.large])
@@ -614,21 +600,19 @@ private struct PlanPreviewSheet: View {
                 VStack(alignment: .leading, spacing: Space.l) {
                     let cost = resolved.pieceCost
                     Text("\(room.futureUse.isEmpty ? "Proposed layout" : room.futureUse) · \(resolved.pieces.count) piece\(resolved.pieces.count == 1 ? "" : "s")\(cost > 0 ? " · about \(cost.formatted(.currency(code: "USD").precision(.fractionLength(0))))" : "")")
-                        .foregroundStyle(Color.textTertiary)
+                        .foregroundStyle(Color.textSecondary)
                     FloorPlanView(room: room, entries: resolved.entries)
-                        .padding(Space.m)
-                        .background(Color.surface, in: RoundedRectangle(cornerRadius: Radius.l))
-                        .overlay(RoundedRectangle(cornerRadius: Radius.l).strokeBorder(Color.outline))
-                    VStack(spacing: Space.xxs) {
+                        .card(padding: Space.m, radius: Radius.cardLarge)
+                    VStack(spacing: Space.xs) {
                         ForEach(resolved.pieces, id: \.placement.id) { entry in
                             HStack {
                                 Text(entry.piece.name)
                                 Spacer()
-                                Text(units.dims(entry.piece.w, entry.piece.d, entry.piece.h)).foregroundStyle(Color.textTertiary)
+                                Text(units.dims(entry.piece.w, entry.piece.d, entry.piece.h)).foregroundStyle(Color.textSecondary)
                             }
                             .padding(.vertical, Space.m)
                             .accessibilityElement(children: .combine)
-                            Divider()
+                            Hairline()
                         }
                     }
                     if room.hasGuest {
@@ -639,7 +623,7 @@ private struct PlanPreviewSheet: View {
                             sync.activity = ActivityEvent(text: "Shared with \(room.name(of: .guest))", symbol: "paperplane", status: nil)
                             dismiss()
                         } label: { Label("Share plan with \(room.name(of: .guest))", systemImage: "paperplane") }
-                            .buttonStyle(.app(.highlight))
+                            .buttonStyle(.app(.primary))
                         Text("\(room.name(of: .guest)) sees this version and can react to it.")
                             .textRole(.hint).frame(maxWidth: .infinity)
                     } else {
@@ -650,11 +634,10 @@ private struct PlanPreviewSheet: View {
                             .buttonStyle(.app(.neutral))
                     }
                 }
-                .padding(Space.l)
+                .padding(Space.page)
             }
-            .background(Color.pageBackground)
-            .navigationTitle(design.name)
-            .navigationBarTitleDisplayMode(.inline)
+            .appSheet()
+            .appNavigation(design.name)
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
         }
     }
@@ -670,21 +653,18 @@ private struct ReactNoteSheet: View {
     var body: some View {
         NavigationStack {
             VStack(alignment: .leading, spacing: Space.l) {
-                Text("\(hostName) will see this with the plan.").foregroundStyle(Color.textTertiary)
+                Text("\(hostName) will see this with the plan.").foregroundStyle(Color.textSecondary)
                 TextField("For example: can the bookshelf stay by the window?", text: $text, axis: .vertical)
                     .lineLimit(3...8)
-                    .padding(Space.m)
-                    .background(Color.surface, in: RoundedRectangle(cornerRadius: Radius.control))
-                    .overlay(RoundedRectangle(cornerRadius: Radius.control).strokeBorder(Color.outlineStrong))
+                    .textFieldStyle(.appArea)
                 Button("Send") { onSend(text.trimmed); dismiss() }
                     .buttonStyle(.app)
                     .disabled(text.trimmed.isEmpty)
                 Spacer()
             }
-            .padding(Space.l)
-            .background(Color.surface)
-            .navigationTitle("One thing")
-            .navigationBarTitleDisplayMode(.inline)
+            .padding(Space.page)
+            .appSheet()
+            .appNavigation("One thing")
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } } }
             .onAppear { text = initial }
         }

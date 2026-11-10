@@ -54,8 +54,8 @@ enum ShapeDrawing {
             gap.move(to: t.point(a.x, a.z))
             gap.addLine(to: t.point(b.x, b.z))
             if o.kind == .window {
-                c.stroke(gap, with: .color(.surface), lineWidth: Stroke.heavy * 2.4)
-                c.stroke(gap, with: .color(.roomWindow), lineWidth: Stroke.heavy)
+                c.stroke(gap, with: .color(.tintSlate), lineWidth: Stroke.heavy * 2.4)
+                c.stroke(gap, with: .color(.send), lineWidth: Stroke.hairline)
             } else {
                 c.stroke(gap, with: .color(.surface), lineWidth: Stroke.heavy * 2.4)
                 let n = shape.inwardNormal(p.edge)
@@ -66,19 +66,19 @@ enum ShapeDrawing {
                 var leaf = Path()
                 leaf.move(to: t.point(hinge.x, hinge.z))
                 leaf.addLine(to: t.point(leafEnd.x, leafEnd.z))
-                c.stroke(leaf, with: .color(.textSecondary), style: StrokeStyle(lineWidth: Stroke.bold, lineCap: .round))
+                c.stroke(leaf, with: .color(.iconNeutral), style: StrokeStyle(lineWidth: Stroke.bold, lineCap: .round))
                 var arc = Path()
                 arc.move(to: t.point(leafEnd.x, leafEnd.z))
                 arc.addQuadCurve(to: t.point(free.x, free.z),
                                  control: t.point(free.x + n.x * side * p.width, free.z + n.z * side * p.width))
-                c.stroke(arc, with: .color(.textTertiary), style: StrokeStyle(lineWidth: Stroke.hairline, dash: Stroke.dotted))
+                c.stroke(arc, with: .color(.textSecondary), style: StrokeStyle(lineWidth: Stroke.hairline, dash: Stroke.dotted))
             }
             if handles {
                 let on = o.id == selected
                 let center = t.point(p.center.x, p.center.z)
                 let r = on ? Size.tick / 2.4 : Size.tick / 3
                 let dot = Path(ellipseIn: CGRect(x: center.x - r, y: center.y - r, width: r * 2, height: r * 2))
-                c.fill(dot, with: .color(o.kind == .door ? .highlight : .roomWindow))
+                c.fill(dot, with: .color(o.kind == .door ? .iconNeutral : .send))
                 c.stroke(dot, with: .color(on ? .textPrimary : .surface), lineWidth: Stroke.bold)
             }
         }

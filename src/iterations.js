@@ -24,9 +24,9 @@ export const team = {
         href: "/sharedSpaceAmanda3.html",
       },
               {
-        title: "Shared Space 7",
+        title: "Shared Space 8",
         description: "November 9, 2026 - P3.3: (GROUP) Prototype v1",
-        href: "/sharedSpaceCharline7.html",
+        href: "/sharedSpaceAmanda8.html",
       },
     ],
   };

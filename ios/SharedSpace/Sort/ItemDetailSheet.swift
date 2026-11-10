@@ -31,13 +31,12 @@ struct ItemDetailSheet: View {
                     noteField
                     details
                 }
-                .padding(Space.l)
+                .padding(Space.page)
             }
             .scrollDismissesKeyboard(.interactively)
             .disabled(context.readOnly)
-            .background(Color.surface)
-            .navigationTitle(item.name)
-            .navigationBarTitleDisplayMode(.inline)
+            .appSheet()
+            .appNavigation(item.name)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) { Button("Done") { commitText(); dismiss() } }
             }
@@ -67,7 +66,7 @@ struct ItemDetailSheet: View {
         HStack(alignment: .top, spacing: Space.l) {
             ItemThumb(item: item, size: 72)
             VStack(alignment: .leading, spacing: Space.s) {
-                Text(item.name).font(.sectionTitle)
+                Text(item.name).textRole(.sectionTitle)
                 Text(units.dims(item.widthCm, item.depthCm, item.heightCm)).textRole(.secondary)
                 if item.isDecided {
                     StatusTag(item: item, room: room, me: me)
@@ -113,20 +112,20 @@ struct ItemDetailSheet: View {
         } label: {
             Label(asked ? "Asked \(room.name(of: me.other))" : "Ask \(room.name(of: me.other)) what to do", systemImage: "text.bubble")
         }
-        .buttonStyle(.app(asked ? .neutral : .highlight))
+        .buttonStyle(.app(.primary, selected: asked))
         .disabled(asked)
     }
 
     private var ownerPicker: some View {
         let other = me.other
-        let segments: [SegmentedControl<Owner>.Segment] = [
+        let segments: [ChipOption<Owner>] = [
             .init(value: Owner(me), title: "Me"),
             .init(value: Owner(other), title: room.hasGuest || other == .host ? room.name(of: other) : "Someone else"),
             .init(value: .shared, title: "Both"),
         ]
         return VStack(alignment: .leading, spacing: Space.s) {
             SectionLabel("Belongs to")
-            SegmentedControl(segments: segments, selection: Binding(get: { item.owner == .unassigned ? .host : item.owner }, set: pickOwner))
+            ChipPicker(options: segments, selection: Binding(get: { item.owner == .unassigned ? .host : item.owner }, set: pickOwner))
             if item.isDecided && item.owner != .shared {
                 Text("Changing the owner clears the decision, so the new owner can decide.")
                     .textRole(.hint)
@@ -139,9 +138,7 @@ struct ItemDetailSheet: View {
             SectionLabel("Note")
             TextField("Anything the other person should know", text: $note, axis: .vertical)
                 .lineLimit(3...6)
-                .padding(Space.m)
-                .background(Color.surface, in: RoundedRectangle(cornerRadius: Radius.control))
-                .overlay(RoundedRectangle(cornerRadius: Radius.control).strokeBorder(Color.outlineStrong))
+                .textFieldStyle(.appArea)
                 .accessibilityLabel("Note")
             if let by = item.noteBy, !item.note.isEmpty {
                 Text("From \(by == me ? "you" : room.name(of: by)).").textRole(.hint)
@@ -162,12 +159,12 @@ struct ItemDetailSheet: View {
                     }
                     .frame(minHeight: Size.tapTarget)
                     Button("Remove from the list", role: .destructive) { confirmRemove = true }
-                        .buttonStyle(.link(.destructive))
+                        .buttonStyle(.app(.destructive, size: .compact))
                 }
                 .padding(.top, Space.m)
             }
             .font(.detailStrong)
-            .tint(Color.textTertiary)
+            .tint(Color.iconNeutral)
         }
     }
 
