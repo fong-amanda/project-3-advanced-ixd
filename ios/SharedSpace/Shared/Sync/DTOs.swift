@@ -29,11 +29,15 @@ struct RoomDTO: Codable {
     @NullCodable var photoCount: Int?
     @NullCodable var sharedDesignId: UUID?
     @NullCodable var shape: RoomShape?
+    // Room goals (Nov 2026). Optional so rows from an older database still decode (both on).
+    @NullCodable var sortEnabled: Bool?
+    @NullCodable var planEnabled: Bool?
     var createdAt: Date
     var updatedAt: Date
     @NullCodable var deletedAt: Date?
 
     init(_ r: Room) {
+        sortEnabled = r.sortEnabled; planEnabled = r.planEnabled
         units = r.units; measured = r.measured; photoCount = r.photoCount; sharedDesignId = r.sharedDesignId
         shape = r.shapeData == nil ? nil : r.shape
         id = r.id; code = r.code; name = r.name; currentUse = r.currentUse; futureUse = r.futureUse
@@ -65,10 +69,13 @@ struct RoomPatchDTO: Encodable {
     var photoCount: Int
     @NullCodable var sharedDesignId: UUID?
     @NullCodable var shape: RoomShape?
+    var sortEnabled: Bool
+    var planEnabled: Bool
     var updatedAt: Date
     @NullCodable var deletedAt: Date?
 
     init(_ r: Room) {
+        sortEnabled = r.sortEnabled; planEnabled = r.planEnabled
         units = r.units; measured = r.measured; photoCount = r.photoCount; sharedDesignId = r.sharedDesignId
         shape = r.shapeData == nil ? nil : r.shape
         name = r.name; currentUse = r.currentUse; futureUse = r.futureUse
@@ -89,6 +96,8 @@ extension Room {
         scanVersion = d.scanVersion; geometryPath = d.geometryPath
         units = d.units ?? units; measured = d.measured ?? measured
         photoCount = d.photoCount ?? photoCount; sharedDesignId = d.sharedDesignId
+        sortEnabled = d.sortEnabled ?? true; planEnabled = d.planEnabled ?? true
+        if !sortEnabled && !planEnabled { sortEnabled = true; planEnabled = true }   // never zero goals
         // A shape is only ever replaced, never removed; a missing one (older database) keeps ours.
         if let s = d.shape { shapeData = try? JSONEncoder().encode(s) }
         createdAt = d.createdAt; updatedAt = d.updatedAt; deletedAt = d.deletedAt
@@ -101,6 +110,12 @@ extension Room {
                   hostUserId: d.hostUserId, hostName: d.hostName)
         apply(d)
     }
+}
+
+/// This person's own membership row: just what's per person (the archive flag).
+struct MembershipDTO: Codable {
+    var roomId: UUID
+    @NullCodable var archived: Bool?
 }
 
 // MARK: - Items

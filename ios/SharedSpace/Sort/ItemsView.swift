@@ -10,6 +10,8 @@ struct ItemsView: View {
     @Environment(SyncEngine.self) private var sync
     @Environment(RoomSession.self) private var session
     @Environment(Router.self) private var router
+    @Environment(\.captureConsent) private var consent
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Query private var items: [Item]
 
     @State private var view: Bucket = .needs
@@ -25,6 +27,13 @@ struct ItemsView: View {
     @State private var skipped: [UUID] = []
     @State private var showSummary = false
     @State private var showZoom = false
+    @State private var findIn: PhotoToSearch?
+
+    private struct PhotoToSearch: Identifiable {
+        let id = UUID()
+        let index: Int
+        let image: UIImage
+    }
 
     enum Bucket: Hashable { case needs, waiting, decided }
     enum Stage: Hashable { case photo, model }
@@ -59,7 +68,7 @@ struct ItemsView: View {
         .roomChrome(room) {
             if !queue.isEmpty {
                 Button {
-                    withAnimation { cards = !showingCards }
+                    withMotion(reduceMotion: reduceMotion, fade: true) { cards = !showingCards }
                 } label: {
                     ToolbarIcon(symbol: showingCards ? "list.bullet" : "rectangle.stack")
                 }
@@ -67,9 +76,21 @@ struct ItemsView: View {
             }
         }
         .sheet(item: $detailItem) { item in ItemDetailSheet(item: item, room: room) }
+        #if DEBUG
+        .task {
+            guard DemoData.openItemSheet else { return }
+            try? await Task.sleep(for: .milliseconds(600))
+            detailItem = items.first { !$0.isDecided } ?? items.first
+        }
+        #endif
         .sheet(isPresented: $showFilter) { FilterSheet(room: room, me: me, filter: $filter) }
         .sheet(isPresented: $showSummary) {
-            SortSummarySheet(items: relevant, room: room, me: me) { router.roomTab = .plan }
+            SortSummarySheet(items: relevant, room: room, me: me) { router.roomTab = room.planEnabled ? .plan : .room }
+        }
+        .sheet(item: $findIn) { target in
+            DetectionReviewSheet(image: target.image, existing: existingThings(on: target.index)) { chosen in
+                addSuggestions(chosen, photo: target.index)
+            }
         }
         .fullScreenCover(isPresented: $showZoom) { PhotoZoomView(room: room, photo: photoIndex, items: items) }
         .onChange(of: openCount) { old, new in
@@ -98,13 +119,14 @@ struct ItemsView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: Space.m) {
                     if !photos.isEmpty { photoBar }
-                    HStack {
+                    AdaptiveStack {
                         Text(selecting ? "\(selectedIds.count) selected" : "\(items.count) thing\(items.count == 1 ? "" : "s")")
                             .textRole(.secondary)
                         Spacer()
                         if context.canEditRoom && room.hasGuest {
                             Button(selecting ? "Cancel" : "Select") { selecting.toggle(); selectedIds = [] }
                                 .buttonStyle(.app(.primary, size: .compact))
+                                .fixedSize()
                         }
                         ChipPicker(options: [.init(value: Stage.photo, title: "Photo"), .init(value: Stage.model, title: "3D view")],
                                    selection: $stage, accessibilityLabel: "Show")
@@ -115,6 +137,7 @@ struct ItemsView: View {
                         Text("If a number is on the wrong thing, drag it onto the right one.")
                             .textRole(.hint)
                     }
+                    if context.canEditRoom && stage == .photo && !photos.isEmpty { findThings }
 
                     ChipPicker(options: [
                         .init(value: Bucket.needs, title: "For you to decide", count: sets[.needs]?.count),
@@ -123,7 +146,7 @@ struct ItemsView: View {
                         .init(value: Bucket.decided, title: "Decided", count: sets[.decided]?.count),
                     ], selection: $view, accessibilityLabel: "Items")
 
-                    HStack {
+                    AdaptiveStack {
                         Text("\(shown.count) of \(sets[view]?.count ?? 0)\(filter.isActive ? " · filtered" : "")")
                             .textRole(.secondary)
                         Spacer()
@@ -156,7 +179,7 @@ struct ItemsView: View {
                 .pagePadding()
             }
             .onChange(of: selectedId) { _, id in
-                if let id { withAnimation { proxy.scrollTo(id, anchor: .center) } }
+                if let id { withMotion(reduceMotion: reduceMotion) { proxy.scrollTo(id, anchor: .center) } }
             }
         }
         .safeAreaInset(edge: .bottom) {
@@ -225,8 +248,56 @@ struct ItemsView: View {
         Dictionary(uniqueKeysWithValues: items.filter(\.hasPin).enumerated().map { ($1.id, $0 + 1) })
     }
 
+    /// "Find things in this photo": optional, on-device suggestions for the photo on screen.
+    private var findThings: some View {
+        let shown = photos.contains(photoIndex) ? photoIndex : (photos.first ?? 0)
+        return VStack(alignment: .leading, spacing: Space.xs) {
+            Button {
+                if let image = RoomPhotos.image(roomId: room.id, index: shown, revision: sync.photoRevision) {
+                    findIn = PhotoToSearch(index: shown, image: image)
+                }
+            } label: {
+                Label("Find things in this photo", systemImage: "sparkle.magnifyingglass")
+            }
+            .buttonStyle(.app(.neutral, size: .compact, width: .hug))
+            .accessibilityHint("Suggests things to add. You check each one first.")
+            Text(DetectionReviewSheet.privacyNote).textRole(.hint)
+        }
+    }
+
+    private func existingThings(on photo: Int) -> [ExistingThing] {
+        items.map {
+            ExistingThing(id: $0.id, name: $0.name, category: $0.category, pin: $0.pin(on: photo),
+                          scanned: $0.source == .scanned, pinnedAnywhere: $0.hasPin)
+        }
+    }
+
+    /// Confirmed suggestions: a scanned match gets its number on the photo; anything else is added.
+    private func addSuggestions(_ chosen: [DetectionSuggestion], photo: Int) {
+        guard !chosen.isEmpty else { return }
+        var all = Array(items)
+        let owner = SortActions.defaultOwner(in: room, items: all)
+        var added = 0, linked = 0
+        for s in chosen {
+            if let match = s.match, let item = all.first(where: { $0.id == match.id }) {
+                if item.name != s.name { item.name = s.name }
+                SortActions.setPin(s.pin, photo: photo, for: item, sync: sync)
+                linked += 1
+            } else {
+                all.append(SortActions.addItem(name: s.name, category: s.category, owner: owner, pin: s.pin, photo: photo,
+                                               to: room, existing: all, sync: sync))
+                added += 1
+            }
+        }
+        photoIndex = photo
+        let parts = [added > 0 ? "Added \(added) \(added == 1 ? "thing" : "things")" : nil,
+                     linked > 0 ? "numbered \(linked) from your scan" : nil].compactMap { $0 }
+        let text = parts.joined(separator: ", ")
+        sync.activity = ActivityEvent(text: text.prefix(1).uppercased() + text.dropFirst(), symbol: "checkmark", status: nil)
+    }
+
     private var photoBar: some View {
-        HStack(spacing: Space.m) {
+        AdaptiveStack(spacing: Space.m) {
             if photos.count > 1 {
                 ChipPicker(options: photos.map { .init(value: $0, title: "Photo \($0 + 1)") },
                            selection: Binding(get: { photoIndex }, set: { photoIndex = $0; selectedId = nil }),
@@ -235,9 +306,8 @@ struct ItemsView: View {
             Spacer(minLength: 0)
             if context.canEditRoom && room.photoCount < Room.maxPhotos {
                 AddPhotoMenu(title: "Another angle") { image in
-                    guard let jpeg = image.jpegForUpload() else { return }
                     let index = room.photoCount
-                    sync.savePhoto(jpeg, index: index, of: room)
+                    guard let jpeg = image.jpegForUpload(), sync.savePhoto(jpeg, index: index, of: room) else { return }
                     photoIndex = index
                     stage = .photo
                     sync.activity = ActivityEvent(text: "Tap anything the first photo missed to add it", symbol: "plus", status: nil)
@@ -262,7 +332,8 @@ struct ItemsView: View {
                     pins: items.compactMap { item in
                         item.pin(on: shownPhoto).map {
                             PhotoPin(id: item.id, number: numbers[item.id] ?? 0, label: item.name, point: $0,
-                                     status: item.status, isSelected: item.id == selectedId)
+                                     status: item.status, statusText: SortRules.spokenStatus(item, room: room),
+                                     isSelected: item.id == selectedId)
                         }
                     },
                     onTapPin: { id in selectedId = selectedId == id ? nil : id },
@@ -307,8 +378,9 @@ struct ItemsView: View {
                     session.addItem = AddItemRequest()
                 }
                 if context.canEditRoom && DeviceCapabilities.canScanRooms {
-                    Button { session.showScan = true } label: {
-                        ChoiceTile(title: "Scan with LiDAR", detail: "Measures the walls, doors and windows and finds the furniture",
+                    Button { consent { session.showScan = true } } label: {
+                        ChoiceTile(title: "Scan with LiDAR",
+                                   detail: "Measures the walls, doors and windows. \(ScanCopy.before)",
                                    symbol: "viewfinder")
                     }
                     .buttonStyle(.plain)
@@ -386,32 +458,23 @@ struct FilterSheet: View {
 struct AddPhotoMenu: View {
     let title: String
     var onPick: (UIImage) -> Void
+    @Environment(\.captureConsent) private var consent
     @State private var showCamera = false
     @State private var showLibrary = false
-    @State private var item: PhotosPickerItem?
 
     var body: some View {
         Menu {
             if CameraPicker.isAvailable {
-                Button("Take a photo", systemImage: "camera") { showCamera = true }
+                Button("Take a photo", systemImage: "camera") { consent { showCamera = true } }
             }
-            Button("Choose from library", systemImage: "photo.on.rectangle") { showLibrary = true }
+            Button("Choose from library", systemImage: "photo.on.rectangle") { consent { showLibrary = true } }
         } label: {
             Label(title, systemImage: "camera")
         }
         .menuStyle(.button)
         .buttonStyle(.app(.primary, size: .compact))
-        .photosPicker(isPresented: $showLibrary, selection: $item, matching: .images)
+        .photoLibraryImport(isPresented: $showLibrary, onPick: onPick)
         .fullScreenCover(isPresented: $showCamera) { CameraPicker(onPick: onPick).ignoresSafeArea() }
-        .onChange(of: item) { _, new in
-            guard let new else { return }
-            Task {
-                if let data = try? await new.loadTransferable(type: Data.self), let image = UIImage(data: data) {
-                    onPick(image.normalisedUp())
-                }
-                item = nil
-            }
-        }
     }
 }
 
@@ -432,7 +495,10 @@ struct PhotoZoomView: View {
                     if let image = RoomPhotos.image(roomId: room.id, index: photo, revision: sync.photoRevision) {
                         let numbers = Dictionary(uniqueKeysWithValues: items.filter(\.hasPin).enumerated().map { ($1.id, $0 + 1) })
                         PhotoWithPins(image: image, pins: items.compactMap { item in
-                            item.pin(on: photo).map { PhotoPin(id: item.id, number: numbers[item.id] ?? 0, label: item.name, point: $0, status: item.status) }
+                            item.pin(on: photo).map {
+                                PhotoPin(id: item.id, number: numbers[item.id] ?? 0, label: item.name, point: $0,
+                                         status: item.status, statusText: SortRules.spokenStatus(item, room: room))
+                            }
                         })
                         .frame(width: geo.size.width * scale * pinch)
                     }

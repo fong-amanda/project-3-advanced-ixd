@@ -1,14 +1,15 @@
 import RoomPlan
 import SwiftUI
 
-/// Creating a room, in four short steps (two for an empty room):
-/// room details → size → photos → check what's in it. Ends with "Create room" (and invite).
+/// Creating a room, in five short steps (three for an empty room):
+/// room details → goals → size → photos → check what's in it. Ends with "Create room" (and invite).
 struct NewRoomFlow: View {
     /// Called with the new room, and whether to open the invite next.
     var onCreate: (Room, Bool) -> Void
 
     @Environment(\.dismiss) private var dismiss
     @Environment(SyncEngine.self) private var sync
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     @State private var step = 0
     @State private var myName = Identity.name
@@ -17,6 +18,8 @@ struct NewRoomFlow: View {
     @State private var futureUse = ""
     @State private var otherUse = false
     @State private var hasItems = true
+    @State private var sortGoal = true
+    @State private var planGoal = true
     @State private var invite = false
     @State private var guestName = ""
     @State private var shape = RoomShape.rectangle(width: 340, length: 380)
@@ -31,6 +34,10 @@ struct NewRoomFlow: View {
     @State private var problem: String?
     @State private var showScan = false
     @State private var captured: CapturedRoom?
+    /// "Before you scan" was accepted during this flow; remembered for the room once it's created.
+    @State private var agreedToCapture = false
+    @State private var findIn: Int?
+    @State private var showHowDetectionWorks = false
     private let askName = Identity.name.isEmpty
 
     static let currentOptions = ["Bedroom", "Office", "Storage room", "Living room", "Spare room"]
@@ -49,6 +56,8 @@ struct NewRoomFlow: View {
         var photo = 0
         /// Found by the LiDAR scan: real size and position.
         var scanned: ScanResult.Object?
+        /// Set for photo suggestions ("TV" → Television), so the name doesn't have to be guessed.
+        var category: ItemCategory? = nil
     }
 
     struct DraftEdit: Identifiable {
@@ -58,21 +67,44 @@ struct NewRoomFlow: View {
         var photo = 0
     }
 
-    private var stepCount: Int { hasItems ? 4 : 2 }
-    private let titles = ["Room details", "Room size", "Room photos", "Review items"]
-    private let headings = ["Which room are we changing?", "How big is the room?", "Show the room as it is now", "Check what’s in the room"]
+    private enum Step { case details, goals, size, photos, review }
+
+    private var steps: [Step] { [.details, .goals, .size] + (hasItems ? [.photos, .review] : []) }
+    private var stepCount: Int { steps.count }
+    private var current: Step { steps[min(step, steps.count - 1)] }
+
+    private var title: String {
+        switch current {
+        case .details: "Room details"
+        case .goals: "Room goals"
+        case .size: "Room size"
+        case .photos: "Room photos"
+        case .review: "Review items"
+        }
+    }
+
+    private var heading: String {
+        switch current {
+        case .details: "Which room are we changing?"
+        case .goals: "What do you want to do with this room?"
+        case .size: "How big is the room?"
+        case .photos: "Show the room as it is now"
+        case .review: "Check what’s in the room"
+        }
+    }
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: Space.xxl) {
                     progress
-                    Text(headings[step]).font(.screenTitle).accessibilityAddTraits(.isHeader)
-                    switch step {
-                    case 0: detailsStep
-                    case 1: sizeStep
-                    case 2: photosStep
-                    default: reviewStep
+                    Text(heading).font(.screenTitle).accessibilityAddTraits(.isHeader)
+                    switch current {
+                    case .details: detailsStep
+                    case .goals: goalsStep
+                    case .size: sizeStep
+                    case .photos: photosStep
+                    case .review: reviewStep
                     }
                     if let problem {
                         Text(problem).textRole(.error)
@@ -83,13 +115,13 @@ struct NewRoomFlow: View {
             .scrollDismissesKeyboard(.interactively)
             .pageBackground()
             .safeAreaInset(edge: .bottom) { footer }
-            .appNavigation(titles[step])
+            .appNavigation(title)
             .toolbar {
                 if step == 0 {
                     ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
                 } else {
                     ToolbarItem(placement: .cancellationAction) {
-                        BackButton { withAnimation { step -= 1; problem = nil } }
+                        BackButton { withMotion(reduceMotion: reduceMotion) { step -= 1; problem = nil } }
                     }
                     .plainToolbarBackground()
                 }
@@ -98,6 +130,15 @@ struct NewRoomFlow: View {
                         .accessibilityLabel("Step \(step + 1) of \(stepCount)")
                 }
             }
+            #if DEBUG
+            .onAppear {
+                if DemoData.newRoomStep == "photos", step == 0 {
+                    roomName = "Study"
+                    step = steps.firstIndex(of: .photos) ?? step
+                }
+            }
+            #endif
+            .captureConsent(isAgreed: { agreedToCapture }) { agreedToCapture = true }
             .fullScreenCover(isPresented: $showScan) {
                 ScanFlowView { result, room in
                     shape = result.shape
@@ -107,6 +148,13 @@ struct NewRoomFlow: View {
                     hasItems = hasItems || !result.objects.isEmpty
                     items.removeAll { $0.scanned != nil }
                     items += result.objects.map { Draft(name: $0.name, owner: invite ? .guest : .host, scanned: $0) }
+                }
+            }
+            .sheet(isPresented: Binding(get: { findIn != nil }, set: { if !$0 { findIn = nil } })) {
+                if let index = findIn, photos.indices.contains(index) {
+                    DetectionReviewSheet(image: photos[index], existing: existingThings(on: index)) { chosen in
+                        addSuggestions(chosen, photo: index)
+                    }
                 }
             }
             .sheet(item: $editing) { edit in
@@ -138,7 +186,7 @@ struct NewRoomFlow: View {
                           otherUse = value == "Other"
                           futureUse = otherUse ? "" : value
                       }))
-                if otherUse { TextField("What will it become?", text: $futureUse).textFieldStyle(.app) }
+                if otherUse { TextField("What will it become?", text: $futureUse, prompt: Text("What will it become?").foregroundStyle(Color.textSecondary)).textFieldStyle(.app) }
             }
             VStack(alignment: .leading, spacing: Space.s) {
                 SectionLabel("Are there items to sort?")
@@ -154,12 +202,24 @@ struct NewRoomFlow: View {
         }
     }
 
+    private var goalsStep: some View {
+        VStack(alignment: .leading, spacing: Space.l) {
+            Text("Pick one or both.").textRole(.secondary)
+            GoalPicker(sort: $sortGoal, plan: $planGoal)
+            Text("You can change this anytime. Nothing has to leave the room.")
+                .textRole(.hint)
+            if !sortGoal && !planGoal {
+                Text("Choose at least one to continue.").textRole(.error)
+            }
+        }
+    }
+
     private var sizeStep: some View {
         VStack(alignment: .leading, spacing: Space.xl) {
             if DeviceCapabilities.canScanRooms {
-                Button { showScan = true } label: {
+                ConsentGatedButton { showScan = true } label: {
                     ChoiceTile(title: captured == nil ? "Scan with LiDAR" : "Scan again",
-                               detail: captured == nil ? "Measures the walls, doors and windows and finds the furniture. Or draw it below."
+                               detail: captured == nil ? "Measures the walls, doors and windows. \(ScanCopy.before)"
                                                        : "Scanned. Adjust anything the scan got wrong below.",
                                symbol: "viewfinder")
                 }
@@ -189,6 +249,36 @@ struct NewRoomFlow: View {
 
     private var photosStep: some View {
         VStack(alignment: .leading, spacing: Space.l) {
+            // True to what happens: "Find things in this photo" runs an on-device Core ML model
+            // (PhotoDetector), then checks the scan only to avoid duplicates.
+            HStack(alignment: .top, spacing: Space.xs) {
+                Text("Add a photo and we’ll use AI on your iPhone to suggest the things in it. You’ll check each one before it’s added.")
+                    .textRole(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                Button { showHowDetectionWorks = true } label: {
+                    Image(systemName: "info.circle")
+                        .font(.button)
+                        .foregroundStyle(Color.accent)
+                        .dynamicTypeSize(...Size.iconTypeLimit)
+                        .frame(width: Size.tapTarget, height: Size.tapTarget)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("How this works")
+                .padding(.top, -Space.m)
+            }
+            .alert("How we find things in your photo", isPresented: $showHowDetectionWorks) {
+                Button("Got it", role: .cancel) {}
+            } message: {
+                // The model knows beds, chairs, sofas, tables and TVs, but not shelves.
+                Text("""
+                An AI model on your iPhone looks for common furniture like beds, chairs, sofas and tables.
+
+                It can miss things or get them wrong, especially less common items. You’ll confirm, rename or remove each suggestion.
+
+                Your photo stays on your iPhone for this.
+                """)
+            }
             if !photos.isEmpty {
                 Text("Take another angle if anything is hidden.").textRole(.secondary)
                 gallery(withPins: false)
@@ -213,8 +303,20 @@ struct NewRoomFlow: View {
             if !photos.isEmpty {
                 gallery(withPins: true)
                 Text("Tap a thing in the photo to add it.").textRole(.secondary)
+                VStack(alignment: .leading, spacing: Space.xs) {
+                    Button { findIn = photoIndex } label: {
+                        Label("Find things in this photo", systemImage: "sparkle.magnifyingglass")
+                    }
+                    .buttonStyle(.app(.neutral, size: .compact, width: .hug))
+                    .accessibilityHint("Suggests things to add. You check each one first.")
+                    Text(DetectionReviewSheet.privacyNote).textRole(.hint)
+                }
             } else {
                 Text("Add the things in the room. You can add more later.").textRole(.secondary)
+            }
+            let scanned = items.filter { $0.scanned != nil }.count
+            if captured != nil {
+                Text(ScanCopy.found(scanned)).textRole(.body)
             }
             if !items.isEmpty {
                 VStack(spacing: Space.xs) {
@@ -281,9 +383,10 @@ struct NewRoomFlow: View {
         VStack(spacing: Space.s) {
             Button(primaryTitle, action: next)
                 .buttonStyle(.app(.primary))
-                .disabled((step == 2 && photos.isEmpty) || (step == 1 && shape.selfIntersects))
-            if step == 2 && photos.isEmpty {
-                Button("Skip photos for now") { withAnimation { step += 1 } }
+                .disabled((current == .photos && photos.isEmpty) || (current == .size && shape.selfIntersects)
+                          || (current == .goals && !sortGoal && !planGoal))
+            if current == .photos && photos.isEmpty {
+                Button("Skip photos for now") { withMotion(reduceMotion: reduceMotion) { step += 1 } }
                     .buttonStyle(.app(.neutral, size: .compact))
             }
         }
@@ -295,18 +398,25 @@ struct NewRoomFlow: View {
     private var isLastStep: Bool { step == stepCount - 1 }
 
     private var primaryTitle: String {
-        if !isLastStep { return ["Continue to room size", hasItems ? "Continue to room photos" : "", "Use these photos"][step] }
+        if !isLastStep {
+            switch current {
+            case .details: return "Continue to room goals"
+            case .goals: return "Continue to room size"
+            case .size: return "Continue to room photos"
+            default: return "Use these photos"
+            }
+        }
         return invite ? "Create room & invite \(guestName.trimmed)" : "Create room"
     }
 
     private func next() {
         problem = nil
-        if step == 0 {
+        if current == .details {
             if askName && myName.trimmed.isEmpty { problem = "Enter your name."; return }
             if roomName.trimmed.isEmpty { problem = "Give the room a name."; return }
             if invite && guestName.trimmed.isEmpty { problem = "Enter their first name."; return }
         }
-        if isLastStep { create() } else { withAnimation { step += 1 } }
+        if isLastStep { create() } else { withMotion(reduceMotion: reduceMotion) { step += 1 } }
     }
 
     private func create() {
@@ -315,6 +425,9 @@ struct NewRoomFlow: View {
         let room = sync.createRoom(name: roomName.trimmed, currentUse: currentUse.isEmpty ? (hasItems ? "Room" : "Empty room") : currentUse,
                                    futureUse: futureUse.trimmed, hostName: Identity.name)
         room.shape = shape
+        room.sortEnabled = sortGoal
+        room.planEnabled = planGoal
+        if agreedToCapture { CaptureConsent.agree(room.id) }
         if let captured {
             room.scanVersion = 1
             ScanActions.save(captured, for: room.id)
@@ -339,7 +452,7 @@ struct NewRoomFlow: View {
                     sync.save(item)
                     added.append(item)
                 } else {
-                    let item = SortActions.addItem(name: draft.name, category: ItemCategory.guess(from: draft.name), owner: draft.owner,
+                    let item = SortActions.addItem(name: draft.name, category: draft.category ?? ItemCategory.guess(from: draft.name), owner: draft.owner,
                                                    pin: draft.pin, photo: draft.photo, to: room, existing: added, sync: sync)
                     added.append(item)
                 }
@@ -350,6 +463,27 @@ struct NewRoomFlow: View {
     }
 
     // MARK: Helpers
+
+    private func existingThings(on photo: Int) -> [ExistingThing] {
+        items.map { d in
+            ExistingThing(id: d.id, name: d.name, category: d.scanned?.category ?? d.category ?? ItemCategory.guess(from: d.name),
+                          pin: d.photo == photo ? d.pin : nil, scanned: d.scanned != nil, pinnedAnywhere: d.pin != nil)
+        }
+    }
+
+    /// Confirmed suggestions: a scanned thing gets its number on the photo; anything else is added.
+    private func addSuggestions(_ chosen: [DetectionSuggestion], photo: Int) {
+        for s in chosen {
+            if let match = s.match, let i = items.firstIndex(where: { $0.id == match.id }) {
+                items[i].name = s.name
+                items[i].pin = s.pin
+                items[i].photo = photo
+            } else {
+                items.append(Draft(name: s.name, owner: invite ? .guest : .host, pin: s.pin, photo: photo, category: s.category))
+            }
+        }
+    }
+
 
     private func ownerText(_ owner: Owner) -> String {
         switch owner {
@@ -398,7 +532,7 @@ private struct DraftItemSheet: View {
             VStack(alignment: .leading, spacing: Space.xl) {
                 VStack(alignment: .leading, spacing: Space.s) {
                     SectionLabel("Item name")
-                    TextField("Sewing machine", text: $name).textFieldStyle(.app).submitLabel(.done)
+                    TextField("Sewing machine", text: $name, prompt: Text("Sewing machine").foregroundStyle(Color.textSecondary)).textFieldStyle(.app).submitLabel(.done)
                 }
                 VStack(alignment: .leading, spacing: Space.s) {
                     SectionLabel("Owner")

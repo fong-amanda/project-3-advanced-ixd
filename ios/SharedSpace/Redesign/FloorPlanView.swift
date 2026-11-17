@@ -31,12 +31,32 @@ struct FloorPlanView: View {
         .accessibilityElement(children: .contain)
         .accessibilityLabel(accessibilitySummary)
         .accessibilityChildren {
-            ForEach(entries.filter { !$0.isGhost && onSelect != nil }) { entry in
-                Rectangle()
-                    .accessibilityLabel(entry.style == .newPiece ? "\(entry.name), placed in the plan" : entry.name)
-                    .accessibilityValue(entry.problem ?? "")
-                    .accessibilityAddTraits(entry.id == selectedId ? [.isButton, .isSelected] : .isButton)
-                    .accessibilityAction { onSelect?(entry.id == selectedId ? nil : entry.id) }
+            // Every thing on the plan, with where it stands ("Desk, staying"). Leaving things are
+            // listed while they're drawn; only things still in the room can be selected. Each sits
+            // over its drawing and is at least 44 × 44 points, like the touch area.
+            GeometryReader { geo in
+                let map = PlanMap(size: geo.size, room: room)
+                ZStack(alignment: .topLeading) {
+                    ForEach(entries.filter { !$0.isGhost || showGhosts }) { entry in
+                        let r = map.rect(entry.footprint)
+                        let w = max(r.width, Size.tapTarget), h = max(r.height, Size.tapTarget)
+                        Group {
+                            if onSelect != nil && !entry.isGhost {
+                                Rectangle()
+                                    .accessibilityLabel(entry.spokenName)
+                                    .accessibilityValue(entry.problem ?? "")
+                                    .accessibilityAddTraits(entry.id == selectedId ? [.isButton, .isSelected] : .isButton)
+                                    .accessibilityAction { onSelect?(entry.id == selectedId ? nil : entry.id) }
+                            } else {
+                                Rectangle()
+                                    .accessibilityLabel(entry.spokenName)
+                                    .accessibilityValue(entry.problem ?? "")
+                            }
+                        }
+                        .frame(width: w, height: h)
+                        .position(x: r.midX, y: r.midY)
+                    }
+                }
             }
         }
     }
@@ -74,7 +94,15 @@ struct FloorPlanView: View {
 
             if showLabels && !entry.isFlat && rect.width > 40 && rect.height > 20 {
                 c.rotate(by: .degrees(-entry.yawDeg))
-                let text = Text(entry.name)
+                // Leaving things get their decision's symbol in front of the name, not just a colour.
+                let mark: Text = if case .leaving(let status) = entry.style {
+                    Text(Image(systemName: status.icon)) + Text(" ")
+                } else if entry.style == .hiddenInDesign {
+                    Text(Image(systemName: "eye.slash")) + Text(" ")
+                } else {
+                    Text("")
+                }
+                let text = (mark + Text(entry.name))
                     .font(.planLabel(fitting: rect.width))
                     .foregroundStyle(entry.isGhost ? Color.textSecondary : Color.textPrimary)
                 c.draw(text, in: CGRect(x: -rect.width / 2 + 2, y: -rect.height / 2, width: rect.width - 4, height: rect.height))
@@ -122,7 +150,7 @@ struct FloorPlanView: View {
                 let p = map.cm(value.location)
                 if drag == nil {
                     let start = map.cm(value.startLocation)
-                    guard let hit = hit(start), hit.style == .newPiece, onMovePiece != nil else {
+                    guard let hit = hit(start, scale: map.scale), hit.style == .newPiece, onMovePiece != nil else {
                         drag = (UUID(), 0, 0, 0, 0, false)   // a tap or a pan that isn't on a piece
                         return
                     }
@@ -143,7 +171,7 @@ struct FloorPlanView: View {
                 }
                 guard hypot(value.translation.width, value.translation.height) < 8 else { return }
                 let p = map.cm(value.location)
-                if let hit = hit(p) {
+                if let hit = hit(p, scale: map.scale) {
                     onSelect?(hit.id == selectedId ? nil : hit.id)
                 } else if let zone = zones.first(where: { p.x >= $0.rect.x && p.x <= $0.rect.maxX && p.z >= $0.rect.z && p.z <= $0.rect.maxZ }) {
                     onSelectZone?(zone.id == selectedZone ? nil : zone.id)
@@ -154,14 +182,17 @@ struct FloorPlanView: View {
     }
 
     /// Topmost thing under a point: pieces first, then things standing on the floor, then rugs.
-    private func hit(_ p: (x: Double, z: Double)) -> PlanEntry? {
+    /// Small things get a touch area of at least 44 × 44 points around their centre.
+    private func hit(_ p: (x: Double, z: Double), scale: Double) -> PlanEntry? {
         let candidates = entries.filter { !$0.isGhost }
         let order = candidates.filter { $0.style == .newPiece && !$0.isFlat }
             + candidates.filter { $0.style != .newPiece && !$0.isFlat }
             + candidates.filter(\.isFlat)
+        let minCm = Size.tapTarget / max(scale, 0.01)
         return order.first { e in
             let f = e.footprint
-            return p.x >= f.x - 4 && p.x <= f.maxX + 4 && p.z >= f.z - 4 && p.z <= f.maxZ + 4
+            let padX = max(4, (minCm - f.w) / 2), padZ = max(4, (minCm - f.d) / 2)
+            return p.x >= f.x - padX && p.x <= f.maxX + padX && p.z >= f.z - padZ && p.z <= f.maxZ + padZ
         }
     }
 

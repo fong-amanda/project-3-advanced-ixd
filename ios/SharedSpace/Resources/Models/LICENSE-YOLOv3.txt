@@ -1,0 +1,13 @@
+YOLOv3Int8LUT.mlmodel (full YOLOv3, 8-bit weights)
+Source: Apple Core ML models, https://developer.apple.com/machine-learning/models/
+Original model: YOLOv3, Joseph Redmon and Ali Farhadi (https://github.com/pjreddie/darknet)
+
+License (embedded in the model's metadata: "YOLO License. More information available at
+https://github.com/pjreddie/darknet/blob/master/LICENSE"):
+
+                                  YOLO LICENSE
+                             Version 2, July 29 2016
+
+0. Darknet is public domain.
+1. Do whatever you want with it.
+2. Stop emailing me about it!

@@ -19,11 +19,10 @@ final class RoomSession {
     /// LiDAR room scan (RoomPlan). Only offered on phones that can scan.
     var showScan = false
     var showSettings = false
+    var showGoals = false
     /// Set when People opens right after creating a room with "Invite someone".
     var showInviteOnPeople = false
 
-    var itemsPath: [RoomRoute] = []
-    var planPath: [RoomRoute] = []
 
     /// The plan version on screen in Room plan (nil = the room as it is now).
     var planDesignId: UUID?
@@ -40,13 +39,6 @@ final class RoomSession {
         previewAsGuest && room.guestHasJoined
     }
 
-    /// Pushes a screen onto the given tab's stack.
-    func show(_ route: RoomRoute, on tab: RoomTab) {
-        switch tab {
-        case .items: if itemsPath.last != route { itemsPath.append(route) }
-        case .plan: if planPath.last != route { planPath.append(route) }
-        }
-    }
 }
 
 /// Everything a screen inside a room needs to know about "who am I here".

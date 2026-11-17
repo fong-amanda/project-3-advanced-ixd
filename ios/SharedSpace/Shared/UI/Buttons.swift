@@ -18,6 +18,7 @@ struct AppButtonStyle: ButtonStyle {
     /// Gallery only: draw the pressed state.
     var previewPressed = false
     @Environment(\.isEnabled) private var isEnabled
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     func makeBody(configuration: Configuration) -> some View {
         let pressed = configuration.isPressed || previewPressed
@@ -36,8 +37,8 @@ struct AppButtonStyle: ButtonStyle {
             .overlay(Capsule().strokeBorder(isSelected ? role.tone.line : Color.outline, lineWidth: Stroke.regular))
             .contentShape(Capsule())
             .opacity(isEnabled ? 1 : Opacity.disabled)
-            .scaleEffect(pressed ? Motion.pressedScale : 1)
-            .animation(Motion.quick, value: pressed)
+            .scaleEffect(Motion.scale(Motion.pressedScale, when: pressed, reduceMotion: reduceMotion))
+            .animation(reduceMotion ? nil : Motion.quick, value: pressed)
             .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }
@@ -80,6 +81,7 @@ struct IconButton: View {
         Button(action: action) {
             Image(systemName: symbol)
                 .font(.button)
+                .dynamicTypeSize(...Size.iconTypeLimit)
                 .frame(width: Size.tapTarget, height: Size.tapTarget)
                 .background { if filled { Circle().fill(Color.surface) } }
                 .overlay { if filled { Circle().strokeBorder(Color.outline, lineWidth: Stroke.regular) } }
@@ -100,6 +102,7 @@ struct BackButton: View {
         Button(action: action) {
             Image(systemName: "chevron.left")
                 .font(.button)
+                .dynamicTypeSize(...Size.iconTypeLimit)
                 .foregroundStyle(Color.iconNeutral)
                 .frame(width: Size.backButton, height: Size.backButton)
                 .background(Circle().fill(Color.surface))
@@ -133,6 +136,7 @@ struct FloatingActionButton: View {
             HStack(spacing: Space.m) {
                 Image(systemName: symbol)
                     .font(.button)
+                    .dynamicTypeSize(...Size.iconTypeLimit)
                     .foregroundStyle(Color.onAccent)
                     .frame(width: Size.floatingButtonIcon, height: Size.floatingButtonIcon)
                     .background(Circle().fill(Color.accent))
@@ -162,10 +166,12 @@ extension View {
 
 /// Shrinks slightly while pressed. For controls that draw their own look.
 struct PressableStyle: ButtonStyle {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .scaleEffect(configuration.isPressed ? Motion.pressedScale : 1)
-            .animation(Motion.quick, value: configuration.isPressed)
+            .scaleEffect(Motion.scale(Motion.pressedScale, when: configuration.isPressed, reduceMotion: reduceMotion))
+            .animation(reduceMotion ? nil : Motion.quick, value: configuration.isPressed)
     }
 }
 
@@ -210,7 +216,7 @@ struct DecisionButton: View {
         HStack(spacing: Space.xs) {
             Image(systemName: decision.icon).foregroundStyle(isSelected ? tone.text : tone.icon).accessibilityHidden(true)
             Text(resolvedTitle)
-            if isSelected { Image(systemName: "checkmark").accessibilityHidden(true) }
+            if isSelected { Image(systemName: "checkmark.circle.fill").accessibilityHidden(true) }
         }
         .font(.buttonCompact)
         .foregroundStyle(isSelected ? tone.text : Color.textPrimary)
@@ -225,6 +231,7 @@ struct DecisionButton: View {
         HStack(spacing: Space.m) {
             Image(systemName: decision.icon)
                 .font(.button)
+                .dynamicTypeSize(...Size.iconTypeLimit)
                 .foregroundStyle(tone.icon)
                 .frame(width: Size.iconCircle, height: Size.iconCircle)
                 .background(Circle().fill(isSelected ? Color.surface : tone.tint))
@@ -235,7 +242,7 @@ struct DecisionButton: View {
             }
             .foregroundStyle(isSelected ? tone.text : Color.textPrimary)
             .frame(maxWidth: .infinity, alignment: .leading)
-            if isSelected { Image(systemName: "checkmark").font(.button).foregroundStyle(tone.text).accessibilityHidden(true) }
+            if isSelected { Image(systemName: "checkmark.circle.fill").font(.button).foregroundStyle(tone.text).accessibilityHidden(true) }
         }
         .padding(.leading, Space.s)
         .padding(.trailing, Space.xl)

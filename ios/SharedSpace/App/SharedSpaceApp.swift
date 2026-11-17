@@ -27,11 +27,15 @@ struct SharedSpaceApp: App {
                 .environment(router)
                 .modelContainer(container)
                 .tint(.iconNeutral)
+                #if DEBUG
+                .preferredColorScheme(DemoData.colorScheme)
+                #endif
                 .task {
                     #if DEBUG
                     if DemoData.requested {
                         router.openRoom(DemoData.room(sync: sync).id, showing: DemoData.requestedTab ?? .items)
                     }
+                    if DemoData.newRoomStep != nil { router.showNewRoom = true }
                     #endif
                     await sync.start()
                 }

@@ -65,6 +65,26 @@ enum SortRules {
         }
     }
 
+    /// Where an item stands, as VoiceOver says it after the item's name: "staying", "going to Sam",
+    /// "letting go", "undecided". Uses names, not "you", so it reads the same for both people.
+    static func spokenStatus(_ item: Item, room: Room) -> String {
+        switch item.status {
+        case .undecided: "undecided"
+        case .keep: "staying"
+        case .keepMove:
+            if let place = item.moveDestination, !place.isEmpty { "moving to \(place)" } else { "moving elsewhere" }
+        case .sendToOwner: "going to \(room.name(of: recipient(of: item)))"
+        case .letGo: "letting go, to donate or sell"
+        case .toss: "letting go, to throw out"
+        case .unsure: "not sure yet"
+        }
+    }
+
+    /// "Desk, staying" / "Guitar, going to Sam".
+    static func accessibilityName(_ item: Item, room: Room) -> String {
+        "\(item.name), \(spokenStatus(item, room: room))"
+    }
+
     /// "Sam’s", "Shared" — or nil when it's yours (or nobody's yet), which needs no tag.
     static func ownerLabel(_ item: Item, room: Room, me: Role) -> String? {
         switch item.owner {

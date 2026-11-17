@@ -51,5 +51,5 @@ enum FileStore {
         "\(roomId.uuidString.lowercased())/photos/\(index).jpg"
     }
 
-    static func exists(_ url: URL) -> Bool { FileManager.default.fileExists(atPath: url.path()) }
+    static func exists(_ url: URL) -> Bool { FileManager.default.fileExists(atPath: url.path(percentEncoded: false)) }
 }

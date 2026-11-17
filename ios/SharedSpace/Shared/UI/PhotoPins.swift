@@ -8,6 +8,8 @@ struct PhotoPin: Identifiable, Equatable {
     /// Fractions of the photo's width and height.
     var point: CGPoint
     var status: ItemStatus = .undecided
+    /// Where it stands, in words ("going to Sam"); nil while listing things before the room exists.
+    var statusText: String?
     var isSelected = false
 }
 
@@ -26,6 +28,7 @@ struct PhotoWithPins: View {
     var fill = false
 
     @State private var dragging: (id: UUID, point: CGPoint)?
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         GeometryReader { geo in
@@ -45,10 +48,11 @@ struct PhotoWithPins: View {
                         guard (0...1).contains(x), (0...1).contains(y) else { return }
                         onTapPhoto(CGPoint(x: min(max(x, 0.03), 0.97), y: min(max(y, 0.03), 0.97)))
                     })
+                let placed = Self.spreadApart(pins, in: frame, dragging: dragging)
                 ForEach(pins) { pin in
-                    let p = dragging?.id == pin.id ? dragging!.point : pin.point
+                    let p = placed[pin.id] ?? .zero
                     marker(pin)
-                        .position(x: frame.minX + p.x * frame.width, y: frame.minY + p.y * frame.height)
+                        .position(p)
                         .gesture(dragGesture(pin, frame: frame), including: onMovePin == nil ? .subviews : .all)
                 }
             }
@@ -56,6 +60,44 @@ struct PhotoWithPins: View {
             .clipped()
         }
         .aspectRatio(fill ? nil : image.size.width / max(image.size.height, 1), contentMode: .fit)
+    }
+
+    /// Where each pin is drawn, in view points. Pins closer than a tap target are nudged apart
+    /// (only on screen; the saved position doesn't change) so their 44 × 44 areas don't overlap.
+    /// The pin being dragged stays under the finger.
+    static func spreadApart(_ pins: [PhotoPin], in frame: CGRect, dragging: (id: UUID, point: CGPoint)?) -> [UUID: CGPoint] {
+        var points = pins.map { pin -> CGPoint in
+            let p = dragging?.id == pin.id ? dragging!.point : pin.point
+            return CGPoint(x: frame.minX + p.x * frame.width, y: frame.minY + p.y * frame.height)
+        }
+        let fixed = pins.map { $0.id == dragging?.id }
+        let gap = Size.tapTarget
+        let inset = frame.insetBy(dx: gap / 2, dy: gap / 2)
+        for _ in 0..<12 {
+            var moved = false
+            for i in points.indices {
+                for j in points.indices where j > i {
+                    var dx = points[j].x - points[i].x, dy = points[j].y - points[i].y
+                    // Pins exactly on top of each other: split them sideways.
+                    if abs(dx) < 0.5 && abs(dy) < 0.5 { dx = 1; dy = 0 }
+                    // Square tap areas overlap when both gaps are under a target's width.
+                    guard abs(dx) < gap && abs(dy) < gap else { continue }
+                    // Push along the axis that needs the smaller move.
+                    let pushX = gap - abs(dx), pushY = gap - abs(dy)
+                    let (mx, my): (CGFloat, CGFloat) = pushX <= pushY ? ((dx < 0 ? -1 : 1) * pushX, 0) : (0, (dy < 0 ? -1 : 1) * pushY)
+                    let share: (CGFloat, CGFloat) = fixed[i] ? (0, 1) : fixed[j] ? (1, 0) : (0.5, 0.5)
+                    points[i].x -= mx * share.0; points[i].y -= my * share.0
+                    points[j].x += mx * share.1; points[j].y += my * share.1
+                    moved = true
+                }
+            }
+            for i in points.indices where !fixed[i] && inset.width > 0 && inset.height > 0 {
+                points[i].x = min(max(points[i].x, inset.minX), inset.maxX)
+                points[i].y = min(max(points[i].y, inset.minY), inset.maxY)
+            }
+            if !moved { break }
+        }
+        return Dictionary(uniqueKeysWithValues: zip(pins.map(\.id), points))
     }
 
     private func imageFrame(in size: CGSize) -> CGRect {
@@ -69,19 +111,41 @@ struct PhotoWithPins: View {
         Button { onTapPin?(pin.id) } label: {
             VStack(spacing: Space.xs) {
                 NumberBadge(number: pin.number, isSelected: pin.isSelected, ring: ring(pin), placement: .onPhoto)
-                    .scaleEffect(dragging?.id == pin.id ? Motion.dragScale : 1)
-                if pin.isSelected { PhotoLabel(text: pin.label) }
+                    // The decision's symbol rides on the pin, so the ring colour is never the only cue.
+                    .overlay(alignment: .bottomTrailing) { statusMark(pin) }
+                    .scaleEffect(Motion.scale(Motion.dragScale, when: dragging?.id == pin.id, reduceMotion: reduceMotion))
+                if pin.isSelected {
+                    PhotoLabel(text: pin.statusText.map { "\(pin.label) · \($0.prefix(1).uppercased() + $0.dropFirst())" } ?? pin.label)
+                }
             }
+            // The badge is 30 points; the tap area is at least 44 × 44.
             .frame(minWidth: Size.tapTarget, minHeight: Size.tapTarget)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("\(pin.number), \(pin.label)")
-        .accessibilityValue(pin.status == .undecided ? "" : pin.status.statusLabel)
+        .accessibilityLabel("\(pin.number), \(pin.label)\(pin.statusText.map { ", \($0)" } ?? "")")
         .accessibilityAddTraits(pin.isSelected ? .isSelected : [])
+        .accessibilityShowsLargeContentViewer { Text("\(pin.number) · \(pin.label)") }
     }
 
-    /// Ring colour shows the decision; the selected pin also fills and shows its name.
+    /// A small white-on-colour symbol for decided things (keep ✓, send 📦, let go ✕ …).
+    @ViewBuilder private func statusMark(_ pin: PhotoPin) -> some View {
+        if pin.status != .undecided {
+            Image(systemName: pin.status.icon)
+                .font(.caption2.weight(.bold))
+                .dynamicTypeSize(...DynamicTypeSize.large)
+                .foregroundStyle(Color.photoBadge)
+                .frame(width: Size.badgeSmall - 2, height: Size.badgeSmall - 2)
+                .background(pin.status.color, in: Circle())
+                .overlay(Circle().strokeBorder(Color.photoBadge, lineWidth: Stroke.hairline))
+                .offset(x: Space.s, y: Space.s)
+                .environment(\.colorScheme, .light)
+                .accessibilityHidden(true)
+        }
+    }
+
+    /// Ring colour shows the decision (with the symbol above); the selected pin also fills and
+    /// shows its name and status.
     private func ring(_ pin: PhotoPin) -> Color {
         pin.isSelected ? .accent : (pin.status == .undecided ? .accent : pin.status.color)
     }

@@ -235,6 +235,9 @@ enum Size {
     static let numberFieldMax: CGFloat = 120
     static let brandMark: CGFloat = 28
     static let badgeSmall: CGFloat = 20
+    /// Icons inside fixed-size circles (icon buttons, tick badges, icon circles) stop growing at this
+    /// text size so they never spill out; the text around them keeps scaling.
+    static let iconTypeLimit = DynamicTypeSize.xxxLarge
     /// Width of the icon column in rows, so labels line up.
     static let iconColumn: CGFloat = 24
     /// Extra bottom padding so lists scroll fully clear of the floating button or tab bar.
@@ -301,6 +304,36 @@ enum Motion {
     static let bannerDuration: Duration = .seconds(3.6)
     static let pressedScale: CGFloat = 0.98
     static let dragScale: CGFloat = 1.25
+
+    // Reduce Motion (Settings → Accessibility → Motion). Views read
+    // `@Environment(\.accessibilityReduceMotion)` and pass it in. With it on, nothing slides, scales
+    // or springs: things that appear or disappear fade, and everything else changes at once.
+
+    /// The only animation used when Reduce Motion is on.
+    static let fade = Animation.easeInOut(duration: 0.2)
+
+    /// `animation`, or a plain fade when Reduce Motion is on.
+    static func animation(_ animation: Animation, reduceMotion: Bool) -> Animation {
+        reduceMotion ? fade : animation
+    }
+
+    /// `transition`, or a plain fade when Reduce Motion is on.
+    static func transition(_ transition: AnyTransition, reduceMotion: Bool) -> AnyTransition {
+        reduceMotion ? .opacity : transition
+    }
+
+    /// A press or drag scale, or none when Reduce Motion is on.
+    static func scale(_ scale: CGFloat, when active: Bool, reduceMotion: Bool) -> CGFloat {
+        active && !reduceMotion ? scale : 1
+    }
+}
+
+/// `withAnimation` that respects Reduce Motion. With it on, the change happens at once, or with a
+/// short fade when `fade` is true (for views that appear or disappear).
+@MainActor @discardableResult
+func withMotion<Result>(_ animation: Animation = .default, reduceMotion: Bool, fade: Bool = false,
+                        _ body: () throws -> Result) rethrows -> Result {
+    try withAnimation(reduceMotion ? (fade ? Motion.fade : nil) : animation, body)
 }
 
 // MARK: - Type

@@ -5,8 +5,13 @@ import SwiftUI
 /// walls full height, the others cut low so you can see in), doors and windows, and every thing
 /// as a block of its real size. Drag to orbit, pinch to zoom, tap a thing to select it.
 ///
-/// Things leaving the room are see-through (or left out, in the plan); pieces placed in a plan
-/// are drawn in the sage tint.
+/// Things leaving the room are see-through and carry a label saying where they're going (or are
+/// left out, in the plan); pieces placed in a plan are drawn in the sage tint.
+///
+/// Nothing in the scene animates: changes (a decision, showing hidden things) rebuild it at once.
+/// The camera only moves while you drag. With Reduce Motion on, the system orbit controls (which
+/// keep spinning after you let go) are replaced by a plain drag-to-turn and pinch-to-zoom that stop
+/// the moment your finger does: no inertia, no damping, no auto-rotation.
 struct RoomModelView: View {
     let room: Room
     let entries: [PlanEntry]
@@ -14,9 +19,24 @@ struct RoomModelView: View {
     var selectedId: UUID?
     var onSelect: ((UUID?) -> Void)?
 
+    private var ghosts: [PlanEntry] { showGhosts ? entries.filter(\.isGhost) : [] }
+
+    /// The view's size, for sizing tap volumes (measured, so the RealityView stays the root view).
+    @State private var viewSize: CGSize = .zero
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// Reduce Motion camera: angles in radians and a zoom factor, changed only by your fingers.
+    @State private var orbit = Orbit()
+    @State private var orbitAtStart: Orbit?
+
+    struct Orbit: Equatable {
+        var yaw: Float = atan2(0.55, 0.65)
+        var pitch: Float = atan2(0.75, (0.55 * 0.55 + 0.65 * 0.65).squareRoot())
+        var zoom: Float = 1
+    }
+
     var body: some View {
         let scene = RoomScene(shape: room.shape, height: Double(room.heightCm), entries: entries,
-                              showGhosts: showGhosts, selectedId: selectedId)
+                              showGhosts: showGhosts, selectedId: selectedId, viewSize: viewSize)
         RealityView { content in
             content.camera = .virtual
             content.add(scene.build())
@@ -26,18 +46,83 @@ struct RoomModelView: View {
             let old = content.entities.filter { $0.name == RoomScene.rootName }
             for entity in old { content.remove(entity) }
             content.add(scene.build())
+            if reduceMotion, let cam = content.entities.first(where: { $0.name == RoomScene.cameraName }) {
+                scene.place(cam, orbit: orbit)
+            }
         }
-        .realityViewCameraControls(.orbit)
+        .realityViewCameraControls(reduceMotion ? .none : .orbit)
+        .simultaneousGesture(orbitDrag, including: reduceMotion ? .all : .subviews)
+        .simultaneousGesture(orbitPinch, including: reduceMotion ? .all : .subviews)
         .gesture(SpatialTapGesture().targetedToAnyEntity().onEnded { value in
             var e: Entity? = value.entity
             while let current = e, UUID(uuidString: current.name) == nil { e = current.parent }
             let id = e.flatMap { UUID(uuidString: $0.name) }
             onSelect?(id == selectedId ? nil : id)
         })
+        .onGeometryChange(for: CGSize.self) { $0.size } action: { viewSize = $0 }
+        // VoiceOver reads `accessibilityLayer` instead: an accessibility container on a RealityView stops it drawing.
+        .accessibilityHidden(true)
         .background(Color.stage)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("3D view of the room. Drag to look around.")
-        .accessibilityValue(entries.filter { !$0.isGhost }.map(\.name).joined(separator: ", "))
+        .overlay(alignment: .bottomLeading) {
+            if !ghosts.isEmpty {
+                Label("See-through things are leaving the room", systemImage: "eye.slash")
+                    .font(.detailStrong)
+                    .foregroundStyle(Color.textPrimary)
+                    .padding(.horizontal, Space.m).padding(.vertical, Space.s)
+                    .background(Color.surface, in: Capsule())
+                    .padding(Space.m)
+                    .accessibilityHidden(true)
+            }
+        }
+        .overlay { accessibilityLayer }
+    }
+
+    /// Reduce Motion: turn the room by dragging; it stops exactly when the finger does.
+    private var orbitDrag: some Gesture {
+        DragGesture(minimumDistance: 4)
+            .onChanged { value in
+                let start = orbitAtStart ?? orbit
+                if orbitAtStart == nil { orbitAtStart = orbit }
+                var next = start
+                next.yaw = start.yaw - Float(value.translation.width) * 0.008
+                next.pitch = min(max(start.pitch + Float(value.translation.height) * 0.006, 0.15), 1.35)
+                orbit = next
+            }
+            .onEnded { _ in orbitAtStart = nil }
+    }
+
+    private var orbitPinch: some Gesture {
+        MagnifyGesture()
+            .onChanged { value in
+                let start = orbitAtStart ?? orbit
+                if orbitAtStart == nil { orbitAtStart = orbit }
+                orbit.zoom = min(max(start.zoom / Float(value.magnification), 0.45), 2.2)
+            }
+            .onEnded { _ in orbitAtStart = nil }
+    }
+
+    /// An invisible layer that lists each thing for VoiceOver, with where it stands
+    /// ("Guitar, going to Sam"); things still in the room can be selected from it.
+    private var accessibilityLayer: some View {
+        Color.clear
+        .allowsHitTesting(false)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("3D view of the room")
+        .accessibilityChildren {
+            // Each thing, with where it stands ("Guitar, going to Sam"), selectable when it's still here.
+            ForEach(entries.filter { !$0.isGhost || showGhosts }) { entry in
+                if onSelect != nil && !entry.isGhost {
+                    Rectangle()
+                        .accessibilityLabel(entry.spokenName)
+                        .accessibilityValue(entry.problem ?? "")
+                        .accessibilityAddTraits(entry.id == selectedId ? [.isButton, .isSelected] : .isButton)
+                        .accessibilityAction { onSelect?(entry.id == selectedId ? nil : entry.id) }
+                } else {
+                    Rectangle()
+                        .accessibilityLabel(entry.isGhost ? "\(entry.spokenName), shown see-through" : entry.spokenName)
+                }
+            }
+        }
     }
 }
 
@@ -50,21 +135,43 @@ private struct RoomScene {
     let entries: [PlanEntry]
     let showGhosts: Bool
     let selectedId: UUID?
+    var viewSize: CGSize = .zero
 
     private static let wallThickness: Float = 0.08
     private static let lipHeight: Float = 0.06
     private static let ghostOpacity: Float = 0.22
 
+    private static let fieldOfView: Float = 40
+    private var cameraDistance: Float { Float(max(shape.bounds.maxX, shape.bounds.maxZ) / 100) * 1.9 + 1.2 }
+
+    static let cameraName = "room-camera"
+
     /// Looks at the room from the front right, high enough to see over the low walls.
     @MainActor
     func camera() -> Entity {
-        let b = shape.bounds
-        let span = Float(max(b.maxX, b.maxZ) / 100)
-        let distance = span * 1.9 + 1.2
+        let distance = cameraDistance
         let cam = PerspectiveCamera()
-        cam.camera.fieldOfViewInDegrees = 40
+        cam.name = Self.cameraName
+        cam.camera.fieldOfViewInDegrees = Self.fieldOfView
         cam.look(at: [0, 0.4, 0], from: [distance * 0.55, distance * 0.75, distance * 0.65], relativeTo: nil)
         return cam
+    }
+
+    /// Reduce Motion camera: placed straight from the angles, with nothing easing in between.
+    @MainActor
+    func place(_ cam: Entity, orbit: RoomModelView.Orbit) {
+        let r = cameraDistance * (0.55 * 0.55 + 0.75 * 0.75 + 0.65 * 0.65).squareRoot() * orbit.zoom
+        let from = SIMD3<Float>(r * cos(orbit.pitch) * sin(orbit.yaw), r * sin(orbit.pitch), r * cos(orbit.pitch) * cos(orbit.yaw))
+        cam.look(at: [0, 0.4, 0], from: from, relativeTo: nil)
+    }
+
+    /// How many metres 44 points cover at the starting camera distance, so small things can be
+    /// given a tap volume at least that big.
+    private var minimumHitSize: Float {
+        let side = Float(min(viewSize.width, viewSize.height))
+        guard side > 0 else { return 0.3 }
+        let visible = 2 * cameraDistance * tan(Self.fieldOfView * .pi / 360)
+        return Float(Size.tapTarget) * visible / side
     }
 
     @MainActor
@@ -160,8 +267,16 @@ private struct RoomScene {
         block.orientation = simd_quatf(angle: Float(-entry.yawDeg * .pi / 180), axis: [0, 1, 0])
         block.name = entry.id.uuidString
         if !entry.isGhost {
+            // A tap volume of at least 44 × 44 points, even for small things like a lamp.
+            let m = minimumHitSize
+            let size: SIMD3<Float> = [max(Float(entry.widthCm / 100), m), max(h, m), max(Float(entry.depthCm / 100), m)]
             block.components.set(InputTargetComponent())
-            block.generateCollisionShapes(recursive: false)
+            block.components.set(CollisionComponent(shapes: [.generateBox(size: size)]))
+        } else {
+            // Leaving: see-through and labelled with where it's going, never just tinted.
+            let tag = label("\(entry.name) · \(entry.statusText ?? "leaving")")
+            tag.position = [0, h / 2 + 0.18, 0]
+            block.addChild(tag)
         }
         if entry.id == selectedId {
             // A flat accent frame on the floor around the selected thing.
@@ -177,6 +292,24 @@ private struct RoomScene {
             block.addChild(warn)
         }
         return block
+    }
+
+    /// A small white label that always faces the camera.
+    @MainActor
+    private func label(_ text: String) -> Entity {
+        let mesh = MeshResource.generateText(text, extrusionDepth: 0.001,
+                                             font: .systemFont(ofSize: 0.15, weight: .semibold),
+                                             containerFrame: .zero, alignment: .center, lineBreakMode: .byTruncatingTail)
+        let b = mesh.bounds
+        let words = ModelEntity(mesh: mesh, materials: [UnlitMaterial(color: UIColor(Color.onPhotoText))])
+        words.position = [-b.center.x, -b.center.y, 0.003]
+        let plate = ModelEntity(mesh: .generatePlane(width: b.extents.x + 0.12, height: b.extents.y + 0.08, cornerRadius: 0.04),
+                                materials: [UnlitMaterial(color: UIColor(Color.photoBadge))])
+        let holder = Entity()
+        holder.addChild(plate)
+        holder.addChild(words)
+        holder.components.set(BillboardComponent())
+        return holder
     }
 
     /// Plan entries carry footprints only; heights come from the item or piece's kind.

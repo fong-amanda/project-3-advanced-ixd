@@ -23,7 +23,7 @@ struct ItemThumb: View {
     }
 
     private var image: UIImage? {
-        if item.photoPath != nil, let own = UIImage(contentsOfFile: FileStore.itemPhotoURL(roomId: item.roomId, itemId: item.id).path()) {
+        if item.photoPath != nil, let own = UIImage(contentsOfFile: FileStore.itemPhotoURL(roomId: item.roomId, itemId: item.id).path(percentEncoded: false)) {
             return own
         }
         guard let x = item.pinX, let y = item.pinY else { return nil }
@@ -56,6 +56,9 @@ struct CategoryGlyph: View {
 enum PhotoCrops {
     private static let cache = NSCache<NSString, UIImage>()
 
+    /// Drops cached crops (after a room is deleted).
+    static func purge() { cache.removeAllObjects() }
+
     static func crop(roomId: UUID, photo: Int, at point: CGPoint, revision: Int, zoom: CGFloat = 0.34) -> UIImage? {
         let key = "\(roomId)-\(photo)-\(point.x)-\(point.y)-\(zoom)-\(revision)" as NSString
         if let hit = cache.object(forKey: key) { return hit }
@@ -77,10 +80,13 @@ enum PhotoCrops {
 enum RoomPhotos {
     private static let cache = NSCache<NSString, UIImage>()
 
+    /// Drops cached photos (after a room is deleted).
+    static func purge() { cache.removeAllObjects() }
+
     static func image(roomId: UUID, index: Int, revision: Int) -> UIImage? {
         let key = "\(roomId)-\(index)-\(revision)" as NSString
         if let hit = cache.object(forKey: key) { return hit }
-        guard let raw = UIImage(contentsOfFile: FileStore.roomPhotoURL(roomId, index: index).path()) else { return nil }
+        guard let raw = UIImage(contentsOfFile: FileStore.roomPhotoURL(roomId, index: index).path(percentEncoded: false)) else { return nil }
         let image = raw.normalisedUp()
         cache.setObject(image, forKey: key)
         return image
@@ -93,9 +99,16 @@ enum RoomPhotos {
 }
 
 extension UIImage {
-    func normalisedUp() -> UIImage {
-        guard imageOrientation != .up else { return self }
-        return UIGraphicsImageRenderer(size: size).image { _ in draw(in: CGRect(origin: .zero, size: size)) }
+    /// Redrawn so `imageOrientation` is `.up`, at 1 pixel per point (and no bigger than `maxSide`).
+    /// The renderer's default scale is the screen's (3×), which made a 12 MP photo a ~440 MB bitmap.
+    func normalisedUp(maxSide: CGFloat? = nil) -> UIImage {
+        let pixels = CGSize(width: size.width * scale, height: size.height * scale)
+        let shrink = maxSide.map { min(1, $0 / max(pixels.width, pixels.height)) } ?? 1
+        guard imageOrientation != .up || shrink < 1 else { return self }
+        let target = CGSize(width: (pixels.width * shrink).rounded(), height: (pixels.height * shrink).rounded())
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        return UIGraphicsImageRenderer(size: target, format: format).image { _ in draw(in: CGRect(origin: .zero, size: target)) }
     }
 
     /// JPEG for upload, scaled so the longest side is at most `Size.photoUpload` pixels.

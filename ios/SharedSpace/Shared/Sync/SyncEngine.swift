@@ -19,6 +19,8 @@ final class SyncEngine {
     private(set) var isSignedIn = false
     private(set) var isWorking = false
     var lastError: String?
+    /// Set when a room photo couldn't be written to disk; RootView shows it.
+    var photoSaveError: String?
 
     /// Users currently looking at the open room (from Realtime presence), including you.
     private(set) var presentUserIds: Set<UUID> = []
@@ -126,20 +128,116 @@ final class SyncEngine {
         return room
     }
 
-    /// Host: delete for everyone. Guest: leave the room and forget it on this device.
-    func deleteOrLeave(_ room: Room) async {
-        if room.role(of: userId) == .host {
-            room.deletedAt = .now
-            save(room)
-        } else if let client = Backend.client, isSignedIn {
+    enum RoomDeletion {
+        /// Gone from this phone and the server (or there is no server).
+        case deleted
+        /// Gone from this phone; the server delete is queued until we're back online.
+        case queued
+    }
+
+    /// Host only: permanently deletes the room and everything in it.
+    ///
+    /// * This phone: the SwiftData records (room, items, designs, placements — by cascade) and every
+    ///   file in the room's folder (scan, 3D model, world map, room frame, geometry, photos, item photos).
+    /// * The server: the room's files in Storage, then the room row, which removes its items, designs,
+    ///   placements and memberships with it and frees the room code.
+    /// Offline, the server half is queued (see `PendingRoomDeletions`) and retried on the next sync.
+    func deleteRoom(_ room: Room) async -> RoomDeletion {
+        guard room.role(of: userId) == .host else { await leave(room); return .deleted }
+        let id = room.id
+        if openRoomId == id { await closeRoom() }
+        forgetLocally(room)
+        guard Backend.isConfigured else { return .deleted }
+        PendingRoomDeletions.add(id)
+        return await pushRoomDeletion(id) ? .deleted : .queued
+    }
+
+    /// Guest: leave the room and forget it on this phone. The host's room stays as it is.
+    func leave(_ room: Room) async {
+        if let client = Backend.client, isSignedIn {
             do {
                 try await client.rpc("leave_room", params: ["p_room": room.id.uuidString]).execute()
             } catch { report(error) }
         }
         if openRoomId == room.id { await closeRoom() }
-        FileStore.deleteRoomFolder(room.id)
+        forgetLocally(room)
+    }
+
+    /// Removes a room, its records and its files from this phone only.
+    private func forgetLocally(_ room: Room) {
+        let id = room.id
+        FileStore.deleteRoomFolder(id)
+        RoomPhotos.purge()
+        PhotoCrops.purge()
+        CaptureConsent.forget(id)
         context.delete(room)
         persist()
+        photoRevision += 1
+    }
+
+    /// Deletes a room on the server: its Storage files first (the storage policies need the room to
+    /// still exist to know you're its host), then the row. True once the server no longer has it.
+    @discardableResult
+    private func pushRoomDeletion(_ id: UUID) async -> Bool {
+        guard let client = Backend.client, isSignedIn else { return false }
+        let folder = id.uuidString.lowercased()
+        do {
+            let bucket = client.storage.from("rooms")
+            var paths: [String] = []
+            for sub in ["", "photos", "items"] {
+                let prefix = sub.isEmpty ? folder : "\(folder)/\(sub)"
+                let files = try await bucket.list(path: prefix)
+                paths += files.filter { $0.id != nil }.map { "\(prefix)/\($0.name)" }   // id is nil for folders
+            }
+            if !paths.isEmpty { _ = try await bucket.remove(paths: paths) }
+            try await client.rpc("delete_room", params: ["p_room": id.uuidString]).execute()
+            PendingRoomDeletions.remove(id)
+            return true
+        } catch {
+            report(error)
+            return false
+        }
+    }
+
+    // MARK: - Archive (per person)
+
+    /// Archives or unarchives a room for the person on this phone only. Nothing in the room changes,
+    /// and the other person still sees it as before.
+    func setArchived(_ room: Room, _ archived: Bool) {
+        room.archived = archived
+        room.archiveNeedsUpload = Backend.isConfigured
+        persist()
+        Task { await uploadArchive(room) }
+    }
+
+    private func uploadArchive(_ room: Room) async {
+        guard let client = Backend.client, isSignedIn, room.archiveNeedsUpload else { return }
+        // The membership row only exists once the room is on the server.
+        if !room.existsRemotely { await upload(room) }
+        let value = room.archived
+        do {
+            try await client.rpc("set_room_archived",
+                                 params: ArchiveParams(pRoom: room.id, pArchived: value)).execute()
+            if room.archived == value { room.archiveNeedsUpload = false }
+            persist()
+        } catch { report(error) }
+    }
+
+    /// This person's archive flags, from their own membership rows.
+    private func pullArchiveFlags() async {
+        guard let client = Backend.client, isSignedIn else { return }
+        do {
+            let rows: [MembershipDTO] = try await client.from("room_members").select("room_id, archived")
+                .eq("user_id", value: userId.uuidString.lowercased()).execute().value
+            for row in rows {
+                guard let room = fetch(Room.self, id: row.roomId), !room.archiveNeedsUpload else { continue }
+                room.archived = row.archived ?? false
+            }
+            persist()
+        } catch {
+            // An older database without the column: rooms simply stay unarchived.
+            print("Archive flags not available:", error)
+        }
     }
 
     func peekRoom(code: String) async throws -> RoomPeek {
@@ -187,13 +285,22 @@ final class SyncEngine {
     // MARK: - Room photos
 
     /// Stores a room photo (JPEG) as photo `index`, locally first, then in Storage for the other phone.
-    func savePhoto(_ jpeg: Data, index: Int, of room: Room) {
-        try? jpeg.write(to: FileStore.roomPhotoURL(room.id, index: index), options: .atomic)
+    /// Saves a room photo on disk, links it to the room and uploads it. False if it couldn't be written.
+    @discardableResult
+    func savePhoto(_ jpeg: Data, index: Int, of room: Room) -> Bool {
+        do {
+            try jpeg.write(to: FileStore.roomPhotoURL(room.id, index: index), options: .atomic)
+        } catch {
+            print("Photo save failed:", error)
+            photoSaveError = "The photo couldn’t be saved on this device. Free up some storage and try again."
+            return false
+        }
         if index == 0 { try? jpeg.write(to: FileStore.thumbnailURL(room.id), options: .atomic) }
         photoRevision += 1
         if room.photoCount <= index { room.photoCount = index + 1 }
         save(room)
         Task { await uploadPhoto(roomId: room.id, index: index) }
+        return true
     }
 
     private func uploadPhoto(roomId: UUID, index: Int) async {
@@ -283,6 +390,8 @@ final class SyncEngine {
 
     /// Retries everything that failed to upload earlier (offline, app killed, …).
     func pushPending() async {
+        // Room deletions made offline go first, so nothing below re-uploads a deleted room.
+        for id in PendingRoomDeletions.all { await pushRoomDeletion(id) }
         for room in fetchAll(Room.self) where room.needsUpload { await upload(room) }
         // Photos taken offline: upload any the server may be missing (upsert, so repeats are harmless).
         for room in fetchAll(Room.self) where room.role(of: userId) == .host && room.needsUpload {
@@ -291,6 +400,7 @@ final class SyncEngine {
         for item in fetchAll(Item.self) where item.needsUpload { await upload(item) }
         for design in fetchAll(Design.self) where design.needsUpload { await upload(design) }
         for p in fetchAll(DesignPlacement.self) where p.needsUpload { await upload(p) }
+        for room in fetchAll(Room.self) where room.archiveNeedsUpload { await uploadArchive(room) }
     }
 
     // MARK: - Download
@@ -300,14 +410,20 @@ final class SyncEngine {
         guard let client = Backend.client, isSignedIn else { return }
         isWorking = true
         defer { isWorking = false }
-        let remote: [RoomDTO] = try await client.from("rooms").select().execute().value
+        // A room deleted on this phone while offline stays deleted until the server catches up.
+        let fetched: [RoomDTO] = try await client.from("rooms").select().execute().value
+        let remote = fetched.filter { !PendingRoomDeletions.contains($0.id) }
         let remoteIds = Set(remote.map(\.id))
         for dto in remote { applyRoom(dto) }
-        // Forget rooms that were deleted or that we were removed from.
+        // Forget rooms that were deleted or that we were removed from, files and all.
         for room in fetchAll(Room.self) where room.existsRemotely && !remoteIds.contains(room.id) && !room.needsUpload {
+            if openRoomId == room.id { await closeRoom() }
+            FileStore.deleteRoomFolder(room.id)
+            CaptureConsent.forget(room.id)
             context.delete(room)
         }
         persist()
+        await pullArchiveFlags()
         for dto in remote where dto.deletedAt == nil {
             try await pullContents(of: dto.id)
         }
@@ -348,6 +464,8 @@ final class SyncEngine {
         channelTasks = [
             Task { [weak self] in
                 for await action in roomChanges {
+                    // The host deleted the room: drop it (and its files) from this phone now.
+                    if case .delete = action { try? await self?.pullAllRooms(); continue }
                     if let dto: RoomDTO = Self.record(action) {
                         self?.applyRoom(dto)
                         self?.persist()
@@ -416,6 +534,7 @@ final class SyncEngine {
     // MARK: - Applying remote rows
 
     private func applyRoom(_ dto: RoomDTO) {
+        guard !PendingRoomDeletions.contains(dto.id) else { return }
         if let local = fetch(Room.self, id: dto.id) {
             guard !(local.needsUpload && local.updatedAt > dto.updatedAt) else { return }
             local.apply(dto)
@@ -489,6 +608,29 @@ final class SyncEngine {
         lastError = SyncError.describe(error)
         print("Sync error:", error)
     }
+}
+
+/// Rooms the host deleted while offline, waiting for the server delete. Kept in UserDefaults so the
+/// queue survives the app being closed.
+enum PendingRoomDeletions {
+    private static let key = "ss.pendingRoomDeletions"
+
+    static var all: [UUID] { (UserDefaults.standard.stringArray(forKey: key) ?? []).compactMap(UUID.init(uuidString:)) }
+    static func contains(_ id: UUID) -> Bool { all.contains(id) }
+
+    static func add(_ id: UUID) {
+        guard !contains(id) else { return }
+        UserDefaults.standard.set((all + [id]).map(\.uuidString), forKey: key)
+    }
+
+    static func remove(_ id: UUID) {
+        UserDefaults.standard.set(all.filter { $0 != id }.map(\.uuidString), forKey: key)
+    }
+}
+
+private struct ArchiveParams: Encodable {
+    let pRoom: UUID
+    let pArchived: Bool
 }
 
 private struct SetLikeParams: Encodable {

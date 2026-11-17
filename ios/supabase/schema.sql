@@ -10,7 +10,9 @@
 --          └─ design_placements (only what a design changes: a moved/hidden real item, or a new piece)
 --
 -- Sync rules the apps rely on
---   * Every table has id, room_id, updated_at, deleted_at. Clients never hard-delete; they set deleted_at.
+--   * Every table has id, room_id, updated_at, deleted_at. Clients soft-delete items, designs and
+--     placements by setting deleted_at. The one hard delete is "Delete Room…": the host removes the
+--     room and everything in it with delete_room() below.
 --   * updated_at is written by the client and used for last-write-wins.
 --   * A design never stores Sort decisions. Apps combine items.status with placements at render time.
 
@@ -160,6 +162,15 @@ alter table public.designs add column if not exists locked boolean not null defa
 alter table public.designs add column if not exists reaction_note text;
 alter table public.designs add column if not exists reaction_at timestamptz;
 
+-- Nov 2026: room goals and per-person archiving. Existing rooms get both goals on, and every
+-- existing member starts not archived (the column defaults fill in old rows).
+alter table public.rooms add column if not exists sort_enabled boolean not null default true;
+alter table public.rooms add column if not exists plan_enabled boolean not null default true;
+alter table public.rooms drop constraint if exists rooms_goal_check;
+alter table public.rooms add constraint rooms_goal_check check (sort_enabled or plan_enabled);
+-- Archiving is per person, so it lives on the membership row, not the room.
+alter table public.room_members add column if not exists archived boolean not null default false;
+
 -- ───────────────────────── helpers ─────────────────────────
 
 create or replace function public.is_room_member(rid uuid)
@@ -266,6 +277,24 @@ begin
   where id = p_room and guest_user_id = auth.uid();
 end $$;
 
+-- Archive or unarchive a room for yourself only. The other person's view is untouched.
+create or replace function public.set_room_archived(p_room uuid, p_archived boolean)
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  if auth.uid() is null then raise exception 'not_signed_in'; end if;
+  update room_members set archived = p_archived where room_id = p_room and user_id = auth.uid();
+end $$;
+
+-- Delete a room and everything in it, for everyone (host only). Removing the row cascades to
+-- room_members, items, designs and design_placements, and frees the room code. The app removes the
+-- room's Storage files first (see rooms_files_delete). Deleting a room that is already gone is a no-op.
+create or replace function public.delete_room(p_room uuid)
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  if auth.uid() is null then raise exception 'not_signed_in'; end if;
+  delete from rooms where id = p_room and host_user_id = auth.uid();
+end $$;
+
 -- ───────────────────────── row level security ─────────────────────────
 
 alter table public.rooms             enable row level security;
@@ -336,3 +365,7 @@ create policy rooms_files_write on storage.objects for insert
   with check (bucket_id = 'rooms' and public.is_room_member(((storage.foldername(name))[1])::uuid));
 create policy rooms_files_update on storage.objects for update
   using (bucket_id = 'rooms' and public.is_room_member(((storage.foldername(name))[1])::uuid));
+-- Only the host may remove a room's files (used by "Delete Room…").
+drop policy if exists rooms_files_delete on storage.objects;
+create policy rooms_files_delete on storage.objects for delete
+  using (bucket_id = 'rooms' and public.is_room_host(((storage.foldername(name))[1])::uuid));

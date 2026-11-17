@@ -136,7 +136,7 @@ struct ItemDetailSheet: View {
     private var noteField: some View {
         VStack(alignment: .leading, spacing: Space.s) {
             SectionLabel("Note")
-            TextField("Anything the other person should know", text: $note, axis: .vertical)
+            TextField("Anything the other person should know", text: $note, prompt: Text("Anything the other person should know").foregroundStyle(Color.textSecondary), axis: .vertical)
                 .lineLimit(3...6)
                 .textFieldStyle(.appArea)
                 .accessibilityLabel("Note")
@@ -152,7 +152,7 @@ struct ItemDetailSheet: View {
                 VStack(alignment: .leading, spacing: Space.m) {
                     VStack(alignment: .leading, spacing: Space.s) {
                         SectionLabel("Name")
-                        TextField("Name", text: $name).textFieldStyle(.app).onSubmit(commitText)
+                        TextField("Name", text: $name, prompt: Text("Name").foregroundStyle(Color.textSecondary)).textFieldStyle(.app).onSubmit(commitText)
                     }
                     Picker("Type", selection: Binding(get: { item.category }, set: { item.category = $0; sync.save(item) })) {
                         ForEach(ItemCategory.allCases) { Text($0.label).tag($0) }
