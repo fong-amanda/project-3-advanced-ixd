@@ -48,7 +48,7 @@ struct JoinRoomSheet: View {
         VStack(alignment: .leading, spacing: Space.l) {
             Text("Join a room").font(.screenTitle)
             Text("Five letters and numbers, from the person who shared the room.").textRole(.secondary)
-            TextField("K7M2Q", text: $code)
+            TextField("K7M2Q", text: $code, prompt: Text("K7M2Q").foregroundStyle(Color.textSecondary))
                 .font(.code)
                 .kerning(Tracking.code)
                 .multilineTextAlignment(.center)
@@ -91,7 +91,7 @@ struct JoinRoomSheet: View {
                 .accessibilityElement(children: .combine)
                 VStack(alignment: .leading, spacing: Space.s) {
                     SectionLabel("Your first name")
-                    TextField("Your name", text: $name)
+                    TextField("Your name", text: $name, prompt: Text("Your name").foregroundStyle(Color.textSecondary))
                         .textContentType(.givenName)
                         .textFieldStyle(.app)
                 }

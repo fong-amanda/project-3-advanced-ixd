@@ -224,6 +224,7 @@ struct NumberBadge: View {
     var ring: Color = .accent
     /// On photos the badge stays white in dark mode and gets a shadow, so it reads on any picture.
     var placement: Placement = .onSurface
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         Text("\(number)")
@@ -233,6 +234,9 @@ struct NumberBadge: View {
             .background(isSelected ? Color.accent : (placement == .onPhoto ? Color.photoBadge : Color.surface), in: Circle())
             .overlay(Circle().strokeBorder(isSelected ? Color.accent : ring, lineWidth: size >= Size.pin ? Stroke.bold : Stroke.regular))
             .elevation(.card, placement == .onPhoto)
+            // The badge on a photo is always white, so its ring and text use the light palette in
+            // dark mode too (the dark palette's pale decision colours fail 3:1 on white).
+            .environment(\.colorScheme, placement == .onPhoto ? .light : colorScheme)
     }
 }
 
@@ -335,6 +339,7 @@ struct IconCircle: View {
     var body: some View {
         Image(systemName: symbol)
             .font(.button)
+            .dynamicTypeSize(...Size.iconTypeLimit)
             .foregroundStyle(tone.icon)
             .frame(width: Size.iconCircle, height: Size.iconCircle)
             .background(tone.tint, in: Circle())
@@ -358,6 +363,20 @@ struct ChoiceTile: View {
         .card(padding: Space.l, radius: Radius.tile)
         .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
+    }
+}
+
+/// A row that becomes a left-aligned column at the accessibility text sizes, so labels and buttons
+/// sharing a line are never squeezed or cut off.
+struct AdaptiveStack<Content: View>: View {
+    var spacing: CGFloat = Space.m
+    @ViewBuilder var content: Content
+    @Environment(\.dynamicTypeSize) private var typeSize
+
+    var body: some View {
+        let layout = typeSize.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: spacing))
+                                                  : AnyLayout(HStackLayout(alignment: .center, spacing: spacing))
+        layout { content }
     }
 }
 
@@ -455,33 +474,67 @@ struct BrandMark: View {
 /// A room on the home screen: name, status and progress on the left, an 88-point tile in the
 /// room's tint on the right holding its photo.
 struct RoomCard: View {
+    /// A goal on the card: a tag ("Sorting", with its symbol) and how it's going ("7 of 11 decided").
+    struct Goal: Identifiable {
+        let title: String
+        let symbol: String
+        let tone: Tone
+        let status: String
+        var id: String { title }
+    }
+
     let name: String
     let plannedUse: String
     let status: String
+    var goals: [Goal] = []
     /// 0...1 decided, or nil to leave out the bar.
     var progress: Double?
     var image: UIImage?
     var tint: Tone = .sage
+    /// Keeps the top-right corner clear for a ⋯ button laid over the card.
+    var reservesMenuCorner = false
     @Environment(\.dynamicTypeSize) private var typeSize
 
     var body: some View {
-        let layout = typeSize.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: Space.l))
-                                                  : AnyLayout(HStackLayout(alignment: .center, spacing: Space.l))
-        layout {
-            VStack(alignment: .leading, spacing: Space.xs) {
-                Text(name).textRole(.cardTitle)
-                if !plannedUse.isEmpty {
-                    Text("Planned use: \(plannedUse)").textRole(.secondary)
+        let header = typeSize.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: Space.l))
+                                                  : AnyLayout(HStackLayout(alignment: .top, spacing: Space.l))
+        VStack(alignment: .leading, spacing: Space.m) {
+            header {
+                VStack(alignment: .leading, spacing: Space.xs) {
+                    Text(name).textRole(.cardTitle)
+                        // At the largest sizes the tile drops below, so the ⋯ sits beside the name.
+                        .padding(.trailing, reservesMenuCorner && typeSize.isAccessibilitySize ? Size.tapTarget : 0)
+                    if !plannedUse.isEmpty {
+                        Text("Planned use: \(plannedUse)").textRole(.secondary)
+                    }
+                    if !status.isEmpty { Text(status).textRole(.secondary) }
                 }
-                Text(status).textRole(.secondary)
-                if let progress { ProgressBar(value: progress).padding(.top, Space.s) }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                tile
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            tile
+            if !goals.isEmpty {
+                VStack(alignment: .leading, spacing: Space.s) {
+                    ForEach(goals) { goalRow($0) }
+                }
+            }
+            if let progress { ProgressBar(value: progress) }
         }
         .card(padding: Space.xl, radius: Radius.cardLarge)
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(.isButton)
+    }
+
+    /// One goal per row: "[Planning]  No layouts yet". The status takes the rest of the width (the
+    /// card is wide enough for "No layouts yet" on one line); at accessibility text sizes it goes
+    /// under the tag and wraps.
+    private func goalRow(_ goal: Goal) -> some View {
+        AdaptiveStack(spacing: Space.s) {
+            AppTag(kind: .tone(goal.tone), text: goal.title, symbol: goal.symbol)
+                .layoutPriority(1)
+            Text(goal.status).textRole(.secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .accessibilityElement(children: .combine)
     }
 
     private var tile: some View {
@@ -534,6 +587,7 @@ struct NoItemsYetView: View {
 /// a floating white card with a tinted icon circle.
 struct ActivityBanner: ViewModifier {
     @Binding var event: ActivityEvent?
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     func body(content: Content) -> some View {
         content.overlay(alignment: .top) {
@@ -547,23 +601,76 @@ struct ActivityBanner: ViewModifier {
                 .background(Color.surface, in: RoundedRectangle(cornerRadius: Radius.card, style: .continuous))
                 .elevation(.floating)
                 .padding(.horizontal, Space.page)
-                .transition(.move(edge: .top).combined(with: .opacity))
+                .transition(Motion.transition(.move(edge: .top).combined(with: .opacity), reduceMotion: reduceMotion))
                 .task(id: event.id) {
                     UIAccessibility.post(notification: .announcement, argument: event.text)
                     try? await Task.sleep(for: Motion.bannerDuration)
-                    withAnimation { self.event = nil }
+                    withMotion(reduceMotion: reduceMotion, fade: true) { self.event = nil }
                 }
-                .onTapGesture { withAnimation { self.event = nil } }
+                .onTapGesture { withMotion(reduceMotion: reduceMotion, fade: true) { self.event = nil } }
                 .accessibilityAddTraits(.isButton)
                 .accessibilityHint("Dismisses")
             }
         }
-        .animation(Motion.banner, value: event)
+        .animation(Motion.animation(Motion.banner, reduceMotion: reduceMotion), value: event)
     }
 }
 
 extension View {
     func activityBanner(_ event: Binding<ActivityEvent?>) -> some View { modifier(ActivityBanner(event: event)) }
+}
+
+/// A short message with one action, such as "Room archived. Undo". It floats at the top for a few
+/// seconds; with VoiceOver on it stays twice as long, and it can be dismissed by tapping the text.
+struct UndoBanner<Value: Equatable>: ViewModifier {
+    @Binding var value: Value?
+    let text: String
+    var symbol = "arrow.uturn.backward"
+    var actionTitle = "Undo"
+    var action: (Value) -> Void
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    func body(content: Content) -> some View {
+        content.overlay(alignment: .top) {
+            if let current = value {
+                HStack(spacing: Space.m) {
+                    IconCircle(symbol: symbol, tone: .sage)
+                    Text(text).font(.bodyStrong).foregroundStyle(Color.textPrimary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .onTapGesture { close() }
+                    Button(actionTitle) {
+                        action(current)
+                        close()
+                    }
+                    .buttonStyle(.app(.neutral, size: .compact))
+                    .fixedSize()
+                }
+                .padding(Space.m)
+                .background(Color.surface, in: RoundedRectangle(cornerRadius: Radius.card, style: .continuous))
+                .elevation(.floating)
+                .padding(.horizontal, Space.page)
+                .transition(Motion.transition(.move(edge: .top).combined(with: .opacity), reduceMotion: reduceMotion))
+                .accessibilityElement(children: .contain)
+                .task(id: current) {
+                    UIAccessibility.post(notification: .announcement, argument: "\(text). \(actionTitle) is available.")
+                    let wait = UIAccessibility.isVoiceOverRunning ? Motion.bannerDuration * 3 : Motion.bannerDuration * 1.5
+                    try? await Task.sleep(for: wait)
+                    if !Task.isCancelled { close() }
+                }
+            }
+        }
+        .animation(Motion.animation(Motion.banner, reduceMotion: reduceMotion), value: value)
+    }
+
+    private func close() {
+        withMotion(reduceMotion: reduceMotion, fade: true) { value = nil }
+    }
+}
+
+extension View {
+    func undoBanner<V: Equatable>(_ value: Binding<V?>, text: String, action: @escaping (V) -> Void) -> some View {
+        modifier(UndoBanner(value: value, text: text, action: action))
+    }
 }
 
 // MARK: - Bottom bar
@@ -580,13 +687,18 @@ struct AppTabBar<Value: Hashable>: View {
 
     let items: [Item]
     @Binding var selection: Value
+    @Environment(\.dynamicTypeSize) private var typeSize
 
     var body: some View {
+        let large = typeSize.isAccessibilitySize
+        // Two tabs: icon beside the title. Three or more: icon above a smaller title, so each fits.
+        let stacked = large || items.count > 2
+        let label = stacked ? AnyLayout(VStackLayout(spacing: Space.xs)) : AnyLayout(HStackLayout(spacing: Space.s))
         HStack(spacing: Space.xs) {
             ForEach(items) { item in
                 let on = item.value == selection
                 Button { selection = item.value } label: {
-                    HStack(spacing: Space.s) {
+                    label {
                         Image(systemName: item.symbol)
                             .overlay(alignment: .topTrailing) {
                                 if item.badge > 0 {
@@ -599,24 +711,38 @@ struct AppTabBar<Value: Hashable>: View {
                                         .offset(x: Space.m, y: -Space.s)
                                 }
                             }
-                        Text(item.title).lineLimit(1).minimumScaleFactor(0.8)
+                        // At accessibility text sizes the bar shows icons only (like the system tab
+                        // bar); touch and hold one to see its name large (Large Content Viewer).
+                        if !large {
+                            Text(item.title).lineLimit(1).minimumScaleFactor(0.8)
+                                .multilineTextAlignment(.center)
+                        }
                     }
-                    .font(.button)
+                    .font(large ? .title2 : items.count > 2 ? .badge : .button)
                     .foregroundStyle(on ? Tone.sage.text : Color.iconNeutral)
+                    .padding(.vertical, stacked && !large ? Space.s : 0)
                     .frame(maxWidth: .infinity, minHeight: Size.control)
-                    .background { if on { Capsule().fill(Tone.sage.fill) } }
-                    .contentShape(Capsule())
+                    .background {
+                        if on { shape(stacked && !large).fill(Tone.sage.fill).overlay(shape(stacked && !large).stroke(Tone.sage.line, lineWidth: Stroke.regular)) }
+                    }
+                    .contentShape(shape(stacked && !large))
                 }
                 .buttonStyle(PressableStyle())
+                .accessibilityShowsLargeContentViewer { Label(item.title, systemImage: item.symbol) }
                 .accessibilityLabel(item.badge > 0 ? "\(item.title), \(item.badge) to do" : item.title)
                 .accessibilityAddTraits(on ? [.isSelected, .isButton] : .isButton)
             }
         }
         .padding(Space.xs)
-        .background(Color.surface, in: Capsule())
+        .background(Color.surface, in: shape(items.count > 2 && !large, inset: Space.xs))
         .elevation(.floating)
         .padding(.horizontal, Space.page)
         .padding(.bottom, Space.xs)
+    }
+
+    /// Capsules; rounded rectangles once the labels wrap onto two lines.
+    private func shape(_ large: Bool, inset: CGFloat = 0) -> AnyShape {
+        large ? AnyShape(RoundedRectangle(cornerRadius: Radius.card + inset, style: .continuous)) : AnyShape(Capsule())
     }
 }
 

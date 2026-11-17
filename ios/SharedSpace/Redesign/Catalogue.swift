@@ -149,7 +149,7 @@ struct FreeZone: Identifiable, Equatable {
 enum FreeZones {
     static func compute(items: [Item], room: Room) -> [FreeZone] {
         let W = Double(room.widthCm), L = Double(room.lengthCm)
-        var rects = items.filter { $0.status.leavesRoom && !$0.category.isFlat }.map(RoomGeometry.footprint(of:))
+        var rects = items.filter { room.leaves($0) && !$0.category.isFlat }.map(RoomGeometry.footprint(of:))
         var merged = true
         while merged {
             merged = false

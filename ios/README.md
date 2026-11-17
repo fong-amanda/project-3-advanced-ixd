@@ -29,6 +29,33 @@ You'll need a Mac with **Xcode 16** or later (free from the App Store; open it o
 8. **Trust yourself as a developer** the first time the app opens: on the iPhone, go to Settings › General › **VPN & Device Management**, tap your Apple ID under **Developer App**, and tap **Trust**. The phone must be online for this, and a VPN can block it, so turn any VPN off first. Then open Shared Space from your home screen and allow camera access when asked.
 
 ## What's faked
-- **3D dollhouse redesign:** [not built yet]
 - **Live AR view of a design in the room:** [not built yet]
 - **Furniture catalogue, prices and store links:** [not built yet]
+
+## Change log
+1. People said sort vs repurpose feel like two apps; testers wanted the Sort tab only when the room has things in it.
+-  The user can now determine if they only want the room for sorting, planning, or both. 
+
+2. People said to show the sorting and planning state on the Home room card
+-  Room cards now show sorting and planning tags with their status
+
+3. Actually implement Apple's RoomPlan scanning
+-  Detected furniture actually becomes added items now, before it wasn't fully working
+
+4. People said suggestions should automatically update after a photo is added
+-  AI photo detection now suggests items from the photo and the user has to confirm each one rather than it being added automatically.
+
+5. People said to make scanning more obvious
+-  The photo step now has a pop up that explains AI detection with how it works. 
+
+6. Ethical Audit: Photo step offers camera, upload or example with no text about storage or sharing
+-  Green notice above the choice: who can see the photo, what to leave out, how to delete
+
+7. Ethical Audit: There is no delete option, so a room and its photo stays forever
+-  Host sees Delete room and photos. A confirmation sheet removes the room, photo, decision, and code. Tested: the home screen shows 0 rooms afterwards
+
+8. Ethical Audit: Pin border is green, blue or orange; screen reader says only the item name
+-  Pin label shows the name and status now; so screen reader will read that too
+
+9. Ethical Audit: 9 distinct text color pairs below 4.5:1(ex. gray size text on green background), most controls under 44 px, animation ran with reduce motion 
+-  All screens pass AA in light and dark mode except disabled buttons; controls are at least 44px except the numbered photo pins, which keep a small look with a 44px tap area; reduce motion stops CSS animation and the 3D camera movement

@@ -42,13 +42,15 @@ enum ItemStatus: String, Codable, CaseIterable, Sendable {
     /// True when the item leaves this room: hidden in the room plan, and its floor counts as freed.
     var leavesRoom: Bool { self == .sendToOwner || self == .letGo || self == .toss }
 
+    /// Every decision has its own symbol, shown next to its colour and its words wherever the
+    /// decision appears (tags, rows, pins, buttons, the summary), so colour is never the only cue.
     var icon: String {
         switch self {
-        case .undecided: "circle.dashed"
-        case .keep: "house"
-        case .keepMove: "arrow.right.circle"
+        case .undecided: "circle"
+        case .keep: "checkmark"
+        case .keepMove: "arrow.right.square"
         case .sendToOwner: "shippingbox"
-        case .letGo: "heart"
+        case .letGo: "xmark"
         case .toss: "trash"
         case .unsure: "questionmark.circle"
         }

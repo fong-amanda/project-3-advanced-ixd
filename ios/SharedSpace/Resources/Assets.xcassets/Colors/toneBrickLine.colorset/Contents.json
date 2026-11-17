@@ -5,9 +5,9 @@
       "color": {
         "color-space": "srgb",
         "components": {
-          "red": "0xDD",
-          "green": "0xB4",
-          "blue": "0xAF",
+          "red": "0x95",
+          "green": "0x5A",
+          "blue": "0x53",
           "alpha": "1.000"
         }
       }
@@ -23,9 +23,9 @@
       "color": {
         "color-space": "srgb",
         "components": {
-          "red": "0x80",
-          "green": "0x51",
-          "blue": "0x4B",
+          "red": "0xB5",
+          "green": "0x77",
+          "blue": "0x6F",
           "alpha": "1.000"
         }
       }
@@ -41,9 +41,9 @@
       "color": {
         "color-space": "srgb",
         "components": {
-          "red": "0xB0",
-          "green": "0x71",
-          "blue": "0x6A",
+          "red": "0x83",
+          "green": "0x4B",
+          "blue": "0x45",
           "alpha": "1.000"
         }
       }

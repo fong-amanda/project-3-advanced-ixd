@@ -30,9 +30,35 @@ struct ItemRow: View {
         }
         .padding(.vertical, Space.m)
         .frame(minHeight: Size.row)
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel(number.map { "\($0), \(item.name)" } ?? item.name)
+        .accessibilityElement(children: .ignore)
+        // "3, Guitar, going to Sam", then the details the row shows under the name.
+        .accessibilityLabel((number.map { "\($0), " } ?? "") + SortRules.accessibilityName(item, room: room))
+        .accessibilityValue(spokenDetails)
         .accessibilityAddTraits(selection == true ? .isSelected : [])
+    }
+
+    /// Everything else the row shows, in words: who decided, who's being asked, whose it is.
+    private var spokenDetails: String {
+        var parts: [String] = []
+        let asked = SortRules.isAskedOf(item, me: me)
+        if item.isDecided {
+            if let by = item.decidedBy, item.owner != .shared, item.owner != .unassigned, by != item.owner.role {
+                parts.append("decided by \(by == me ? "you" : room.name(of: by))")
+            }
+        } else if asked, let by = item.askBy {
+            parts.append("\(room.name(of: by)) asked you")
+        } else if item.askBy == me, let to = item.askTo {
+            parts.append("asked \(room.name(of: to))")
+        } else if let owner = item.owner.role, owner != me {
+            parts.append("waiting for \(room.name(of: owner))")
+        }
+        if !item.isDecided, let s = item.suggestion, let by = item.suggestedBy, by != me {
+            parts.append("\(room.name(of: by)) suggests \(s.shortLabel.lowercased())")
+        }
+        if let owner = SortRules.ownerLabel(item, room: room, me: me), item.isDecided || item.owner == .shared {
+            parts.append(owner)
+        }
+        return parts.joined(separator: ", ")
     }
 
     @ViewBuilder private var subline: some View {
@@ -48,7 +74,9 @@ struct ItemRow: View {
         } else if item.askBy == me, let to = item.askTo {
             Text("Asked \(room.name(of: to))").textRole(.secondary)
         } else if let owner = item.owner.role, owner != me {
-            Text("Waiting for \(room.name(of: owner))").textRole(.secondary)
+            Label("Waiting for \(room.name(of: owner))", systemImage: ItemStatus.undecided.icon).textRole(.secondary)
+        } else {
+            Label("Undecided", systemImage: ItemStatus.undecided.icon).textRole(.secondary)
         }
         if !item.isDecided, let s = item.suggestion, let by = item.suggestedBy, by != me {
             AppTag(kind: .suggestion, text: "\(room.name(of: by)): \(s.shortLabel.lowercased())")

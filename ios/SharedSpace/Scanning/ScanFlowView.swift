@@ -1,6 +1,22 @@
 import RoomPlan
 import SwiftUI
 
+/// What the scan can and can't do, said plainly. RoomPlan finds walls, doors, windows and large
+/// furniture; it doesn't see small things or know what anything is worth.
+enum ScanCopy {
+    /// Shown before a scan starts (on the "Scan with LiDAR" tiles) and while scanning.
+    static let before = "We’ll detect large furniture like beds, desks and shelves. Small things, and things we don’t recognize, won’t appear. You can add them by hand."
+
+    /// Shown above the list of what the scan found.
+    static func found(_ count: Int) -> String {
+        switch count {
+        case 0: "We didn’t find any furniture. Add what’s in the room by hand."
+        case 1: "We found 1 thing. Check it and add what we missed."
+        default: "We found \(count) things. Check each one and add what we missed."
+        }
+    }
+}
+
 /// Scan a room with LiDAR (RoomPlan): walk around, tap Done, check what was found, use it.
 /// Hands back the walls, doors, windows, ceiling height and furniture in room coordinates.
 struct ScanFlowView: View {
@@ -46,6 +62,8 @@ struct ScanFlowView: View {
                     } else {
                         Text("Walk slowly around the room and point at every wall, door and window.")
                             .textRole(.body).multilineTextAlignment(.center)
+                        Text(ScanCopy.before)
+                            .textRole(.secondary).multilineTextAlignment(.center)
                         Button("Done scanning") { phase = .processing; stopRequest += 1 }
                             .buttonStyle(.app(.primary))
                     }
@@ -108,8 +126,8 @@ private struct ScanReview: View {
                 let windows = result.shape.openings.count - doors
                 Text("\(UnitSystem.feet.roomLength(result.shape.bounds.maxX)) × \(UnitSystem.feet.roomLength(result.shape.bounds.maxZ)), ceiling \(UnitSystem.feet.roomLength(result.heightCm)) · \(result.shape.corners.count) walls, \(doors) door\(doors == 1 ? "" : "s"), \(windows) window\(windows == 1 ? "" : "s")")
                     .textRole(.secondary)
+                Text(ScanCopy.found(result.objects.count)).textRole(.body)
                 if !result.objects.isEmpty {
-                    SectionLabel("Found \(result.objects.count) thing\(result.objects.count == 1 ? "" : "s")")
                     VStack(spacing: 0) {
                         ForEach(result.objects) { o in
                             HStack(spacing: Space.m) {
@@ -127,7 +145,7 @@ private struct ScanReview: View {
                         }
                     }
                     .listGroup()
-                    Text("You can rename them and say whose they are next. Things the scan can’t see (boxes, a guitar) you add from the photo.")
+                    Text("Next you can rename them and say whose they are. Things the scan didn’t pick up, like boxes or a guitar, you add from the photo or by hand.")
                         .textRole(.hint)
                 }
                 Button("Use this scan", action: onUse).buttonStyle(.app(.primary))

@@ -26,7 +26,7 @@ struct CameraPicker: UIViewControllerRepresentable {
 
         func imagePickerController(_ picker: UIImagePickerController,
                                    didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
-            if let image = info[.originalImage] as? UIImage { parent.onPick(image.normalisedUp()) }
+            if let image = info[.originalImage] as? UIImage { parent.onPick(image.normalisedUp(maxSide: Size.photoUpload)) }
             parent.dismiss()
         }
 
@@ -38,32 +38,26 @@ struct CameraPicker: UIViewControllerRepresentable {
 struct PhotoSourceButtons: View {
     var takeTitle = "Take a photo"
     var onPick: (UIImage) -> Void
+    @Environment(\.captureConsent) private var consent
     @State private var showCamera = false
-    @State private var item: PhotosPickerItem?
+    @State private var showLibrary = false
 
     var body: some View {
         HStack(spacing: Space.m) {
             if CameraPicker.isAvailable {
-                Button { showCamera = true } label: {
+                Button { consent { showCamera = true } } label: {
                     choice(takeTitle, detail: "Opens your camera", symbol: "camera")
                 }
                 .buttonStyle(.plain)
             }
-            PhotosPicker(selection: $item, matching: .images) {
+            // A button (not PhotosPicker) so the "Before you scan" notice can come first.
+            Button { consent { showLibrary = true } } label: {
                 choice("Upload a photo", detail: "From your photo library", symbol: "square.and.arrow.up")
             }
             .buttonStyle(.plain)
         }
+        .photoLibraryImport(isPresented: $showLibrary, onPick: onPick)
         .fullScreenCover(isPresented: $showCamera) { CameraPicker(onPick: onPick).ignoresSafeArea() }
-        .onChange(of: item) { _, new in
-            guard let new else { return }
-            Task {
-                if let data = try? await new.loadTransferable(type: Data.self), let image = UIImage(data: data) {
-                    onPick(image.normalisedUp())
-                }
-                item = nil
-            }
-        }
     }
 
     private func choice(_ title: String, detail: String, symbol: String) -> some View {

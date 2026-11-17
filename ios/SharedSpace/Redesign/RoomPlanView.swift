@@ -8,6 +8,8 @@ struct RoomPlanView: View {
     let room: Room
     @Environment(SyncEngine.self) private var sync
     @Environment(RoomSession.self) private var session
+    @Environment(\.captureConsent) private var consent
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Query private var items: [Item]
     @Query private var designs: [Design]
 
@@ -120,7 +122,9 @@ struct RoomPlanView: View {
     private func header(_ resolved: ResolvedDesign) -> some View {
         let open = items.filter { !$0.isDecided }.count
         let gone = resolved.leaving.count
-        let status = open > 0 ? "\(open) not decided, shown where \(open == 1 ? "it is" : "they are")"
+        // Plan-only rooms never mention sorting: everything is simply in the room.
+        let status = !room.sortEnabled ? (items.isEmpty ? "Nothing in the room yet" : "\(items.count) thing\(items.count == 1 ? "" : "s") in the room")
+            : open > 0 ? "\(open) not decided, shown where \(open == 1 ? "it is" : "they are")"
             : (gone > 0 ? "All decided, \(gone) leaving" : (items.isEmpty ? "Nothing listed yet" : "All decided"))
         return VStack(alignment: .leading, spacing: Space.m) {
             VStack(alignment: .leading, spacing: Space.xs) {
@@ -142,7 +146,7 @@ struct RoomPlanView: View {
                     Button { showShape = true } label: { Label("Walls, door & windows", systemImage: "square.on.square.dashed") }
                         .buttonStyle(.app(.primary, size: .compact))
                     if DeviceCapabilities.canScanRooms {
-                        Button { session.showScan = true } label: {
+                        Button { consent { session.showScan = true } } label: {
                             Label(room.isScanned ? "Rescan with LiDAR" : "Scan with LiDAR", systemImage: "viewfinder")
                         }
                         .buttonStyle(.app(.primary, size: .compact))
@@ -241,7 +245,7 @@ struct RoomPlanView: View {
                 }
                 Spacer()
             }
-            HStack(spacing: Space.s) {
+            AdaptiveStack(spacing: Space.s) {
                 Button { DesignActions.turn(placement, sync: sync) } label: { Label("Turn", systemImage: "arrow.clockwise") }
                     .buttonStyle(.app(.neutral, size: .compact, width: .hug))
                 Button("Details") { detailPiece = piece }
@@ -276,7 +280,9 @@ struct RoomPlanView: View {
         }
         if design != nil, let summary = DesignResolver.hiddenSummary(resolved.leaving) {
             NoteBar(text: summary, symbol: "eye.slash") {
-                Button(showHidden ? "Hide them" : "Show them") { withAnimation { showHidden.toggle() } }.frame(minHeight: Size.tapTarget)
+                // The plan redraws at once (no "items leaving" animation), with or without Reduce Motion.
+                Button(showHidden ? "Hide them" : "Show them") { withMotion(reduceMotion: reduceMotion) { showHidden.toggle() } }
+                    .frame(minHeight: Size.tapTarget)
             }
         }
         if let design, isHost {
@@ -357,7 +363,7 @@ struct RoomPlanView: View {
     private var catalogueChoices: [CatalogPiece] {
         switch category {
         case .existing:
-            items.filter { !$0.status.leavesRoom && !$0.category.isFlat }.map(Catalogue.existing)
+            items.filter { !room.leaves($0) && !$0.category.isFlat }.map(Catalogue.existing)
         case .custom:
             Array(Set(designs.flatMap(\.livePlacements).compactMap(\.catalogId).filter { $0.hasPrefix("custom|") }))
                 .sorted().compactMap { Catalogue.piece($0, items: items) }
@@ -421,7 +427,8 @@ struct RoomPlanView: View {
                     .buttonStyle(.app(.primary, size: .compact))
             }
             if category == .existing {
-                Text("Things that are staying. They’re already in the plan; place a copy to try it somewhere else.")
+                Text(room.sortEnabled ? "Things that are staying. They’re already in the plan; place a copy to try it somewhere else."
+                                      : "Things already in the room. They’re in the plan; place a copy to try it somewhere else.")
                     .textRole(.hint)
             }
 
@@ -559,7 +566,7 @@ private struct CustomPieceSheet: View {
                     Text("A piece you already own or plan to buy.").foregroundStyle(Color.textSecondary)
                     VStack(alignment: .leading, spacing: Space.s) {
                         SectionLabel("Name")
-                        TextField("Grandma’s dresser", text: $name).textFieldStyle(.app)
+                        TextField("Grandma’s dresser", text: $name, prompt: Text("Grandma’s dresser").foregroundStyle(Color.textSecondary)).textFieldStyle(.app)
                     }
                     DimensionFields(units: units, w: $w, d: $d, h: $h)
                     Button("Place in plan") {
@@ -629,7 +636,7 @@ private struct PlanPreviewSheet: View {
                     } else {
                         Button {
                             dismiss()
-                            session.show(.people, on: router.roomTab)
+                            router.roomTab = .people
                         } label: { Label("Invite someone to see it", systemImage: "person.2") }
                             .buttonStyle(.app(.neutral))
                     }
@@ -654,7 +661,7 @@ private struct ReactNoteSheet: View {
         NavigationStack {
             VStack(alignment: .leading, spacing: Space.l) {
                 Text("\(hostName) will see this with the plan.").foregroundStyle(Color.textSecondary)
-                TextField("For example: can the bookshelf stay by the window?", text: $text, axis: .vertical)
+                TextField("For example: can the bookshelf stay by the window?", text: $text, prompt: Text("For example: can the bookshelf stay by the window?").foregroundStyle(Color.textSecondary), axis: .vertical)
                     .lineLimit(3...8)
                     .textFieldStyle(.appArea)
                 Button("Send") { onSend(text.trimmed); dismiss() }

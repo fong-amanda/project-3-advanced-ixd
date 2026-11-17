@@ -1,14 +1,13 @@
 import SwiftData
 import SwiftUI
 
-/// People & sharing (from the room's ⋯ menu): who's in the room, inviting someone, the room code.
+/// People tab: who's in the room, inviting someone, the room code.
 /// Inviting is optional; a room works fine solo.
 struct PeopleView: View {
     let room: Room
     @Environment(SyncEngine.self) private var sync
     @Environment(RoomSession.self) private var session
     @Environment(Router.self) private var router
-    @Environment(\.dismiss) private var dismiss
     @Query private var items: [Item]
     @State private var showAddGuest = false
     @State private var showInvite = false
@@ -26,6 +25,7 @@ struct PeopleView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: Space.l) {
+                Text("People & sharing").textRole(.sectionTitle).accessibilityAddTraits(.isHeader)
                 VStack(spacing: Space.xs) {
                     personRow(.host)
                     if room.hasGuest {
@@ -75,9 +75,7 @@ struct PeopleView: View {
                     if isHost && room.hasGuest {
                         Button {
                             session.previewAsGuest.toggle()
-                            session.itemsPath = []
-                            session.planPath = []
-                            router.roomTab = .items
+                            router.roomTab = RoomTab.start(for: room)
                         } label: {
                             Label(session.previewAsGuest ? "Switch back to my view" : "View as \(guest)", systemImage: "eye")
                         }
@@ -93,12 +91,7 @@ struct PeopleView: View {
             .padding(.bottom, Size.floatingClearance)
         }
         .pageBackground()
-        .appNavigation("People & sharing", large: true)
-        .navigationBarBackButtonHidden()
-        .toolbar {
-            ToolbarItem(placement: .topBarLeading) { BackButton { dismiss() } }
-                .plainToolbarBackground()
-        }
+        .roomChrome(room)
         .sheet(isPresented: $showAddGuest) {
             AddGuestSheet(room: room, items: items) { if sync.isShared { showInvite = true } }
         }
@@ -154,7 +147,7 @@ struct AddGuestSheet: View {
             VStack(alignment: .leading, spacing: Space.xl) {
                 VStack(alignment: .leading, spacing: Space.s) {
                     SectionLabel("Their first name")
-                    TextField("For example, Alex", text: $name).textContentType(.givenName).textFieldStyle(.app)
+                    TextField("For example, Alex", text: $name, prompt: Text("For example, Alex").foregroundStyle(Color.textSecondary)).textContentType(.givenName).textFieldStyle(.app)
                 }
                 if !room.hasGuest {
                     VStack(alignment: .leading, spacing: Space.s) {
@@ -216,7 +209,7 @@ struct InviteSheet: View {
                     .accessibilityElement(children: .combine)
                     VStack(alignment: .leading, spacing: Space.s) {
                         SectionLabel("Message")
-                        TextField("Message", text: $message, axis: .vertical)
+                        TextField("Message", text: $message, prompt: Text("Message").foregroundStyle(Color.textSecondary), axis: .vertical)
                             .lineLimit(4...10)
                             .textFieldStyle(.appArea)
                     }

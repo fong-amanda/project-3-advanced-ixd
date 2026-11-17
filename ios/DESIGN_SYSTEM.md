@@ -15,7 +15,7 @@ Calm, warm and simple, for older adults and their adult children. Soft gradient 
 | `surface` (White) | `#FFFFFF` | Cards, buttons, sheets |
 | `surfaceMuted` (Mist) | `#F2F2F2` | Card fill when the background is white |
 | `track` (Cloud) | `#EBEBEB` | Progress tracks, pressed rows |
-| `outline` | `#D0D0D0` | Button and chip outlines, 1.5pt |
+| `outline` | `#8A7C71` (dark `#9A8D84`) | Button, chip and toggle borders, 1.5pt. 3:1 on the page, white and Mist (Nov 2026: was `#D0D0D0`, 1.16:1) |
 | `divider` | `#E2E2E2` | Decorative lines only |
 | `textPrimary` (Ink) | `#2A221C` | Main text |
 | `textSecondary` (Graphite) | `#555555` | Secondary text; never use anything lighter for text |
@@ -52,14 +52,16 @@ The background is a single theme setting so the app can switch between the two. 
 
 ### Selected state and tags (soft gradient, 135°)
 
-| Color | Text | Gradient | Outline (selected buttons only) |
+| Color | Text | Gradient | Outline (selected states only) |
 |---|---|---|---|
-| Sage | `#3D5642` | `#EEF3EB` → `#D5E1CF` | `#B7C8B1` |
-| Slate | `#3E5A70` | `#EEF3F7` → `#D8E3EC` | `#B5C6D4` |
-| Brick | `#8E2F2A` | `#FAEFEE` → `#F0DAD7` | `#DDB4AF` |
-| Brown | `#5C4A3D` | `#F5EFE9` → `#E6DACD` | `#CDBBA9` |
+| Sage | `#3D5642` | `#EEF3EB` → `#D5E1CF` | `#5A7656` |
+| Slate | `#3E5A70` | `#EEF3F7` → `#D8E3EC` | `#577086` |
+| Brick | `#8E2F2A` | `#FAEFEE` → `#F0DAD7` | `#955A53` |
+| Brown | `#5C4A3D` | `#F5EFE9` → `#E6DACD` | `#80694F` |
 
 Sage text on the sage gradient uses the darker `#3D5642`, because `#4E6B53` fails contrast on the deeper end of the gradient.
+
+The selected outline is what tells a selected chip, button or tab apart from the others, so it must reach 3:1 against the page, white and Mist, and against its own gradient (Nov 2026: the earlier pale outlines `#B7C8B1`, `#B5C6D4`, `#DDB4AF`, `#CDBBA9` were about 1.3:1).
 
 ## Typography
 
@@ -106,7 +108,8 @@ Each is built once in `Shared/UI` and reused everywhere.
 10. **Avatar.** Circle with the person's initial (medium weight) on Brown tint, Sage tint or Slate tint.
 11. **Switch.** On: Sage track, white knob. Off: Cloud track with a Deep brown outline and knob, so it stays visible.
 12. **Floor plan.** Room outline in Ink. Existing furniture: Brown tint fill with a Deep brown outline. New or proposed furniture: Sage tint fill with a dashed Sage outline. Windows in Slate tint.
-13. **Bottom bar (if used).** White capsule with the floating shadow; the selected item shown as the sage gradient tag.
+13. **Bottom bar (if used).** White capsule with the floating shadow; the selected item shown as the sage gradient tag with its outline.
+14. **Decisions.** Always colour + symbol + words: Keep `checkmark`, Keep but move `arrow.right.square`, Send to owner `shippingbox`, Let go (donate or sell) `xmark`, Throw out `trash`, Not sure `questionmark.circle`, Undecided `circle`. Photo pins carry the symbol on a small badge; things leaving are drawn see-through with a label in the 3D view and with their symbol on the floor plan.
 
 ## Applying it to the app
 
@@ -119,6 +122,10 @@ This file defines the visual style only. Keep the app's existing screens, flow, 
 - Dark mode variants of every color token, following the same rules and passing AA.
 - Increase Contrast support: darker text and outlines.
 - Every icon-only button has a VoiceOver label.
+- Every item row, photo pin, floor-plan thing and 3D thing says its status to VoiceOver ("Desk, staying", "Guitar, going to Sam").
+- Every control is at least 44 × 44 points; small markers keep a 44-point touch area around them.
+- Reduce Motion: nothing slides, scales or springs. Screens and cards that appear fade in; everything else changes at once (`Motion.animation`, `Motion.transition`, `withMotion` in `Theme`).
+- Number badges on photos always use the light palette, because the badge is white in both modes.
 
 ## Building it so it's easy to change
 

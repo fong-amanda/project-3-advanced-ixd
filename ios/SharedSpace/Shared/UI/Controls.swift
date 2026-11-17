@@ -66,13 +66,14 @@ struct ChipPicker<Value: Hashable>: View {
     let options: [ChipOption<Value>]
     @Binding var selection: Value
     var accessibilityLabel = ""
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: Space.s) {
                 ForEach(options) { option in
                     let on = option.value == selection
-                    Button { withAnimation(Motion.standard) { selection = option.value } } label: {
+                    Button { withMotion(Motion.standard, reduceMotion: reduceMotion) { selection = option.value } } label: {
                         HStack(spacing: Space.xs) {
                             Text(option.title)
                             if let count = option.count, count > 0 {
@@ -140,6 +141,7 @@ struct TickBadge: View {
     var body: some View {
         Image(systemName: "checkmark")
             .font(.badge)
+            .dynamicTypeSize(...Size.iconTypeLimit)
             .foregroundStyle(isOn ? Color.onAccent : .clear)
             .frame(width: Size.tick, height: Size.tick)
             .background(isOn ? Color.accent : Color.clear, in: Circle())
@@ -152,8 +154,10 @@ struct TickBadge: View {
 
 /// On: Sage track, white knob. Off: Cloud track with a Deep brown outline and knob.
 struct AppToggleStyle: ToggleStyle {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     func makeBody(configuration: Configuration) -> some View {
-        Button { withAnimation(Motion.standard) { configuration.isOn.toggle() } } label: {
+        Button { withMotion(Motion.standard, reduceMotion: reduceMotion) { configuration.isOn.toggle() } } label: {
             HStack(spacing: Space.m) {
                 configuration.label.frame(maxWidth: .infinity, alignment: .leading)
                 let knob = Size.switchTrack.height - Size.switchKnobInset * 2

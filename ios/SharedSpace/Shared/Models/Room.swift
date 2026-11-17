@@ -40,6 +40,17 @@ final class Room {
     /// The floor outline with doors and windows (JSON of RoomShape). nil = a plain rectangle.
     var shapeData: Data? = nil
 
+    /// Room goals (at least one is on). Turning one off only hides it: items, decisions and layouts
+    /// are kept and come back when it's turned on again. Existing rooms have both on.
+    var sortEnabled: Bool = true
+    var planEnabled: Bool = true
+
+    /// Archived by the person on this phone only (each member archives for themselves; stored on
+    /// their room_members row). Archived rooms keep everything and sit in "Archived" on Home.
+    var archived: Bool = false
+    /// The archive flag changed offline and still has to reach the server.
+    var archiveNeedsUpload: Bool = false
+
     var createdAt: Date
     var updatedAt: Date
     var deletedAt: Date?
@@ -87,6 +98,19 @@ final class Room {
         userId == hostUserId ? .host : .guest
     }
 
+    func isEnabled(_ goal: RoomGoal) -> Bool {
+        switch goal {
+        case .sort: sortEnabled
+        case .plan: planEnabled
+        }
+    }
+
+    var goals: [RoomGoal] { RoomGoal.allCases.filter(isEnabled) }
+
+    /// True when Sort says this item leaves the room. With "Sort things" off, nothing leaves:
+    /// the plan shows every item where it is and never mentions decisions.
+    func leaves(_ item: Item) -> Bool { sortEnabled && item.status.leavesRoom }
+
     var hasGuest: Bool { !(guestName ?? "").isEmpty }
     var guestHasJoined: Bool { guestUserId != nil }
     var isScanned: Bool { scanVersion > 0 }
@@ -111,6 +135,50 @@ final class Room {
     }
 
     static let maxPhotos = 3
+}
+
+/// What a room is for. A room has one or both.
+enum RoomGoal: String, CaseIterable, Identifiable, Sendable {
+    case sort, plan
+
+    var id: String { rawValue }
+
+    /// On the goal cards ("Sort things").
+    var title: String {
+        switch self {
+        case .sort: "Sort things"
+        case .plan: "Plan the room"
+        }
+    }
+
+    var detail: String {
+        switch self {
+        case .sort: "Decide what stays and what goes."
+        case .plan: "Redesign the layout and furniture."
+        }
+    }
+
+    /// On tags ("Sorting").
+    var tag: String {
+        switch self {
+        case .sort: "Sorting"
+        case .plan: "Planning"
+        }
+    }
+
+    var symbol: String {
+        switch self {
+        case .sort: "checklist"
+        case .plan: "cube"
+        }
+    }
+
+    var tone: Tone {
+        switch self {
+        case .sort: .sage
+        case .plan: .slate
+        }
+    }
 }
 
 enum RoomCode {

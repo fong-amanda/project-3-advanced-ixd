@@ -43,7 +43,7 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.amandafong.sharedspace   # ← change me
-        DEVELOPMENT_TEAM: ""                                  # ← your Team ID
+        DEVELOPMENT_TEAM: X6YF8KG474                          # ← your Team ID
         CODE_SIGN_STYLE: Automatic
         TARGETED_DEVICE_FAMILY: "1"                           # iPhone only
         GENERATE_INFOPLIST_FILE: YES
@@ -67,3 +67,31 @@ targets:
             CFBundleURLSchemes: [sharedspace]
         UIRequiredDeviceCapabilities: [arm64]
         ITSAppUsesNonExemptEncryption: false   # skips the export-compliance question in TestFlight
+
+  # XCTest's built-in accessibility audit on the main screens, light and dark (see UITests/).
+  SharedSpaceUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources: [UITests]
+    dependencies:
+      - target: SharedSpace
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: com.amandafong.sharedspace.uitests
+        DEVELOPMENT_TEAM: X6YF8KG474
+        CODE_SIGN_STYLE: Automatic
+        TARGETED_DEVICE_FAMILY: "1"
+        TEST_TARGET_NAME: SharedSpace
+
+schemes:
+  SharedSpace:
+    build:
+      targets:
+        SharedSpace: all
+        SharedSpaceUITests: [test]
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets: [SharedSpaceUITests]

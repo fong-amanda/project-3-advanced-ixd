@@ -13,6 +13,7 @@ struct SortCardsView: View {
     @Binding var skipped: [UUID]
 
     @Environment(SyncEngine.self) private var sync
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var noteItem: Item?
 
     var body: some View {
@@ -20,12 +21,15 @@ struct SortCardsView: View {
             if let item = queue.first {
                 card(item)
                     .id(item.id)
-                    .transition(.asymmetric(insertion: .move(edge: .trailing).combined(with: .opacity),
-                                            removal: .move(edge: .leading).combined(with: .opacity)))
+                    // Cards slide through normally; with Reduce Motion the next card just fades in.
+                    .transition(Motion.transition(.asymmetric(insertion: .move(edge: .trailing).combined(with: .opacity),
+                                                              removal: .move(edge: .leading).combined(with: .opacity)),
+                                                  reduceMotion: reduceMotion))
                     .padding(Space.page)
             }
         }
-        .animation(.snappy, value: queue.first?.id)
+        // With Reduce Motion the next card simply replaces the last one: no slide, no fade.
+        .animation(reduceMotion ? nil : .snappy, value: queue.first?.id)
         .sheet(item: $noteItem) { item in NotePrompt(item: item, me: me, other: room.name(of: me.other)) }
     }
 
@@ -76,7 +80,9 @@ struct SortCardsView: View {
                 Button { noteItem = item } label: { Label("Add a note", systemImage: "text.bubble") }
                     .buttonStyle(.app(.primary, size: .compact))
                 Spacer()
-                Button("Skip for now") { withAnimation { skipped.removeAll { $0 == item.id }; skipped.append(item.id) } }
+                Button("Skip for now") {
+                    withMotion(reduceMotion: reduceMotion, fade: true) { skipped.removeAll { $0 == item.id }; skipped.append(item.id) }
+                }
                     .buttonStyle(.app(.primary, size: .compact))
                     .disabled(queue.count < 2)
             }
@@ -100,7 +106,7 @@ struct SortCardsView: View {
         DecisionButton(decision: status, title: title(status, item: item, mine: mine), detail: mine ? status.detail : nil,
                        isSelected: !mine && item.suggestion == status && item.suggestedBy == me,
                        layout: .full, suggesting: !mine) {
-            withAnimation { SortActions.choose(status, for: item, as: me, in: room, sync: sync) }
+            withMotion(reduceMotion: reduceMotion) { SortActions.choose(status, for: item, as: me, in: room, sync: sync) }
             skipped.removeAll { $0 == item.id }
         }
     }
@@ -125,7 +131,7 @@ private struct NotePrompt: View {
         NavigationStack {
             VStack(alignment: .leading, spacing: Space.l) {
                 Text("\(other) will see it next to this item.").foregroundStyle(Color.textSecondary)
-                TextField("For example: please keep the case too", text: $text, axis: .vertical)
+                TextField("For example: please keep the case too", text: $text, prompt: Text("For example: please keep the case too").foregroundStyle(Color.textSecondary), axis: .vertical)
                     .lineLimit(3...8)
                     .textFieldStyle(.appArea)
                 Button("Save note") {

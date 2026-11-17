@@ -50,7 +50,7 @@ struct AddItemSheet: View {
                     }
                     VStack(alignment: .leading, spacing: Space.s) {
                         SectionLabel("What is it?")
-                        TextField("Sewing machine", text: $name)
+                        TextField("Sewing machine", text: $name, prompt: Text("Sewing machine").foregroundStyle(Color.textSecondary))
                             .textFieldStyle(.app)
                             .submitLabel(.done)
                             .onSubmit(add)

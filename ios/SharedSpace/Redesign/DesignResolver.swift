@@ -25,6 +25,17 @@ struct PlanEntry: Identifiable {
     let style: Style
     /// Set for pieces that need a look ("Overlaps the desk").
     var problem: String?
+    /// Real items: their Sort decision, and where they stand in words ("going to Sam").
+    var status: ItemStatus?
+    var statusText: String?
+
+    /// What VoiceOver says for this thing: "Desk, staying", "Armchair, placed in the plan".
+    var spokenName: String {
+        if style == .newPiece { return "\(name), placed in the plan" }
+        var text = statusText.map { "\(name), \($0)" } ?? name
+        if style == .hiddenInDesign { text += ", hidden in this version" }
+        return text
+    }
 
     var isGhost: Bool {
         switch style {
@@ -107,7 +118,9 @@ enum DesignResolver {
 
         for item in items {
             let placement = byItem[item.id]
-            if item.status.leavesRoom {
+            let count = result.entries.count
+            // With "Sort things" off, nothing leaves: every item stays where it is.
+            if room?.leaves(item) ?? item.status.leavesRoom {
                 result.leaving.append(item)
                 result.entries.append(PlanEntry(actual: item, style: .leaving(item.status)))
                 if let placement, !placement.hidden { result.conflicts.append(item) }
@@ -118,6 +131,11 @@ enum DesignResolver {
                 result.entries.append(PlanEntry(item: item, placement: placement, style: .moved))
             } else {
                 result.entries.append(PlanEntry(actual: item))
+            }
+            // Decisions are only mentioned while the room is being sorted.
+            if result.entries.count > count, room?.sortEnabled ?? true {
+                result.entries[count].status = item.status
+                result.entries[count].statusText = room.map { SortRules.spokenStatus(item, room: $0) } ?? item.status.statusLabel.lowercased()
             }
         }
 

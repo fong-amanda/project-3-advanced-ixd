@@ -2,14 +2,38 @@ import Observation
 import SwiftData
 import SwiftUI
 
-/// The two tabs inside a room.
-enum RoomTab: Hashable {
-    case items, plan
-}
+/// The tabs inside a room. Room and People are always there; Sort (`items`) only while the room's
+/// "Sort things" goal is on, and Redesign (`plan`) only while "Plan the room" is on.
+enum RoomTab: Hashable, CaseIterable {
+    case room, items, plan, people
 
-/// Screens pushed inside a room tab.
-enum RoomRoute: Hashable {
-    case people
+    var title: String {
+        switch self {
+        case .room: "Room"
+        case .items: "Sort"
+        case .plan: "Redesign"
+        case .people: "People"
+        }
+    }
+
+    var symbol: String {
+        switch self {
+        case .room: "house"
+        case .items: RoomGoal.sort.symbol
+        case .plan: RoomGoal.plan.symbol
+        case .people: "person.2"
+        }
+    }
+
+    /// The tabs a room shows, in order.
+    static func available(in room: Room) -> [RoomTab] {
+        [.room] + (room.sortEnabled ? [.items] : []) + (room.planEnabled ? [.plan] : []) + [.people]
+    }
+
+    /// Where a room opens: its first goal.
+    static func start(for room: Room) -> RoomTab {
+        room.sortEnabled ? .items : (room.planEnabled ? .plan : .room)
+    }
 }
 
 struct JoinRequest: Identifiable {
@@ -17,8 +41,8 @@ struct JoinRequest: Identifiable {
     var id: String { code }
 }
 
-/// App-level navigation. Home lists your rooms; opening one shows that room with its own two tabs
-/// (Items and Room plan). People & sharing lives in the room's ⋯ menu.
+/// App-level navigation. Home lists your rooms; opening one shows that room with its tabs
+/// (Room, Sort, Redesign, People; Sort and Redesign follow the room's goals).
 @MainActor
 @Observable
 final class Router {
@@ -29,9 +53,25 @@ final class Router {
     var showAddRoom = false
     /// Set by "Join with a code" or an invite link; shows the join sheet.
     var joinRequest: JoinRequest?
+    /// A message that needs reading (not a passing banner), shown as an alert.
+    var notice: Notice?
+    /// The room just archived, while Home offers "Undo".
+    var archiveUndo: ArchiveUndo?
 
-    func openRoom(_ id: UUID, showing tab: RoomTab = .items) {
-        roomTab = tab
+    struct ArchiveUndo: Identifiable, Equatable {
+        let id = UUID()
+        let roomId: UUID
+    }
+
+    struct Notice: Identifiable {
+        let id = UUID()
+        let title: String
+        let message: String
+    }
+
+    /// Opens a room on `tab`, or on its first goal when `tab` is nil (or not shown in that room).
+    func openRoom(_ id: UUID, showing tab: RoomTab? = nil) {
+        roomTab = tab ?? .items   // RoomView moves to the room's first goal if this tab is hidden
         openRoomId = id
     }
 
@@ -44,6 +84,7 @@ final class Router {
 struct RootView: View {
     @Environment(SyncEngine.self) private var sync
     @Environment(Router.self) private var router
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Query(filter: #Predicate<Room> { $0.deletedAt == nil }, sort: \Room.createdAt, order: .reverse)
     private var rooms: [Room]
 
@@ -59,13 +100,13 @@ struct RootView: View {
             if let room = openRoom {
                 RoomView(room: room)
                     .id(room.id)
-                    .transition(.move(edge: .trailing))
+                    .transition(Motion.transition(.move(edge: .trailing), reduceMotion: reduceMotion))
             } else {
                 NavigationStack { HomeView() }
-                    .transition(.move(edge: .leading))
+                    .transition(Motion.transition(.move(edge: .leading), reduceMotion: reduceMotion))
             }
         }
-        .animation(.snappy(duration: 0.3), value: openRoom?.id)
+        .animation(Motion.animation(Motion.screen, reduceMotion: reduceMotion), value: openRoom?.id)
         .task(id: openRoom?.id) {
             if let id = openRoom?.id { await sync.openRoom(id) } else { await sync.closeRoom() }
         }
@@ -80,7 +121,22 @@ struct RootView: View {
             JoinRoomSheet(initialCode: request.code) { roomId in router.openRoom(roomId) }
         }
         .activityBanner($sync.activity)
+        .alert(router.notice?.title ?? "", isPresented: Binding(get: { router.notice != nil }, set: { if !$0 { router.notice = nil } }),
+               presenting: router.notice) { _ in
+            Button("OK", role: .cancel) {}
+        } message: { notice in
+            Text(notice.message)
+        }
+        .alert("Couldn’t save the photo", isPresented: Binding(get: { sync.photoSaveError != nil },
+                                                             set: { if !$0 { sync.photoSaveError = nil } })) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(sync.photoSaveError ?? "")
+        }
         .environment(\.pendingInvite, $pendingInvite)
+        // Reduce Motion: sheets, full-screen covers and pushes appear in place instead of sliding.
+        // (Explicit fades from `withMotion(fade: true)` still run; implicit slides don't.)
+        .transaction { if reduceMotion { $0.disablesAnimations = true } }
     }
 
     /// A room just created with "Invite someone": its People screen opens the invite sheet once.
@@ -107,57 +163,64 @@ struct RoomView: View {
         return items.filter { SortRules.needsMe($0, me: me, in: room) }.count
     }
 
+    private var tabs: [RoomTab] { RoomTab.available(in: room) }
+
     var body: some View {
         @Bindable var router = router
         @Bindable var session = session
         TabView(selection: $router.roomTab) {
-            Tab("Items", systemImage: "list.bullet", value: RoomTab.items) {
-                NavigationStack(path: $session.itemsPath) {
-                    ItemsView(room: room)
-                        .navigationDestination(for: RoomRoute.self) { route in destination(route) }
-                }
-                .toolbar(.hidden, for: .tabBar)
+            Tab(RoomTab.room.title, systemImage: RoomTab.room.symbol, value: RoomTab.room) {
+                NavigationStack { RoomOverviewView(room: room) }.toolbar(.hidden, for: .tabBar)
             }
-            Tab("Room plan", systemImage: "cube", value: RoomTab.plan) {
-                NavigationStack(path: $session.planPath) {
-                    RoomPlanView(room: room)
-                        .navigationDestination(for: RoomRoute.self) { route in destination(route) }
+            // A goal that's off hides its tab; its items, decisions and layouts stay in the room.
+            if room.sortEnabled {
+                Tab(RoomTab.items.title, systemImage: RoomTab.items.symbol, value: RoomTab.items) {
+                    NavigationStack { ItemsView(room: room) }.toolbar(.hidden, for: .tabBar)
                 }
-                .toolbar(.hidden, for: .tabBar)
+            }
+            if room.planEnabled {
+                Tab(RoomTab.plan.title, systemImage: RoomTab.plan.symbol, value: RoomTab.plan) {
+                    NavigationStack { RoomPlanView(room: room) }.toolbar(.hidden, for: .tabBar)
+                }
+            }
+            Tab(RoomTab.people.title, systemImage: RoomTab.people.symbol, value: RoomTab.people) {
+                NavigationStack { PeopleView(room: room) }.toolbar(.hidden, for: .tabBar)
             }
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            AppTabBar(items: [.init(value: RoomTab.items, title: "Items", symbol: "list.bullet", badge: openCount),
-                              .init(value: RoomTab.plan, title: "Room plan", symbol: "cube")],
+            AppTabBar(items: tabs.map { .init(value: $0, title: $0.title, symbol: $0.symbol, badge: $0 == .items ? openCount : 0) },
                       selection: $router.roomTab)
         }
+        .onChange(of: tabs) { keepTabVisible() }
         .sheet(item: $session.addItem) { request in
             AddItemSheet(room: room, pin: request.pin, photo: request.photo)
         }
         .sheet(isPresented: $session.showSettings) { RoomSettingsSheet(room: room) }
+        .sheet(isPresented: $session.showGoals) { RoomGoalsSheet(room: room) }
         .fullScreenCover(isPresented: $session.showScan) {
             ScanFlowView { result, captured in
                 ScanActions.apply(result, captured: captured, to: room, items: items, sync: sync)
-                sync.activity = ActivityEvent(text: "Scan saved: \(result.objects.count) things found", symbol: "viewfinder", status: nil)
+                sync.activity = ActivityEvent(text: ScanCopy.found(result.objects.count), symbol: "viewfinder", status: nil)
             }
         }
         .environment(session)
+        .captureConsent(for: room, isHost: room.role(of: sync.userId) == .host)
         .onAppear {
             #if DEBUG
             if DemoData.asGuest { session.previewAsGuest = true }
             #endif
+            keepTabVisible()
             if pendingInvite.wrappedValue == room.id {
                 pendingInvite.wrappedValue = nil
                 session.showInviteOnPeople = true
-                session.show(.people, on: router.roomTab)
+                router.roomTab = .people
             }
         }
     }
 
-    @ViewBuilder private func destination(_ route: RoomRoute) -> some View {
-        switch route {
-        case .people: PeopleView(room: room)
-        }
+    /// If the tab on screen belongs to a goal that's off, go to the room's first goal instead.
+    private func keepTabVisible() {
+        if !tabs.contains(router.roomTab) { router.roomTab = RoomTab.start(for: room) }
     }
 }
 
