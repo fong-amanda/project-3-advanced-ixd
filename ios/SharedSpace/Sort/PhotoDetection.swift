@@ -14,6 +14,21 @@ import os
 /// "[Detect] …" lines. Labels and numbers only: never the photo or anything personal.
 let detectLog = Logger(subsystem: "com.amandafong.sharedspace", category: "Detect")
 
+/// The words around detection, shared by the photo step, the review sheet and the design system page.
+enum DetectionCopy {
+    static let photoStepLead = "Add a photo and we’ll use AI on your iPhone to suggest the things in it. You’ll check each one before it’s added."
+    static let howTitle = "How we find things in your photo"
+    // The model knows beds, chairs, sofas, tables and TVs, but not shelves.
+    static let howMessage = """
+    An AI model on your iPhone looks for common furniture like beds, chairs, sofas and tables.
+
+    It can miss things or get them wrong, especially less common items. You’ll confirm, rename or remove each suggestion.
+
+    Your photo stays on your iPhone for this.
+    """
+    static let suggestedTag = "Suggested — check this"
+}
+
 /// Something the model found, mapped to a room thing.
 struct DetectedObject: Sendable {
     let name: String

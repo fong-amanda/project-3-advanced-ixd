@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Shared Space design system</title>
+<meta name="description" content="The Shared Space design system: colour tokens, type, spacing and components, with the same names and values as the iOS app.">
+<style>
+:root{--accent:#4E6B53;--backgroundBrownBottom:#FAF8F6;--backgroundBrownMiddle:#F3EDE7;--backgroundBrownTop:#E9DED3;--backgroundSageBottom:#F8FAF7;--backgroundSageMiddle:#EDF2EA;--backgroundSageTop:#D9E4D3;--brand:#7A6352;--divider:#E2E2E2;--iconNeutral:#5C4A3D;--letGo:#8E2F2A;--onAccent:#FFFFFF;--onBrand:#FFFFFF;--onPhoto:#2A221C;--outline:#8A7C71;--outlineStrong:#858585;--photoBadge:#FFFFFF;--roomDoor:#F6F2EA;--roomFloor:#C9A178;--roomWall:#EFE9DF;--roomWindow:#B9CCDA;--send:#3E5A70;--shadow:#2A221C;--surface:#FFFFFF;--surfaceMuted:#F2F2F2;--textPrimary:#2A221C;--textSecondary:#555555;--tintBrick:#F3E3E1;--tintBrown:#E8DDD2;--tintSage:#DCE5D7;--tintSlate:#E3EAF0;--toneBrickEnd:#F0DAD7;--toneBrickLine:#955A53;--toneBrickStart:#FAEFEE;--toneBrickText:#8E2F2A;--toneBrownEnd:#E6DACD;--toneBrownLine:#80694F;--toneBrownStart:#F5EFE9;--toneBrownText:#5C4A3D;--toneSageEnd:#D5E1CF;--toneSageLine:#5A7656;--toneSageStart:#EEF3EB;--toneSageText:#3D5642;--toneSlateEnd:#D8E3EC;--toneSlateLine:#577086;--toneSlateStart:#EEF3F7;--toneSlateText:#3E5A70;--track:#EBEBEB;--trackOnMuted:#DDDDDD;color-scheme:light dark;
+  --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display",system-ui,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --shadow-rgb:42,34,28;--sh-near:.06;--sh-far:.07;--sh-float:.14}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--accent:#9DC2A4;--backgroundBrownBottom:#181411;--backgroundBrownMiddle:#1F1A16;--backgroundBrownTop:#2A221C;--backgroundSageBottom:#121713;--backgroundSageMiddle:#182019;--backgroundSageTop:#1F2B22;--brand:#7A6352;--divider:#403833;--iconNeutral:#DCCCBD;--letGo:#F2A69F;--onAccent:#16241A;--onBrand:#FFFFFF;--onPhoto:#2A221C;--outline:#9A8D84;--outlineStrong:#988D85;--photoBadge:#FFFFFF;--roomDoor:#F6F2EA;--roomFloor:#C9A178;--roomWall:#EFE9DF;--roomWindow:#B9CCDA;--send:#A3BED3;--shadow:#000000;--surface:#2B2521;--surfaceMuted:#36302B;--textPrimary:#F4EEE8;--textSecondary:#CFC6BE;--tintBrick:#4C2C29;--tintBrown:#4B3F36;--tintSage:#304236;--tintSlate:#2F3C47;--toneBrickEnd:#3C2421;--toneBrickLine:#B5776F;--toneBrickStart:#4D302D;--toneBrickText:#FFD2CC;--toneBrownEnd:#382E26;--toneBrownLine:#9C8571;--toneBrownStart:#473B32;--toneBrownText:#EEE0D3;--toneSageEnd:#27362B;--toneSageLine:#7FA287;--toneSageStart:#35473A;--toneSageText:#CFE6D4;--toneSlateEnd:#26323D;--toneSlateLine:#7D96AB;--toneSlateStart:#334250;--toneSlateText:#D2E2EF;--track:#4A423C;--trackOnMuted:#564D46;--shadow-rgb:0,0,0;--sh-near:.3;--sh-far:.35;--sh-float:.5}}
+:root[data-theme="dark"]{--accent:#9DC2A4;--backgroundBrownBottom:#181411;--backgroundBrownMiddle:#1F1A16;--backgroundBrownTop:#2A221C;--backgroundSageBottom:#121713;--backgroundSageMiddle:#182019;--backgroundSageTop:#1F2B22;--brand:#7A6352;--divider:#403833;--iconNeutral:#DCCCBD;--letGo:#F2A69F;--onAccent:#16241A;--onBrand:#FFFFFF;--onPhoto:#2A221C;--outline:#9A8D84;--outlineStrong:#988D85;--photoBadge:#FFFFFF;--roomDoor:#F6F2EA;--roomFloor:#C9A178;--roomWall:#EFE9DF;--roomWindow:#B9CCDA;--send:#A3BED3;--shadow:#000000;--surface:#2B2521;--surfaceMuted:#36302B;--textPrimary:#F4EEE8;--textSecondary:#CFC6BE;--tintBrick:#4C2C29;--tintBrown:#4B3F36;--tintSage:#304236;--tintSlate:#2F3C47;--toneBrickEnd:#3C2421;--toneBrickLine:#B5776F;--toneBrickStart:#4D302D;--toneBrickText:#FFD2CC;--toneBrownEnd:#382E26;--toneBrownLine:#9C8571;--toneBrownStart:#473B32;--toneBrownText:#EEE0D3;--toneSageEnd:#27362B;--toneSageLine:#7FA287;--toneSageStart:#35473A;--toneSageText:#CFE6D4;--toneSlateEnd:#26323D;--toneSlateLine:#7D96AB;--toneSlateStart:#334250;--toneSlateText:#D2E2EF;--track:#4A423C;--trackOnMuted:#564D46;--shadow-rgb:0,0,0;--sh-near:.3;--sh-far:.35;--sh-float:.5}
+:root{--sage-grad:linear-gradient(135deg,var(--toneSageStart),var(--toneSageEnd));--slate-grad:linear-gradient(135deg,var(--toneSlateStart),var(--toneSlateEnd));
+  --brick-grad:linear-gradient(135deg,var(--toneBrickStart),var(--toneBrickEnd));--brown-grad:linear-gradient(135deg,var(--toneBrownStart),var(--toneBrownEnd));
+  --card-sh:0 1px 2px rgba(var(--shadow-rgb),var(--sh-near)),0 6px 18px rgba(var(--shadow-rgb),var(--sh-far));
+  --float-sh:0 1px 2px rgba(var(--shadow-rgb),var(--sh-near)),0 6px 18px rgba(var(--shadow-rgb),var(--sh-float))}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--backgroundBrownBottom);color:var(--textPrimary);font:17px/1.45 var(--font);-webkit-font-smoothing:antialiased}
+body{background:linear-gradient(180deg,var(--backgroundBrownTop) 0,var(--backgroundBrownMiddle) 45%,var(--backgroundBrownBottom) 100%) fixed}
+main{max-width:980px;margin:0 auto;padding:24px 16px 80px}
+@media (min-width:600px){main{padding:32px 24px 96px}}
+h1{font-size:34px;font-weight:600;margin:8px 0 6px;letter-spacing:-.01em}
+h2{font-size:22px;font-weight:600;margin:48px 0 12px;scroll-margin-top:72px}
+h3{font-size:20px;font-weight:500;margin:22px 0 10px}
+p{margin:0 0 10px}
+.lead{color:var(--textSecondary);font-size:16px;max-width:680px}
+.hint{display:block;color:var(--textSecondary);font-size:16px}
+.muted{color:var(--textSecondary)}
+code,.mono{font-family:ui-monospace,"SF Mono",Menlo,monospace;font-size:14px}
+.toc{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 0}
+.toc a{display:inline-flex;align-items:center;min-height:44px;padding:0 16px;border-radius:999px;background:var(--surface);color:var(--iconNeutral);border:1.5px solid var(--outline);text-decoration:none;font-size:16px;font-weight:500}
+.bar{position:sticky;top:0;z-index:5;display:flex;gap:8px;align-items:center;padding:10px 16px;background:color-mix(in srgb,var(--backgroundBrownTop) 92%,transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.bar b{flex:1;font-weight:600}
+.seg{display:flex;gap:6px}
+.chip,.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 16px;border-radius:999px;background:var(--surface);border:1.5px solid var(--outline);color:var(--textPrimary);font:500 16px/1 var(--font);cursor:pointer}
+.chip[aria-pressed="true"],.chip.sel{background:var(--sage-grad);color:var(--toneSageText);border-color:var(--toneSageLine)}
+.btn{min-height:52px;padding:0 20px;font-size:17px;color:var(--accent)}
+.btn.compact{min-height:44px;padding:0 16px;font-size:16px}
+.btn.neutral{color:var(--iconNeutral)} .btn.destructive{color:var(--letGo)}
+.btn.pressed{background:var(--track)} .btn[disabled]{opacity:.4;cursor:not-allowed}
+.btn.sel.primary{background:var(--sage-grad);color:var(--toneSageText);border-color:var(--toneSageLine)}
+.btn.sel.neutral{background:var(--brown-grad);color:var(--toneBrownText);border-color:var(--toneBrownLine)}
+.btn.sel.destructive{background:var(--brick-grad);color:var(--toneBrickText);border-color:var(--toneBrickLine)}
+.btn.block{width:100%}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+svg.i{width:20px;height:20px;flex:none;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.group{background:var(--surface);border-radius:24px;box-shadow:var(--card-sh);overflow:hidden}
+.tok{display:flex;align-items:center;gap:12px;padding:12px 16px;border-top:1px solid var(--divider)}
+.tok:first-child{border-top:0}
+.grow{flex:1;min-width:0}
+.tok b{font-weight:500}
+.sw{width:40px;height:40px;border-radius:12px;flex:none;border:1px solid var(--divider)}
+.vals{display:grid;gap:2px;text-align:right}
+.vals>span{display:block}
+.ratio{display:block;font-size:13px;color:var(--textSecondary)}
+.lt,.dk{display:none}
+:root .lt{display:block}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .lt{display:none}:root:not([data-theme="light"]) .dk{display:block}}
+:root[data-theme="dark"] .lt{display:none} :root[data-theme="dark"] .dk{display:block}
+.icirc{width:40px;height:40px;border-radius:999px;display:grid;place-items:center;flex:none}
+.tag{display:inline-flex;align-items:center;gap:6px;min-height:32px;padding:0 12px;border-radius:999px;font-size:16px;font-weight:500;white-space:nowrap}
+.tag svg.i{width:16px;height:16px}
+.t-sage{background:var(--sage-grad);color:var(--toneSageText)} .t-slate{background:var(--slate-grad);color:var(--toneSlateText)}
+.t-brick{background:var(--brick-grad);color:var(--toneBrickText)} .t-brown{background:var(--brown-grad);color:var(--toneBrownText)}
+.tag.sel.t-sage{box-shadow:inset 0 0 0 1.5px var(--toneSageLine)} .tag.sel.t-slate{box-shadow:inset 0 0 0 1.5px var(--toneSlateLine)}
+.tag.sel.t-brick{box-shadow:inset 0 0 0 1.5px var(--toneBrickLine)} .tag.sel.t-brown{box-shadow:inset 0 0 0 1.5px var(--toneBrownLine)}
+.tonerow{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:8px 0}
+.grads{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
+.gradbox{height:140px;border-radius:20px;border:1px solid var(--divider)}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:8px 0}
+.stack{display:grid;gap:8px;max-width:420px}
+.type>div{margin:6px 0}
+.space{display:flex;align-items:center;gap:12px;margin:6px 0} .space i{display:block;height:8px;border-radius:999px;background:var(--accent)}
+.radii{display:flex;gap:12px;flex-wrap:wrap} .radii div{width:56px;height:56px;background:var(--surface);box-shadow:var(--card-sh)}
+.shadows{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px} .shadows div{background:var(--surface);border-radius:24px;padding:28px 16px;color:var(--textSecondary)}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:24px;align-items:start}
+.card{background:var(--surface);border-radius:28px;box-shadow:var(--card-sh);padding:20px}
+.roomcard{position:relative;display:grid;gap:12px}
+.roomcard .top{display:flex;gap:16px;align-items:flex-start}
+.roomcard h4{margin:0;font-size:20px;font-weight:500}
+.roomcard .tile{width:88px;height:88px;border-radius:20px;background:var(--tintSage);flex:none;display:grid;place-items:center;color:var(--iconNeutral);position:relative}
+.more{position:absolute;top:4px;right:4px;width:28px;height:28px;border-radius:999px;background:color-mix(in srgb,var(--surface) 85%,transparent);display:grid;place-items:center;color:var(--textPrimary)}
+.goal{display:flex;align-items:center;gap:8px} .goal .s{color:var(--textSecondary);font-size:16px}
+.progress{height:8px;border-radius:999px;background:var(--track);overflow:hidden} .progress i{display:block;height:100%;background:var(--accent);border-radius:999px}
+.tabbar{display:flex;gap:4px;padding:6px;border-radius:28px;background:var(--surface);box-shadow:var(--float-sh)}
+.tabbar span{flex:1;display:grid;justify-items:center;gap:2px;padding:6px 4px;border-radius:22px;font-size:13px;font-weight:500;color:var(--textPrimary)}
+.tabbar span svg.i{color:var(--iconNeutral)} .tabbar span.on{background:var(--sage-grad);color:var(--toneSageText);box-shadow:inset 0 0 0 1.5px var(--toneSageLine)} .tabbar span.on svg.i{color:var(--toneSageText)}
+.photo{position:relative;aspect-ratio:4/3;border-radius:28px;overflow:hidden;background:linear-gradient(180deg,#E9E2D6 0 63%,#B58E66 63%)}
+.photo .bed{position:absolute;left:7%;top:58%;width:34%;height:20%;background:#7C8C74} .photo .desk{position:absolute;left:49%;top:50%;width:25%;height:3%;background:#6E5440}
+.photo .shelf{position:absolute;left:81%;top:13%;width:12.5%;height:52%;background:#5B4636} .photo .win{position:absolute;left:8%;top:11%;width:21%;height:21%;background:#8FA7B5;outline:10px solid #F4F1EA}
+.pin{position:absolute;transform:translate(-50%,-50%);width:44px;height:44px;display:grid;place-items:center}
+.pin .b{width:30px;height:30px;border-radius:999px;background:#FFFFFF;color:#2A221C;display:grid;place-items:center;font-size:13px;font-weight:500;box-shadow:0 0 0 2px var(--ring) inset,0 2px 6px rgba(0,0,0,.25)}
+.pin.sel .b{background:#4E6B53;color:#FFFFFF;box-shadow:0 0 0 2px #4E6B53 inset}
+.pin .m{position:absolute;right:2px;bottom:2px;width:18px;height:18px;border-radius:999px;background:var(--ring);color:#fff;display:grid;place-items:center;border:1px solid #fff} .pin .m svg.i{width:11px;height:11px;stroke-width:2.6}
+.pin .lbl{position:absolute;top:44px;white-space:nowrap;background:rgba(42,34,28,.86);color:#FFFFFF;font-size:13px;font-weight:500;padding:4px 8px;border-radius:999px}
+.plan{aspect-ratio:1.3;background:var(--surface);border-radius:28px;box-shadow:var(--card-sh);padding:16px} .plan svg{width:100%;height:100%}
+.pick{display:flex;align-items:center;gap:12px;min-height:52px;padding:12px 16px;border-radius:20px;background:var(--surface);border:1.5px solid var(--outline)}
+.pick.on{background:var(--sage-grad);color:var(--toneSageText);border-color:var(--toneSageLine)}
+.pick .tick{margin-left:auto;width:26px;height:26px;border-radius:999px;border:1.5px solid var(--outlineStrong);display:grid;place-items:center;color:transparent;flex:none}
+.pick.on .tick{background:var(--accent);border-color:var(--accent);color:var(--onAccent)}
+.menu{background:var(--surfaceMuted);border-radius:14px;overflow:hidden;max-width:280px}
+.menu div{display:flex;justify-content:space-between;align-items:center;min-height:44px;padding:0 16px;border-top:1px solid var(--divider)} .menu div:first-child{border-top:0} .menu .red{color:var(--letGo)}
+.sheet{background:var(--surface);border-radius:32px;padding:24px;box-shadow:var(--float-sh);display:grid;gap:12px;max-width:420px}
+.sheet h4{margin:0;font-size:22px;font-weight:600}
+.banner{display:flex;align-items:center;gap:12px;padding:12px;border-radius:24px;background:var(--surface);box-shadow:var(--float-sh);max-width:420px}
+.note{display:flex;gap:12px;align-items:center;padding:12px 16px;border-radius:20px;background:var(--sage-grad);color:var(--toneSageText);font-size:16px}
+.note.warn{background:var(--brick-grad);color:var(--toneBrickText)}
+.field{min-height:52px;display:flex;align-items:center;padding:0 16px;border-radius:20px;background:var(--surface);border:1.5px solid var(--outlineStrong);color:var(--textSecondary)}
+.back{width:48px;height:48px;border-radius:999px;background:var(--surface);border:1.5px solid var(--outline);display:grid;place-items:center;color:var(--iconNeutral)}
+.fab{display:inline-flex;align-items:center;gap:12px;height:60px;padding:0 20px 0 8px;border-radius:999px;background:var(--surface);box-shadow:var(--float-sh);font-weight:500}
+.fab span{width:44px;height:44px;border-radius:999px;background:var(--accent);color:var(--onAccent);display:grid;place-items:center}
+.switch{width:52px;height:32px;border-radius:999px;background:var(--accent);position:relative} .switch::after{content:"";position:absolute;right:3px;top:3px;width:26px;height:26px;border-radius:999px;background:#fff}
+.switch.off{background:var(--track);box-shadow:inset 0 0 0 1.5px var(--iconNeutral)} .switch.off::after{left:3px;right:auto;background:var(--iconNeutral)}
+.avatar{width:36px;height:36px;border-radius:999px;display:grid;place-items:center;font-weight:500}
+footer{margin-top:56px;color:var(--textSecondary);font-size:16px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important;scroll-behavior:auto!important}}
+</style>
+</head>
+<body>
+<div class="bar"><b>Shared Space design system</b><div class="seg" role="group" aria-label="Preview">
+<button class="chip" data-theme-pick="" aria-pressed="true">System</button><button class="chip" data-theme-pick="light" aria-pressed="false">Light</button><button class="chip" data-theme-pick="dark" aria-pressed="false">Dark</button></div></div>
+<main>
+<h1>Shared Space design system</h1>
+<p class="lead">How Shared Space looks: colours, type, spacing and components, with the same token names and values as the iOS app (<code>Theme.swift</code> and its asset catalog). A visual reference only. The page follows your device's light or dark mode, or use the buttons above.</p>
+<nav class="toc" aria-label="Sections">
+<a href="#colors">Colours</a><a href="#decisions">Decisions</a><a href="#backgrounds">Backgrounds</a><a href="#tones">Selected state and tags</a><a href="#type">Typography</a><a href="#spacing">Shape, spacing and depth</a><a href="#components">Components</a></nav>
+
+<h2 id="colors">Colour tokens</h2>
+<p class="lead">Each token has light, dark and Increase Contrast versions in the app. Shown: the value for the mode you're viewing, and its contrast against the background named (text needs 4.5:1; outlines and icons 3:1).</p>
+<h3>Neutrals</h3><div class="group"><div class="tok"><span class="sw" style="background:var(--surface)"></span><div class="grow"><b>surface</b><span class="hint">Cards, buttons, sheets</span></div>
+<div class="vals"><span class="lt"><code>#FFFFFF</code></span><span class="dk"><code>#2B2521</code></span></div></div><div class="tok"><span class="sw" style="background:var(--surfaceMuted)"></span><div class="grow"><b>surfaceMuted</b><span class="hint">Card fill on white (Mist)</span></div>
+<div class="vals"><span class="lt"><code>#F2F2F2</code></span><span class="dk"><code>#36302B</code></span></div></div><div class="tok"><span class="sw" style="background:var(--track)"></span><div class="grow"><b>track</b><span class="hint">Progress tracks, pressed rows (Cloud)</span></div>
+<div class="vals"><span class="lt"><code>#EBEBEB</code></span><span class="dk"><code>#4A423C</code></span></div></div><div class="tok"><span class="sw" style="background:var(--trackOnMuted)"></span><div class="grow"><b>trackOnMuted</b><span class="hint">Progress tracks on Mist</span></div>
+<div class="vals"><span class="lt"><code>#DDDDDD</code></span><span class="dk"><code>#564D46</code></span></div></div><div class="tok"><span class="sw" style="background:var(--outline)"></span><div class="grow"><b>outline</b><span class="hint">Button, chip and toggle borders, 1.5pt</span></div>
+<div class="vals"><span class="lt"><code>#8A7C71</code><span class="ratio">3.05:1 ✓ <span class="muted">on backgroundBrownTop</span></span></span><span class="dk"><code>#9A8D84</code><span class="ratio">4.85:1 ✓ <span class="muted">on backgroundBrownTop</span></span></span></div></div><div class="tok"><span class="sw" style="background:var(--outlineStrong)"></span><div class="grow"><b>outlineStrong</b><span class="hint">Text field borders, tick rings</span></div>
+<div class="vals"><span class="lt"><code>#858585</code><span class="ratio">3.69:1 ✓ <span class="muted">on surface</span></span></span><span class="dk"><code>#988D85</code><span class="ratio">4.67:1 ✓ <span class="muted">on surface</span></span></span></div></div><div class="tok"><span class="sw" style="background:var(--divider)"></span><div class="grow"><b>divider</b><span class="hint">Decorative lines only</span></div>
+<div class="vals"><span class="lt"><code>#E2E2E2</code></span><span class="dk"><code>#403833</code></span></div></div><div class="tok"><span class="sw" style="background:var(--textPrimary)"></span><div class="grow"><b>textPrimary</b><span class="hint">Main text (Ink)</span></div>
+<div class="vals"><span class="lt"><code>#2A221C</code><span class="ratio">11.80:1 ✓ <span class="muted">on backgroundBrownTop</span></span></span><span class="dk"><code>#F4EEE8</code><span class="ratio">13.57:1 ✓ <span class="muted">on backgroundBrownTop</span></span></span></div></div><div class="tok"><span class="sw" style="background:var(--textSecondary)"></span><div class="grow"><b>textSecondary</b><span class="hint">Secondary text and placeholders (Graphite)</span></div>
+<div class="vals"><span class="lt"><code>#555555</code><span class="ratio">5.63:1 ✓ <span class="muted">on backgroundBrownTop</span></span></span><span class="dk"><code>#CFC6BE</code><span class="ratio">9.28:1 ✓ <span class="muted">on backgroundBrownTop</span></span></span></div></div></div>
+<h3>Brand</h3><div class="group"><div class="tok"><span class="sw" style="background:var(--brand)"></span><div class="grow"><b>brand</b><span class="hint">Brand areas; only onBrand text on it</span></div>
+<div class="vals"><span class="lt"><code>#7A6352</code></span><span class="dk"><code>#7A6352</code></span></div></div><div class="tok"><span class="sw" style="background:var(--onBrand)"></span><div class="grow"><b>onBrand</b><span class="hint">Text on brand</span></div>
+<div class="vals"><span class="lt"><code>#FFFFFF</code><span class="ratio">5.62:1 ✓ <span class="muted">on brand</span></span></span><span class="dk"><code>#FFFFFF</code><span class="ratio">5.62:1 ✓ <span class="muted">on brand</span></span></span></div></div><div class="tok"><span class="sw" style="background:var(--iconNeutral)"></span><div class="grow"><b>iconNeutral</b><span class="hint">Icons, neutral button labels (Deep brown)</span></div>
+<div class="vals"><span class="lt"><code>#5C4A3D</code><span class="ratio">6.34:1 ✓ <span class="muted">on backgroundBrownTop</span></span></span><span class="dk"><code>#DCCCBD</code><span class="ratio">9.98:1 ✓ <span class="muted">on backgroundBrownTop</span></span></span></div></div><div class="tok"><span class="sw" style="background:var(--accent)"></span><div class="grow"><b>accent</b><span class="hint">Main accent: primary labels, progress, Keep (Sage)</span></div>
+<div class="vals"><span class="lt"><code>#4E6B53</code><span class="ratio">5.91:1 ✓ <span class="muted">on surface</span></span></span><span class="dk"><code>#9DC2A4</code><span class="ratio">7.69:1 ✓ <span class="muted">on surface</span></span></span></div></div><div class="tok"><span class="sw" style="background:var(--onAccent)"></span><div class="grow"><b>onAccent</b><span class="hint">Text and icons on accent</span></div>
+<div class="vals"><span class="lt"><code>#FFFFFF</code><span class="ratio">5.91:1 ✓ <span class="muted">on accent</span></span></span><span class="dk"><code>#16241A</code><span class="ratio">8.21:1 ✓ <span class="muted">on accent</span></span></span></div></div><div class="tok"><span class="sw" style="background:var(--tintBrown)"></span><div class="grow"><b>tintBrown</b><span class="hint">Avatar and icon circles</span></div>
+<div class="vals"><span class="lt"><code>#E8DDD2</code></span><span class="dk"><code>#4B3F36</code></span></div></div><div class="tok"><span class="sw" style="background:var(--tintSage)"></span><div class="grow"><b>tintSage</b><span class="hint">Icon circles, highlight fills</span></div>
+<div class="vals"><span class="lt"><code>#DCE5D7</code></span><span class="dk"><code>#304236</code></span></div></div><div class="tok"><span class="sw" style="background:var(--tintSlate)"></span><div class="grow"><b>tintSlate</b><span class="hint">Icon circles, room tiles</span></div>
+<div class="vals"><span class="lt"><code>#E3EAF0</code></span><span class="dk"><code>#2F3C47</code></span></div></div><div class="tok"><span class="sw" style="background:var(--tintBrick)"></span><div class="grow"><b>tintBrick</b><span class="hint">Icon circles for letting go</span></div>
+<div class="vals"><span class="lt"><code>#F3E3E1</code></span><span class="dk"><code>#4C2C29</code></span></div></div></div>
+<h3>Decisions</h3><div class="group"><div class="tok"><span class="sw" style="background:var(--accent)"></span><div class="grow"><b>accent</b><span class="hint">keep: Keep (Sage)</span></div>
+<div class="vals"><span class="lt"><code>#4E6B53</code><span class="ratio">5.91:1 ✓ <span class="muted">on surface</span></span></span><span class="dk"><code>#9DC2A4</code><span class="ratio">7.69:1 ✓ <span class="muted">on surface</span></span></span></div></div><div class="tok"><span class="sw" style="background:var(--send)"></span><div class="grow"><b>send</b><span class="hint">send: Send to owner (Slate)</span></div>
+<div class="vals"><span class="lt"><code>#3E5A70</code><span class="ratio">7.24:1 ✓ <span class="muted">on surface</span></span></span><span class="dk"><code>#A3BED3</code><span class="ratio">7.82:1 ✓ <span class="muted">on surface</span></span></span></div></div><div class="tok"><span class="sw" style="background:var(--letGo)"></span><div class="grow"><b>letGo</b><span class="hint">letGo: Donate or sell, Throw out, destructive (Brick)</span></div>
+<div class="vals"><span class="lt"><code>#8E2F2A</code><span class="ratio">8.11:1 ✓ <span class="muted">on surface</span></span></span><span class="dk"><code>#F2A69F</code><span class="ratio">7.72:1 ✓ <span class="muted">on surface</span></span></span></div></div></div>
+<h3>Photos and 3D</h3><div class="group"><div class="tok"><span class="sw" style="background:var(--photoBadge)"></span><div class="grow"><b>photoBadge</b><span class="hint">Number badges on photos, always white</span></div>
+<div class="vals"><span class="lt"><code>#FFFFFF</code></span><span class="dk"><code>#FFFFFF</code></span></div></div><div class="tok"><span class="sw" style="background:var(--onPhoto)"></span><div class="grow"><b>onPhoto</b><span class="hint">Pin numbers; backing behind pin labels</span></div>
+<div class="vals"><span class="lt"><code>#2A221C</code><span class="ratio">15.62:1 ✓ <span class="muted">on photoBadge</span></span></span><span class="dk"><code>#2A221C</code><span class="ratio">15.62:1 ✓ <span class="muted">on photoBadge</span></span></span></div></div><div class="tok"><span class="sw" style="background:var(--roomFloor)"></span><div class="grow"><b>roomFloor</b><span class="hint">3D floor</span></div>
+<div class="vals"><span class="lt"><code>#C9A178</code></span><span class="dk"><code>#C9A178</code></span></div></div><div class="tok"><span class="sw" style="background:var(--roomWall)"></span><div class="grow"><b>roomWall</b><span class="hint">3D walls</span></div>
+<div class="vals"><span class="lt"><code>#EFE9DF</code></span><span class="dk"><code>#EFE9DF</code></span></div></div><div class="tok"><span class="sw" style="background:var(--roomWindow)"></span><div class="grow"><b>roomWindow</b><span class="hint">3D windows</span></div>
+<div class="vals"><span class="lt"><code>#B9CCDA</code></span><span class="dk"><code>#B9CCDA</code></span></div></div><div class="tok"><span class="sw" style="background:var(--roomDoor)"></span><div class="grow"><b>roomDoor</b><span class="hint">3D doors</span></div>
+<div class="vals"><span class="lt"><code>#F6F2EA</code></span><span class="dk"><code>#F6F2EA</code></span></div></div><div class="tok"><span class="sw" style="background:var(--shadow)"></span><div class="grow"><b>shadow</b><span class="hint">Shadow colour</span></div>
+<div class="vals"><span class="lt"><code>#2A221C</code></span><span class="dk"><code>#000000</code></span></div></div></div>
+
+<h2 id="decisions">Decisions</h2>
+<p class="lead">Always colour + symbol + words, never colour alone. Throw out shares Brick with Donate or sell; Not sure and Undecided use the neutral brown. Symbol names are the app's SF Symbols (drawn here as simple line icons).</p>
+<div class="group"><div class="tok"><span class="icirc" style="background:var(--tintSage);color:var(--accent)"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>
+<div class="grow"><b>Keep</b><span class="hint">Keep it here · “Staying” · <code>checkmark</code> · Sage (<code>accent</code>)</span></div>
+<span class="tag t-sage"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Staying</span></div><div class="tok"><span class="icirc" style="background:var(--tintSlate);color:var(--send)"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 7.5L12 3l8.5 4.5v9L12 21l-8.5-4.5z"/><path d="M3.5 7.5L12 12l8.5-4.5M12 12v9"/></svg></span>
+<div class="grow"><b>Send</b><span class="hint">Send it to me · “Going to owner” · <code>shippingbox</code> · Slate (<code>send</code>)</span></div>
+<span class="tag t-slate"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 7.5L12 3l8.5 4.5v9L12 21l-8.5-4.5z"/><path d="M3.5 7.5L12 12l8.5-4.5M12 12v9"/></svg>Going to owner</span></div><div class="tok"><span class="icirc" style="background:var(--tintBrick);color:var(--letGo)"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></span>
+<div class="grow"><b>Donate or sell</b><span class="hint">Donate or sell it · “Donating or selling” · <code>xmark</code> · Brick (<code>letGo</code>)</span></div>
+<span class="tag t-brick"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>Donating or selling</span></div><div class="tok"><span class="icirc" style="background:var(--tintBrick);color:var(--letGo)"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg></span>
+<div class="grow"><b>Throw out</b><span class="hint">Throw it out · “Throwing out” · <code>trash</code> · Brick (<code>letGo</code>)</span></div>
+<span class="tag t-brick"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg>Throwing out</span></div><div class="tok"><span class="icirc" style="background:var(--tintBrown);color:var(--iconNeutral)"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6v.6M12 17h.01"/></svg></span>
+<div class="grow"><b>Not sure</b><span class="hint">Not sure · “Not sure yet” · <code>questionmark.circle</code> · Brown (<code>iconNeutral</code>)</span></div>
+<span class="tag t-brown"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6v.6M12 17h.01"/></svg>Not sure yet</span></div><div class="tok"><span class="icirc" style="background:var(--tintBrown);color:var(--iconNeutral)"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/></svg></span>
+<div class="grow"><b>Undecided</b><span class="hint">— · “Not decided yet” · <code>circle</code> · Brown (<code>iconNeutral</code>)</span></div>
+<span class="tag t-brown"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/></svg>Not decided yet</span></div><div class="tok"><span class="icirc" style="background:var(--tintSlate);color:var(--send)"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="3"/><path d="M8 12h8M13 8.5l3.5 3.5-3.5 3.5"/></svg></span>
+<div class="grow"><b>Keep, move it</b><span class="hint">Keep, but move it (older items only) · “Moving elsewhere in the house” · <code>arrow.right.square</code> · Slate (<code>send</code>)</span></div>
+<span class="tag t-slate"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="3"/><path d="M8 12h8M13 8.5l3.5 3.5-3.5 3.5"/></svg>Moving elsewhere in the house</span></div></div>
+
+<h2 id="backgrounds">Backgrounds</h2>
+<div class="grads">
+<div><div class="gradbox" style="background:linear-gradient(180deg,var(--backgroundBrownTop),var(--backgroundBrownMiddle) 45%,var(--backgroundBrownBottom))"></div><b>Brown (default)</b><span class="hint mono"><span class="lt">#E9DED3 → #F3EDE7 → #FAF8F6</span><span class="dk">#2A221C → #1F1A16 → #181411</span></span></div>
+<div><div class="gradbox" style="background:linear-gradient(180deg,var(--backgroundSageTop),var(--backgroundSageMiddle) 45%,var(--backgroundSageBottom))"></div><b>Sage</b><span class="hint mono"><span class="lt">#D9E4D3 → #EDF2EA → #F8FAF7</span><span class="dk">#1F2B22 → #182019 → #121713</span></span></div>
+</div>
+<p class="hint">Top to bottom, the middle stop at 45%. The whole app uses one of the two (<code>Theme.background</code>).</p>
+
+<h2 id="tones">Selected state and tags</h2>
+<p class="lead">A soft 135° gradient with darker text. The thin outline only appears on selected buttons, chips and tabs; tags have none.</p>
+<div class="tonerow"><span class="tag sel t-sage">Sage</span><span class="hint mono"><span class="lt">text #3D5642 · #EEF3EB → #D5E1CF · outline #5A7656</span><span class="dk">text #CFE6D4 · #35473A → #27362B · outline #7FA287</span></span></div><div class="tonerow"><span class="tag sel t-slate">Slate</span><span class="hint mono"><span class="lt">text #3E5A70 · #EEF3F7 → #D8E3EC · outline #577086</span><span class="dk">text #D2E2EF · #334250 → #26323D · outline #7D96AB</span></span></div><div class="tonerow"><span class="tag sel t-brick">Brick</span><span class="hint mono"><span class="lt">text #8E2F2A · #FAEFEE → #F0DAD7 · outline #955A53</span><span class="dk">text #FFD2CC · #4D302D → #3C2421 · outline #B5776F</span></span></div><div class="tonerow"><span class="tag sel t-brown">Brown</span><span class="hint mono"><span class="lt">text #5C4A3D · #F5EFE9 → #E6DACD · outline #80694F</span><span class="dk">text #EEE0D3 · #473B32 → #382E26 · outline #9C8571</span></span></div>
+
+<h2 id="type">Typography</h2>
+<p class="lead">SF Pro through Dynamic Type text styles in the app; the system font stack here. Default sizes:</p>
+<div class="type">
+<div style="font-size:34px;font-weight:600">Large title · 34 pt semibold</div>
+<div style="font-size:22px;font-weight:600">Title · 22 pt semibold</div>
+<div style="font-size:20px;font-weight:600">Section title · 20 pt semibold</div>
+<div style="font-size:20px;font-weight:500">Headline · 20 pt medium</div>
+<div style="font-size:17px">Body · 17 pt regular</div>
+<div style="font-size:17px;font-weight:500">Body strong and buttons · 17 pt medium</div>
+<div style="font-size:16px;color:var(--textSecondary)">Secondary · 16 pt regular, Graphite</div>
+<div style="font-size:16px;font-weight:500;color:var(--letGo)">Error · 16 pt medium, Brick</div>
+<div style="font-size:13px;font-weight:500">Badge · 13 pt medium</div>
+<div style="font-size:34px;font-weight:600;letter-spacing:6px">K7M2Q <span class="hint" style="display:inline;letter-spacing:0">room code, letters spaced 6 pt</span></div>
+</div>
+
+<h2 id="spacing">Shape, spacing and depth</h2>
+<h3>Spacing steps</h3>
+<div class="space"><span class="mono" style="width:90px">xs 4</span><i style="width:4px"></i></div><div class="space"><span class="mono" style="width:90px">s 8</span><i style="width:8px"></i></div><div class="space"><span class="mono" style="width:90px">m 12</span><i style="width:12px"></i></div><div class="space"><span class="mono" style="width:90px">l 16</span><i style="width:16px"></i></div><div class="space"><span class="mono" style="width:90px">xl 20</span><i style="width:20px"></i></div><div class="space"><span class="mono" style="width:90px">xxl 24</span><i style="width:24px"></i></div><div class="space"><span class="mono" style="width:90px">xxxl 32</span><i style="width:32px"></i></div>
+<p class="hint">Screen side padding 24 pt.</p>
+<h3>Corner radius</h3>
+<div class="radii"><span style="text-align:center"><div style="border-radius:6px"></div><span class="hint" style="font-size:13px">drawing 6</span></span><span style="text-align:center"><div style="border-radius:12px"></div><span class="hint" style="font-size:13px">thumb 12</span></span><span style="text-align:center"><div style="border-radius:20px"></div><span class="hint" style="font-size:13px">tile 20</span></span><span style="text-align:center"><div style="border-radius:24px"></div><span class="hint" style="font-size:13px">card 24</span></span><span style="text-align:center"><div style="border-radius:28px"></div><span class="hint" style="font-size:13px">large 28</span></span><span style="text-align:center"><div style="border-radius:32px"></div><span class="hint" style="font-size:13px">sheet 32</span></span></div>
+<p class="hint">Buttons, chips and tags are capsules.</p>
+<h3>Shadows</h3>
+<div class="shadows"><div style="box-shadow:var(--card-sh)">Card · Ink 6% (2 blur, 1 down) + 7% (18 blur, 6 down)</div><div style="box-shadow:var(--float-sh)">Floating · Ink 6% + 14%</div></div>
+<h3>Sizes</h3>
+<p class="hint">Tap targets 44 × 44 pt or more · main buttons and fields 52 · compact buttons and chips 44 · rows 60 · tags 32 · icon circles 40 · pins 30 (44 tap area) · back button 48 · floating button 60 with a 44 circle · room tile 88 · progress bar 8.</p>
+
+<h2 id="components">Components</h2>
+<div class="grid2">
+<section><h3>Buttons</h3><div class="stack">
+<button class="btn block">Primary</button>
+<div class="row"><button class="btn compact pressed">Pressed</button><button class="btn compact sel primary">Selected</button><button class="btn compact" disabled>Disabled</button></div>
+<button class="btn block neutral">Neutral</button>
+<div class="row"><button class="btn compact neutral pressed">Pressed</button><button class="btn compact sel neutral">Selected</button><button class="btn compact neutral" disabled>Disabled</button></div>
+<button class="btn block destructive">Destructive</button>
+<div class="row"><button class="btn compact destructive pressed">Pressed</button><button class="btn compact sel destructive">Selected</button><button class="btn compact destructive" disabled>Disabled</button></div>
+<div class="row"><span class="back" role="img" aria-label="Back"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></span><span class="fab"><span><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></span>New room</span></div>
+</div></section>
+
+<section><h3>Chips, choices and switches</h3><div class="stack">
+<div class="row"><span class="chip sel">For you to decide 3</span><span class="chip">Waiting for Alex 4</span><span class="chip">Decided</span></div>
+<div class="row"><span class="chip sel">Study</span><span class="chip">Guest room</span><span class="chip" style="background:var(--track)">Pressed</span><span class="chip" style="opacity:.4">Disabled</span></div>
+<div class="pick on"><span>Yes, there are items</span><span class="tick"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span></div>
+<div class="pick"><span>No, the room is empty</span><span class="tick"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span></div>
+<div class="row"><span class="switch" role="img" aria-label="On"></span><span class="switch off" role="img" aria-label="Off"></span></div>
+</div></section>
+
+<section><h3>Tags</h3><div class="row">
+<span class="tag t-sage">Mine</span><span class="tag t-brown">Sam’s</span><span class="tag t-brown">Shared</span>
+<span class="tag t-sage"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6v.6M12 17h.01"/></svg>Suggested — check this</span><span class="tag t-sage"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Confirmed</span>
+<span class="tag t-sage"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6l1.5 1.5L8 5M4 12l1.5 1.5L8 11M4 18l1.5 1.5L8 17M11 6h9M11 12h9M11 18h9"/></svg>Sorting</span><span class="tag t-slate"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M4 7.5L12 12l8-4.5M12 12v9"/></svg>Planning</span></div></section>
+
+<section><h3>Decision buttons</h3><div class="stack">
+<div class="pick on"><span class="icirc" style="background:var(--tintSage);color:var(--accent)"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span><span>Keep it here</span><span class=tick><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span></div><div class="pick"><span class="icirc" style="background:var(--tintSlate);color:var(--send)"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 7.5L12 3l8.5 4.5v9L12 21l-8.5-4.5z"/><path d="M3.5 7.5L12 12l8.5-4.5M12 12v9"/></svg></span><span>Send it to me</span></div><div class="pick"><span class="icirc" style="background:var(--tintBrick);color:var(--letGo)"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></span><span>Donate or sell it</span></div><div class="pick"><span class="icirc" style="background:var(--tintBrick);color:var(--letGo)"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg></span><span>Throw it out</span></div><div class="pick"><span class="icirc" style="background:var(--tintBrown);color:var(--iconNeutral)"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6v.6M12 17h.01"/></svg></span><span>Not sure</span></div>
+<div class="row"><span class="chip" style="color:var(--accent)"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span style="color:var(--textPrimary)">Keep</span></span><span class="chip" style="color:var(--send)"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 7.5L12 3l8.5 4.5v9L12 21l-8.5-4.5z"/><path d="M3.5 7.5L12 12l8.5-4.5M12 12v9"/></svg><span style="color:var(--textPrimary)">Send</span></span><span class="chip sel" style="color:var(--letGo)"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg><span style="color:var(--textPrimary)">Donate or sell</span></span><span class="chip" style="color:var(--letGo)"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg><span style="color:var(--textPrimary)">Throw out</span></span><span class="chip" style="color:var(--iconNeutral)"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6v.6M12 17h.01"/></svg><span style="color:var(--textPrimary)">Not sure</span></span></div>
+</div></section>
+
+<section><h3>Room card</h3>
+<div class="card roomcard"><div class="top"><div class="grow"><h4>Alex’s old room</h4><span class="hint">Planned use: Study</span><span class="hint">4 waiting for Alex</span></div><div class="tile"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11l8-7 8 7"/><path d="M6 9.5V20h12V9.5"/></svg><span class="more" role="img" aria-label="Options"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="12" r="1.3" fill="currentColor"/><circle cx="12" cy="12" r="1.3" fill="currentColor"/><circle cx="18" cy="12" r="1.3" fill="currentColor"/></svg></span></div></div>
+<div class="goal"><span class="tag t-sage"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6l1.5 1.5L8 5M4 12l1.5 1.5L8 11M4 18l1.5 1.5L8 17M11 6h9M11 12h9M11 18h9"/></svg>Sorting</span><span class="s">3 of 7 decided</span></div>
+<div class="goal"><span class="tag t-slate"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M4 7.5L12 12l8-4.5M12 12v9"/></svg>Planning</span><span class="s">No layouts yet</span></div>
+<div class="progress"><i style="width:43%"></i></div></div>
+<p class="hint">⋯ and touch and hold open Archive and Delete.</p></section>
+
+<section><h3>Room tabs</h3><div class="stack">
+<div class="tabbar"><span class="on"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11l8-7 8 7"/><path d="M6 9.5V20h12V9.5"/></svg>Room</span><span><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6l1.5 1.5L8 5M4 12l1.5 1.5L8 11M4 18l1.5 1.5L8 17M11 6h9M11 12h9M11 18h9"/></svg>Sort</span><span><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M4 7.5L12 12l8-4.5M12 12v9"/></svg>Redesign</span><span><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8.5" r="3"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0"/><circle cx="16.5" cy="9.5" r="2.5"/><path d="M15 14.2a4.5 4.5 0 0 1 6 4.3"/></svg>People</span></div>
+<p class="hint">Room and People always; Sort and Redesign only while their goal is on. Icons only at accessibility text sizes.</p></div></section>
+
+<section><h3>Photo pins</h3>
+<div class="photo" role="img" aria-label="Sample room photo with numbered pins"><i class="win"></i><i class="bed"></i><i class="desk"></i><i class="shelf"></i>
+<span class="pin sel" style="left:24%;top:68%;--ring:#4E6B53"><span class="b">1</span><span class="lbl">Bed · Undecided</span></span>
+<span class="pin" style="left:58%;top:56%;--ring:#4E6B53"><span class="b">2</span><span class="m"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span></span>
+<span class="pin" style="left:69%;top:56%;--ring:#3E5A70"><span class="b">3</span><span class="m"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 7.5L12 3l8.5 4.5v9L12 21l-8.5-4.5z"/><path d="M3.5 7.5L12 12l8.5-4.5M12 12v9"/></svg></span></span>
+<span class="pin" style="left:86%;top:36%;--ring:#8E2F2A"><span class="b">4</span><span class="m"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></span></span></div>
+<p class="hint">30 pt white badge, decision ring and symbol, “Name · Status” when selected, 44 pt tap area. Always the light palette.</p></section>
+
+<section><h3>Floor plan</h3>
+<div class="plan"><svg viewBox="0 0 260 200" role="img" aria-label="Floor plan sample">
+<rect x="4" y="4" width="252" height="192" fill="var(--surface)" stroke="var(--textPrimary)" stroke-width="3"/>
+<line x1="95" y1="4" x2="165" y2="4" stroke="var(--tintSlate)" stroke-width="7"/><line x1="95" y1="4" x2="165" y2="4" stroke="var(--send)" stroke-width="1"/>
+<rect x="18" y="18" width="88" height="78" rx="6" fill="var(--tintBrown)" stroke="var(--iconNeutral)" stroke-width="1.5"/>
+<rect x="130" y="100" width="100" height="58" rx="6" fill="var(--tintSage)" stroke="var(--accent)" stroke-width="2" stroke-dasharray="6 5"/>
+<rect x="18" y="130" width="78" height="46" rx="6" fill="none" stroke="var(--send)" stroke-width="1.5" stroke-dasharray="6 5"/>
+<text x="57" y="158" text-anchor="middle" font-size="12" fill="var(--textSecondary)" font-family="var(--font)">Boxes</text></svg></div>
+<p class="hint">Ink walls; existing furniture Brown tint with a Deep brown outline; new pieces Sage tint, dashed Sage; leaving things dashed in their decision colour; windows Slate tint.</p></section>
+
+<section><h3>Room goals</h3><div class="stack">
+<b style="font-weight:500">What do you want to do with this room?</b>
+<div class="pick on"><span><b style="font-weight:500;display:block">Sort things</b><span style="font-size:16px">Decide what stays, goes back to its owner, or leaves.</span></span><span class="tick"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span></div>
+<div class="pick"><span><b style="font-weight:500;display:block">Plan the room</b><span class="hint">Try layouts and furniture for what it becomes.</span></span><span class="tick"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span></div>
+<span class="hint">You can change this anytime. Nothing has to leave the room.</span></div></section>
+
+<section><h3>Archive and Delete</h3><div class="stack">
+<div class="menu"><div>Archive <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="5" rx="1.5"/><path d="M5 9v10h14V9M10 13h4"/></svg></div><div class="red">Delete <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg></div></div>
+<div class="sheet"><h4>Delete this room?</h4><p class="muted" style="font-size:16px">This permanently removes the room, its scan and photo, every item and decision, all designs, and the room code. This can’t be undone.</p><button class="btn block destructive">Delete Room</button><button class="btn block neutral">Cancel</button></div>
+<div class="banner"><span class="icirc" style="background:var(--tintSage);color:var(--accent)"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="5" rx="1.5"/><path d="M5 9v10h14V9M10 13h4"/></svg></span><b style="flex:1;font-weight:500">Room archived</b><button class="btn compact neutral">Undo</button></div>
+</div></section>
+
+<section><h3>Before you scan (consent)</h3>
+<div class="sheet"><span class="icirc" style="background:var(--tintSage);color:var(--accent)"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8.5" r="3"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0"/><circle cx="16.5" cy="9.5" r="2.5"/><path d="M15 14.2a4.5 4.5 0 0 1 6 4.3"/></svg></span><h4>Before you scan</h4>
+<p>Anyone you invite to this room can see the scan, photo and items.</p><p>Try to leave people, mail, screens and anything private out of view.</p><p>You can delete the room and everything in it at any time from the room menu.</p>
+<button class="btn block">Continue</button><button class="btn compact neutral" style="justify-self:center">Not now</button></div>
+<div class="row" style="margin-top:12px"><span class="btn compact neutral"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8.5" r="3"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0"/><circle cx="16.5" cy="9.5" r="2.5"/><path d="M15 14.2a4.5 4.5 0 0 1 6 4.3"/></svg> Who can see this?</span></div></section>
+
+<section><h3>How this works · suggestions</h3><div class="stack">
+<div class="row" style="flex-wrap:nowrap;align-items:flex-start"><span class="hint" style="flex:1">Add a photo and we’ll use AI on your iPhone to suggest the things in it. You’ll check each one before it’s added.</span><span style="width:44px;height:44px;display:grid;place-items:center;color:var(--accent)" role="img" aria-label="How this works"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5h.01"/></svg></span></div>
+<div class="sheet"><h4 style="font-size:17px">How we find things in your photo</h4><p style="font-size:15px">An AI model on your iPhone looks for common furniture like beds, chairs, sofas and tables.</p><p style="font-size:15px">It can miss things or get them wrong, especially less common items. You’ll confirm, rename or remove each suggestion.</p><p style="font-size:15px">Your photo stays on your iPhone for this.</p><button class="btn compact">Got it</button></div>
+<div class="note"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="6.5" y="2.5" width="11" height="19" rx="2.5"/><rect x="9.5" y="11" width="5" height="4" rx="1"/><path d="M10.5 11V9.5a1.5 1.5 0 0 1 3 0V11"/></svg><span>Detection runs on your iPhone. Your photo isn’t uploaded for this.</span></div>
+<div class="card" style="display:grid;gap:12px;border-radius:20px"><b style="font-weight:500">1 · Chair</b><span class="tag t-sage" style="justify-self:start"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6v.6M12 17h.01"/></svg>Suggested — check this</span><div class="row"><button class="btn compact"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg> Confirm</button><button class="btn compact neutral"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg> Remove</button></div></div>
+</div></section>
+
+<section><h3>Notes, fields and progress</h3><div class="stack">
+<div class="note">Alex suggests: keep</div><div class="note warn">1 placement needs a look</div>
+<div class="field">Anything the other person should know</div>
+<div class="progress"><i style="width:60%"></i></div>
+<div class="row"><span class="avatar" style="background:var(--tintSage);color:var(--toneSageText)">L</span><span class="avatar" style="background:var(--tintBrown);color:var(--toneBrownText)">A</span></div>
+</div></section>
+</div>
+
+<footer>Source of truth: <code>ios/DESIGN_SYSTEM.md</code>, <code>Theme.swift</code> and the asset catalog in the Shared Space iOS app. Updated November 16, 2026.</footer>
+</main>
+<script>
+(function () {
+  var btns = document.querySelectorAll('[data-theme-pick]');
+  function set(v) {
+    if (v) document.documentElement.setAttribute('data-theme', v); else document.documentElement.removeAttribute('data-theme');
+    btns.forEach(function (b) { b.setAttribute('aria-pressed', String(b.getAttribute('data-theme-pick') === (v || ''))); });
+    try { localStorage.setItem('ds.theme', v || ''); } catch (e) {}
+  }
+  btns.forEach(function (b) { b.addEventListener('click', function () { set(b.getAttribute('data-theme-pick')); }); });
+  try { var saved = localStorage.getItem('ds.theme'); if (saved) set(saved); } catch (e) {}
+})();
+</script>
+</body>
+</html>

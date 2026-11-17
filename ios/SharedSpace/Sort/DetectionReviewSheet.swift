@@ -141,7 +141,7 @@ struct DetectionReviewSheet: View {
                         if item.decision == .confirmed {
                             AppTag(kind: .tone(.sage), text: "Confirmed", symbol: "checkmark")
                         } else {
-                            AppTag(kind: .suggestion, text: "Suggested — check this", symbol: "questionmark.circle")
+                            AppTag(kind: .suggestion, text: DetectionCopy.suggestedTag, symbol: "questionmark.circle")
                         }
                         if let match = item.match {
                             Text("Looks like “\(match.name)” from your scan. Confirming puts its number here instead of adding it twice.")

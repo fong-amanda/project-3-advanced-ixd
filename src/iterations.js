@@ -33,6 +33,11 @@ export const team = {
         description: "November 16, 2026 - P3.4: (GROUP) Prototype v2 & Ethical Audit",
         href: "/sharedspaceamanda9.html",
       },
+        {
+        title: "Design System",
+        description: "November 16, 2026 - P3.4: (GROUP) Prototype v2 & Ethical Audit",
+        href: "/designsystem.html",
+      },
     ],
   };
 
