@@ -252,7 +252,7 @@ struct NewRoomFlow: View {
             // True to what happens: "Find things in this photo" runs an on-device Core ML model
             // (PhotoDetector), then checks the scan only to avoid duplicates.
             HStack(alignment: .top, spacing: Space.xs) {
-                Text("Add a photo and we’ll use AI on your iPhone to suggest the things in it. You’ll check each one before it’s added.")
+                Text(DetectionCopy.photoStepLead)
                     .textRole(.secondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 Button { showHowDetectionWorks = true } label: {
@@ -267,17 +267,10 @@ struct NewRoomFlow: View {
                 .accessibilityLabel("How this works")
                 .padding(.top, -Space.m)
             }
-            .alert("How we find things in your photo", isPresented: $showHowDetectionWorks) {
+            .alert(DetectionCopy.howTitle, isPresented: $showHowDetectionWorks) {
                 Button("Got it", role: .cancel) {}
             } message: {
-                // The model knows beds, chairs, sofas, tables and TVs, but not shelves.
-                Text("""
-                An AI model on your iPhone looks for common furniture like beds, chairs, sofas and tables.
-
-                It can miss things or get them wrong, especially less common items. You’ll confirm, rename or remove each suggestion.
-
-                Your photo stays on your iPhone for this.
-                """)
+                Text(DetectionCopy.howMessage)
             }
             if !photos.isEmpty {
                 Text("Take another angle if anything is hidden.").textRole(.secondary)

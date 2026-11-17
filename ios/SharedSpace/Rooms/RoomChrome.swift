@@ -14,6 +14,7 @@ struct RoomChrome<Trailing: View>: ViewModifier {
     @State private var deleting: Room?
     @State private var leaving: Room?
     @State private var showAccessibilityCheck = false
+    @State private var showDesignSystem = false
 
     private var realRole: Role { room.role(of: sync.userId) }
 
@@ -53,6 +54,7 @@ struct RoomChrome<Trailing: View>: ViewModifier {
             .roomRemoval(deleting: $deleting, leaving: $leaving)
             #if DEBUG
             .sheet(isPresented: $showAccessibilityCheck) { AccessibilityCheckView() }
+            .fullScreenCover(isPresented: $showDesignSystem) { DesignSystemGallery() }
             .onAppear { if DemoData.openAccessibilityCheck { showAccessibilityCheck = true } }
             #endif
     }
@@ -69,6 +71,7 @@ struct RoomChrome<Trailing: View>: ViewModifier {
                        systemImage: "eye") { togglePreview() }
             }
             #if DEBUG
+            Button("Design system", systemImage: "paintpalette") { showDesignSystem = true }
             Button("Accessibility check", systemImage: "checkmark.seal") { showAccessibilityCheck = true }
             #endif
             if !session.previewAsGuest {

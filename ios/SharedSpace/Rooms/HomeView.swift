@@ -45,7 +45,7 @@ struct HomeView: View {
         .floatingAction("New room") { router.showAddRoom = true }
         .refreshable { await sync.refresh() }
         #if DEBUG
-        .sheet(isPresented: $showDesignSystem) { DesignSystemGallery() }
+        .fullScreenCover(isPresented: $showDesignSystem) { DesignSystemGallery() }
         .onAppear { if ProcessInfo.processInfo.arguments.contains("-designSystem") { showDesignSystem = true } }
         #endif
     }
