@@ -28,6 +28,26 @@ struct ItemsView: View {
     @State private var showSummary = false
     @State private var showZoom = false
     @State private var findIn: PhotoToSearch?
+    /// Rows opened one at a time with their chevron.
+    @State private var expanded: Set<UUID> = []
+    /// Rows closed by hand while "Expand all" is on.
+    @State private var collapsed: Set<UUID> = []
+    /// Where each thing sits, fixed when the list is grouped. A decision changes a row's tag,
+    /// never its place: things move to "Decided" only when the person comes back to Sort,
+    /// changes tab or filter, or pulls to refresh.
+    @State private var arrangement: Arrangement?
+    /// "Hide decided": decided here and still on screen, until the person moves on from them.
+    @State private var pendingHide: Set<UUID> = []
+    /// "Hide decided": moved on from, so hidden until the next regroup.
+    @State private var movedOn: Set<UUID> = []
+    /// Fading out before they're taken out of the list.
+    @State private var fading: Set<UUID> = []
+    /// The thing just deleted, for "Item deleted. Undo".
+    @State private var justDeleted: Item?
+    /// The decision just made, for "Marked “Keep”. Undo".
+    @State private var decisionBanner: DecisionUndo?
+    /// Row positions on screen, so changes above or inside a row don't move the rows being read.
+    @State private var frames = RowFrames()
 
     private struct PhotoToSearch: Identifiable {
         let id = UUID()
@@ -36,6 +56,13 @@ struct ItemsView: View {
     }
 
     enum Bucket: Hashable { case needs, waiting, decided }
+
+    private struct Arrangement {
+        var order: [UUID: Int] = [:]
+        var bucket: [UUID: Bucket] = [:]
+        /// Passed the filter when grouped, so a decision never drops a row from a filtered list.
+        var passes: Set<UUID> = []
+    }
     enum Stage: Hashable { case photo, model }
 
     init(room: Room) {
@@ -82,6 +109,20 @@ struct ItemsView: View {
             try? await Task.sleep(for: .milliseconds(600))
             detailItem = items.first { !$0.isDecided } ?? items.first
         }
+        .task {
+            if DemoData.expandAllItems { session.expandAllItems = true }
+            if DemoData.scrollList {
+                try? await Task.sleep(for: .milliseconds(800))
+                selectedId = items.sorted { SortRules.rank($0, me: me, in: room) < SortRules.rank($1, me: me, in: room) }.first?.id
+            }
+        }
+        .task {
+            guard DemoData.openFindThings else { return }
+            try? await Task.sleep(for: .milliseconds(600))
+            if let image = RoomPhotos.image(roomId: room.id, index: 0, revision: sync.photoRevision) {
+                findIn = PhotoToSearch(index: 0, image: image)
+            }
+        }
         #endif
         .sheet(isPresented: $showFilter) { FilterSheet(room: room, me: me, filter: $filter) }
         .sheet(isPresented: $showSummary) {
@@ -106,81 +147,85 @@ struct ItemsView: View {
     // MARK: List
 
     private var list: some View {
-        let ordered = items.sorted { SortRules.rank($0, me: me, in: room) < SortRules.rank($1, me: me, in: room) }
-        let sets: [Bucket: [Item]] = [
-            .needs: ordered.filter { SortRules.rank($0, me: me, in: room) <= 1 },
-            .waiting: ordered.filter { SortRules.rank($0, me: me, in: room) == 2 },
-            .decided: ordered.filter { SortRules.rank($0, me: me, in: room) == 3 },
-        ]
-        let shown = (sets[view] ?? []).filter { filter.passes($0, me: me) }
+        // Grouped and ordered as of the last regroup; things added since go at the end of their group.
+        let arr = arrangement ?? makeArrangement()
+        let ordered = items.enumerated().sorted { a, b in
+            let ka = arr.order[a.element.id] ?? Int.max, kb = arr.order[b.element.id] ?? Int.max
+            return ka != kb ? ka < kb : a.offset < b.offset
+        }.map(\.element)
+        let sets = Dictionary(grouping: ordered) { arr.bucket[$0.id] ?? liveBucket($0) }
+        let matching = (sets[view] ?? []).filter { item in
+            arr.order[item.id] == nil ? filter.passes(item, me: me) : arr.passes.contains(item.id)
+        }
+        let shown = matching.filter { !isHidden($0) }
         let numbers = pinNumbers
 
+        // A List (not a ScrollView) so rows get the system's swipe actions. Everything above the
+        // things is one plain row; the things are an inset group, like the rest of the app.
         return ScrollViewReader { proxy in
-            ScrollView {
-                VStack(alignment: .leading, spacing: Space.m) {
-                    if !photos.isEmpty { photoBar }
-                    AdaptiveStack {
-                        Text(selecting ? "\(selectedIds.count) selected" : "\(items.count) thing\(items.count == 1 ? "" : "s")")
+            List {
+                Section {
+                    listHeader(sets: sets, matching: matching.count, numbers: numbers)
+                        .listRowInsets(EdgeInsets())
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
+                }
+                Section {
+                    if shown.isEmpty {
+                        Text(emptyText)
                             .textRole(.secondary)
-                        Spacer()
-                        if context.canEditRoom && room.hasGuest {
-                            Button(selecting ? "Cancel" : "Select") { selecting.toggle(); selectedIds = [] }
-                                .buttonStyle(.app(.primary, size: .compact))
-                                .fixedSize()
-                        }
-                        ChipPicker(options: [.init(value: Stage.photo, title: "Photo"), .init(value: Stage.model, title: "3D view")],
-                                   selection: $stage, accessibilityLabel: "Show")
-                            .fixedSize(horizontal: true, vertical: false)
+                            .frame(maxWidth: .infinity, minHeight: Size.row, alignment: .leading)
+                            .listRowInsets(EdgeInsets(top: 0, leading: Space.l, bottom: 0, trailing: Space.l))
+                            .listRowBackground(Color.surface)
                     }
-                    stageView(numbers: numbers)
-                    if context.canEditRoom && stage == .photo && !photos.isEmpty && items.contains(where: \.hasPin) {
-                        Text("If a number is on the wrong thing, drag it onto the right one.")
-                            .textRole(.hint)
-                    }
-                    if context.canEditRoom && stage == .photo && !photos.isEmpty { findThings }
-
-                    ChipPicker(options: [
-                        .init(value: Bucket.needs, title: "For you to decide", count: sets[.needs]?.count),
-                        .init(value: Bucket.waiting, title: room.hasGuest ? "Waiting for \(room.name(of: me.other))" : "Waiting for a decision",
-                              count: sets[.waiting]?.count),
-                        .init(value: Bucket.decided, title: "Decided", count: sets[.decided]?.count),
-                    ], selection: $view, accessibilityLabel: "Items")
-
-                    AdaptiveStack {
-                        Text("\(shown.count) of \(sets[view]?.count ?? 0)\(filter.isActive ? " · filtered" : "")")
-                            .textRole(.secondary)
-                        Spacer()
-                        Button { showFilter = true } label: {
-                            Label(filter.isActive ? "Filter · on" : "Filter", systemImage: "line.3.horizontal.decrease")
+                    ForEach(Array(shown.enumerated()), id: \.element.id) { index, item in
+                        // No .id(): the ForEach's own identity (item.id) is what scrollTo finds.
+                        let next = index + 1 < shown.count ? shown[index + 1].id : nil
+                        row(item, number: numbers[item.id], next: next)
+                        if canChoose && !selecting && isExpanded(item.id) {
+                            choicesRow(item, next: next)
                         }
-                        .buttonStyle(.app(.primary, size: .compact))
-                    }
-
-                    VStack(spacing: Space.xs) {
-                        if shown.isEmpty {
-                            Text(emptyText)
-                                .textRole(.secondary)
-                                .frame(maxWidth: .infinity, minHeight: Size.row, alignment: .leading)
-                                .padding(.horizontal, Space.l)
-                        }
-                        ForEach(shown) { item in
-                            row(item, number: numbers[item.id])
-                                .id(item.id)
-                            if item.id != shown.last?.id { Hairline(inset: Space.l + Size.thumbnail + Space.m) }
-                        }
-                    }
-                    .listGroup()
-
-                    if context.canEditRoom && !selecting {
-                        Button { session.addItem = AddItemRequest() } label: { Label("Add something", systemImage: "plus") }
-                            .buttonStyle(.app(.primary, size: .compact))
                     }
                 }
-                .pagePadding()
+                if context.canEditRoom && !selecting {
+                    Section {
+                        Button { session.addItem = AddItemRequest() } label: { Label("Add something", systemImage: "plus") }
+                            .buttonStyle(.app(.primary, size: .compact))
+                            .listRowInsets(EdgeInsets())
+                            .listRowBackground(Color.clear)
+                    }
+                }
+            }
+            .listStyle(.insetGrouped)
+            .scrollContentBackground(.hidden)
+            .listSectionSpacing(Space.m)
+            .contentMargins(.horizontal, Space.page, for: .scrollContent)
+            .environment(\.defaultMinListRowHeight, 0)
+            .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { frames.viewport = $0 }
+            .onScrollPhaseChange { _, phase in
+                if phase == .idle { hideScrolledAway() }
+            }
+            .refreshable {
+                await sync.refresh()
+                regroup()
             }
             .onChange(of: selectedId) { _, id in
                 if let id { withMotion(reduceMotion: reduceMotion) { proxy.scrollTo(id, anchor: .center) } }
             }
+            .onChange(of: view) { regroup(); expanded = []; collapsed = [] }
+            .onChange(of: filter) { regroup() }
+        }
+        // Back on Sort (from another tab or the cards): group things by where they are now.
+        .onAppear {
+            regroup()
+            sync.lastDecision = nil
+        }
+        .onChange(of: sync.lastDecision) { _, record in
+            // Wait for the item sheet to close, so the banner and highlight are seen.
+            if let record, detailItem == nil { decided(record) }
+        }
+        .onChange(of: detailItem?.id) { _, now in
+            if now == nil, let record = sync.lastDecision { decided(record) }
         }
         .safeAreaInset(edge: .bottom) {
             if selecting {
@@ -201,9 +246,105 @@ struct ItemsView: View {
                 .barBackground()
             }
         }
+        .undoBanner($justDeleted, text: "Item deleted", calm: true) { item in
+            SortActions.restore(item, sync: sync)
+        }
+        .undoBanner($decisionBanner, text: decisionBanner?.text ?? "", calm: true) { record in
+            guard let item = items.first(where: { $0.id == record.itemId }) else { return }
+            withMotion(Motion.subtleFade, reduceMotion: reduceMotion) { SortActions.undo(record, for: item, sync: sync) }
+        }
+    }
+
+    /// Everything above the things: photos, the photo or 3D view, the tabs and the filter row.
+    private func listHeader(sets: [Bucket: [Item]], matching: Int, numbers: [UUID: Int]) -> some View {
+        VStack(alignment: .leading, spacing: Space.m) {
+            if !photos.isEmpty { photoBar }
+            AdaptiveStack {
+                Text(selecting ? "\(selectedIds.count) selected" : "\(items.count) thing\(items.count == 1 ? "" : "s")")
+                    .textRole(.secondary)
+                Spacer()
+                if context.canEditRoom && room.hasGuest {
+                    Button(selecting ? "Cancel" : "Select") { selecting.toggle(); selectedIds = [] }
+                        .buttonStyle(.app(.primary, size: .compact))
+                        .fixedSize()
+                }
+                ChipPicker(options: [.init(value: Stage.photo, title: "Photo"), .init(value: Stage.model, title: "3D view")],
+                           selection: $stage, accessibilityLabel: "Show")
+                    .fixedSize(horizontal: true, vertical: false)
+            }
+            stageView(numbers: numbers)
+            if context.canEditRoom && stage == .photo && !photos.isEmpty && items.contains(where: \.hasPin) {
+                Text("If a number is on the wrong thing, drag it onto the right one.")
+                    .textRole(.hint)
+            }
+            if context.canEditRoom && stage == .photo && !photos.isEmpty { findThings }
+
+            progress
+
+            ChipPicker(options: [
+                .init(value: Bucket.needs, title: "For you to decide", count: sets[.needs]?.count),
+                .init(value: Bucket.waiting, title: room.hasGuest ? "Waiting for \(room.name(of: me.other))" : "Waiting for a decision",
+                      count: sets[.waiting]?.count),
+                .init(value: Bucket.decided, title: "Decided", count: sets[.decided]?.count),
+            ], selection: $view, accessibilityLabel: "Items")
+
+            AdaptiveStack {
+                Text("\(matching) of \(sets[view]?.count ?? 0)\(filter.isActive ? " · filtered" : "")")
+                    .textRole(.secondary)
+                Spacer()
+                if canChoose && !selecting {
+                    Button { toggleExpandAll() } label: {
+                        Label(expandAll ? "Collapse all" : "Expand all",
+                              systemImage: expandAll ? "rectangle.compress.vertical" : "rectangle.expand.vertical")
+                            // The new label appears at once; only the rows animate.
+                            .transaction { $0.animation = nil }
+                    }
+                    .buttonStyle(.app(.neutral, size: .compact, width: .hug))
+                    .lineLimit(1)
+                    .layoutPriority(1)
+                    .accessibilityLabel(expandAll ? "Collapse all items" : "Expand all items")
+                }
+                Button { showFilter = true } label: {
+                    Label(filter.isActive ? "Filter · on" : "Filter", systemImage: "line.3.horizontal.decrease")
+                }
+                .buttonStyle(.app(.primary, size: .compact, width: .hug))
+                .lineLimit(1)
+                .layoutPriority(1)
+            }
+        }
+        .padding(.vertical, Space.m)
+        // Inside the list, so it can find the list's scroll view (to hold rows still).
+        .background { ScrollViewFinder { frames.scrollView = $0 } }
+    }
+
+    /// "7 of 11 decided", live, with "Hide decided". Counts change; the list below doesn't move.
+    private var progress: some View {
+        let counts = SortProgress(relevant)
+        return VStack(alignment: .leading, spacing: Space.s) {
+            AdaptiveStack {
+                Text("\(counts.decided) of \(counts.total) decided")
+                    .font(.bodyStrong).foregroundStyle(Color.textPrimary)
+                    .contentTransition(.opacity)
+                    .animation(reduceMotion ? nil : Motion.subtleFade, value: counts.decided)
+                Spacer()
+                if view != .decided && !selecting {
+                    Toggle("Hide decided", isOn: Binding(get: { session.hideDecidedItems }, set: setHideDecided))
+                        .toggleStyle(.app)
+                        .font(.bodyStrong).foregroundStyle(Color.textPrimary)
+                        .fixedSize()
+                        .frame(minHeight: Size.tapTarget)
+                }
+            }
+            ProgressBar(value: counts.total > 0 ? Double(counts.decided) / Double(counts.total) : 0)
+                .accessibilityLabel("Decided")
+                .accessibilityValue("\(counts.decided) of \(counts.total)")
+        }
     }
 
     private var emptyText: String {
+        if session.hideDecidedItems && view != .decided && (arrangement?.bucket.values.contains(view) ?? false) {
+            return "Decided things are hidden"
+        }
         if filter.isActive { return "Nothing matches these filters" }
         switch view {
         case .needs: return "Nothing needs you right now"
@@ -212,33 +353,260 @@ struct ItemsView: View {
         }
     }
 
-    private func row(_ item: Item, number: Int?) -> some View {
-        Button {
-            if selecting {
-                if selectedIds.contains(item.id) { selectedIds.remove(item.id) } else { selectedIds.insert(item.id) }
-            } else {
-                selectedId = item.id
-                detailItem = item
-            }
-        } label: {
-            ItemRow(item: item, room: room, me: me, number: number,
-                    selection: selecting ? selectedIds.contains(item.id) : nil)
-                .padding(.horizontal, Space.l)
-                .background { if selectedId == item.id && !selecting { Tone.sage.fill } }
-                .contentShape(Rectangle())
+    // MARK: Rows
+
+    /// Decisions (or suggestions) can be made from the list; not while previewing a joined guest.
+    private var canChoose: Bool { !context.readOnly }
+    private var expandAll: Bool { session.expandAllItems }
+
+    private func isExpanded(_ id: UUID) -> Bool {
+        expandAll ? !collapsed.contains(id) : expanded.contains(id)
+    }
+
+    /// One thing: tap the name or photo for its sheet; the chevron opens the decision buttons in place.
+    private func row(_ item: Item, number: Int?, next: UUID?) -> some View {
+        let open = canChoose && !selecting && isExpanded(item.id)
+        let canDelete = !selecting && SortActions.canRemove(item, context: context)
+        return HStack(spacing: 0) {
+                Button {
+                    if selecting {
+                        if selectedIds.contains(item.id) { selectedIds.remove(item.id) } else { selectedIds.insert(item.id) }
+                    } else {
+                        selectedId = item.id
+                        detailItem = item
+                    }
+                } label: {
+                    ItemRow(item: item, room: room, me: me, number: number,
+                            selection: selecting ? selectedIds.contains(item.id) : nil,
+                            showsChevron: !canChoose)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .disabled(selecting && item.isDecided)
+                .accessibilityHint(selecting ? "" : "Opens notes, details and owner")
+                .accessibilityActions {
+                    if canDelete { Button("Delete", role: .destructive) { delete(item) } }
+                }
+                if canChoose && !selecting {
+                    Button { toggle(item.id, next: next) } label: {
+                        Image(systemName: "chevron.down")
+                            .font(.detailStrong)
+                            .foregroundStyle(Color.iconNeutral)
+                            .rotationEffect(.degrees(open ? 180 : 0))
+                            .frame(width: Size.tapTarget, height: Size.tapTarget)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(open ? "Hide choices for \(item.name)" : "Show choices for \(item.name)")
+                }
         }
-        .buttonStyle(.plain)
-        .disabled(selecting && item.isDecided)
+        .padding(.leading, Space.l)
+        .padding(.trailing, Space.s)
+        .opacity(fading.contains(item.id) ? 0 : 1)
+        .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { frames.rows[item.id] = $0 }
+        .background(alignment: .topLeading) { RowMarker(id: item.id, frames: frames).frame(width: 1, height: 1) }
+        .onDisappear { frames.rows[item.id] = nil }
+        .listRowInsets(EdgeInsets())
+        .listRowBackground(Group { if selectedId == item.id && !selecting { Tone.sage.fill } else { Color.surface } })
+        .listRowSeparatorTint(Color.outline)
+        // Its decision buttons are the next row, part of the same block.
+        .listRowSeparator(open ? .hidden : .automatic, edges: .bottom)
+        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+            if canDelete {
+                Button(role: .destructive) { delete(item) } label: { Label("Delete", systemImage: "trash") }
+            }
+        }
         .contextMenu {
-            if !selecting {
+            if !selecting && canChoose {
                 let can = SortRules.canDecide(item, as: me, in: room)
                 ForEach(can ? ItemStatus.decisions : ItemStatus.suggestions, id: \.self) { status in
                     Button(can ? status.shortLabel : "Suggest: \(status.shortLabel)", systemImage: status.icon) {
-                        SortActions.choose(status, for: item, as: me, in: room, sync: sync)
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        withMotion(Motion.subtleFade, reduceMotion: reduceMotion) {
+                            SortActions.choose(status, for: item, as: me, in: room, sync: sync)
+                        }
                     }
                 }
             }
+            if canDelete {
+                Divider()
+                Button("Delete", systemImage: "trash", role: .destructive) { delete(item) }
+            }
         }
+    }
+
+    /// An open row's decision buttons, as their own list row right under it. Opening a row inserts
+    /// this row, which the list animates natively: it fades in and the rows below slide down,
+    /// while the thing's own row never changes size.
+    private func choicesRow(_ item: Item, next: UUID?) -> some View {
+        choices(item, next: next)
+            .padding(.leading, Space.l)
+            .padding(.trailing, Space.s)
+            .padding(.bottom, Space.m)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .opacity(fading.contains(item.id) ? 0 : 1)
+            .listRowInsets(EdgeInsets())
+            .listRowBackground(Group { if selectedId == item.id && !selecting { Tone.sage.fill } else { Color.surface } })
+            .listRowSeparator(.hidden, edges: .top)
+            .listRowSeparatorTint(Color.outline)
+    }
+
+    /// The five decisions (or "Suggest" versions when it's the other person's thing), in place.
+    private func choices(_ item: Item, next: UUID?) -> some View {
+        let deciding = SortRules.canDecide(item, as: me, in: room)
+        let owner = item.owner.role.map { room.name(of: $0) } ?? room.name(of: me.other)
+        return VStack(alignment: .leading, spacing: Space.s) {
+            Text(deciding ? "Your decision" : "Suggest to \(owner)").textRole(.label)
+            // Choosing changes only the button and the row's tag: the row stays open, in place.
+            DecisionButtons(item: item, room: room, me: me)
+            if !deciding {
+                Text("It’s \(owner)’s to decide. They’ll see your suggestion.").textRole(.hint)
+            }
+        }
+        .padding(.trailing, Space.s)
+    }
+
+    /// Opens or closes one row with a gentle height change. Nothing above it changes, so the row
+    /// tapped stays where it is and only the rows below it move.
+    private func toggle(_ id: UUID, next: UUID?) {
+        let closing = isExpanded(id)
+        withMotion(Motion.subtle, reduceMotion: reduceMotion) {
+            if expandAll {
+                if collapsed.contains(id) { collapsed.remove(id) } else { collapsed.insert(id) }
+            } else {
+                if expanded.contains(id) { expanded.remove(id) } else { expanded.insert(id) }
+            }
+        }
+        // Hide decided: closing a decided row, or opening another, is moving on.
+        if closing {
+            if pendingHide.contains(id) { hide([id], keeping: next) }
+        } else {
+            hide(pendingHide.subtracting([id]), keeping: id)
+        }
+    }
+
+    /// Every row opens (or closes) together, in one short animation. The button is above every
+    /// row, so no row above the screen changes size and the rows on screen stay where they are.
+    private func toggleExpandAll() {
+        withMotion(Motion.subtle, reduceMotion: reduceMotion) {
+            session.expandAllItems.toggle()
+            expanded = []
+            collapsed = []
+        }
+    }
+
+    /// Any decision made on this phone (list, long-press menu or item sheet): highlight, Undo banner,
+    /// and, with "Hide decided" on, the previous decided rows go now that the person has moved on.
+    private func decided(_ record: DecisionUndo) {
+        sync.lastDecision = nil
+        justDeleted = nil
+        decisionBanner = record
+        if session.hideDecidedItems {
+            hide(pendingHide.subtracting([record.itemId]), keeping: record.itemId)
+            pendingHide.insert(record.itemId)
+        }
+    }
+
+    private func delete(_ item: Item) {
+        withMotion(Motion.subtle, reduceMotion: reduceMotion) {
+            SortActions.remove(item, sync: sync)
+        }
+        expanded.remove(item.id)
+        collapsed.remove(item.id)
+        pendingHide.remove(item.id)
+        if selectedId == item.id { selectedId = nil }
+        decisionBanner = nil
+        justDeleted = item
+    }
+
+    // MARK: Stable list
+
+    private func liveBucket(_ item: Item) -> Bucket {
+        switch SortRules.rank(item, me: me, in: room) {
+        case ...1: .needs
+        case 2: .waiting
+        default: .decided
+        }
+    }
+
+    private func makeArrangement() -> Arrangement {
+        let ranked = items.enumerated().sorted { a, b in
+            let ra = SortRules.rank(a.element, me: me, in: room), rb = SortRules.rank(b.element, me: me, in: room)
+            return ra != rb ? ra < rb : a.offset < b.offset
+        }.map(\.element)
+        var arr = Arrangement()
+        for (i, item) in ranked.enumerated() {
+            arr.order[item.id] = i
+            arr.bucket[item.id] = liveBucket(item)
+            if filter.passes(item, me: me) { arr.passes.insert(item.id) }
+        }
+        return arr
+    }
+
+    /// Puts things in their groups as they are now. Only on a tab, filter or Sort change, or a pull.
+    private func regroup() {
+        arrangement = makeArrangement()
+        pendingHide = []
+        movedOn = []
+        fading = []
+    }
+
+    private func isHidden(_ item: Item) -> Bool {
+        session.hideDecidedItems && view != .decided && item.isDecided && movedOn.contains(item.id)
+    }
+
+    private func setHideDecided(_ on: Bool) {
+        let first = firstVisibleRow(excluding: [])
+        if on {
+            // Turned on by hand: what's already decided goes now, the rows on screen stay put.
+            let decided = Set(items.filter(\.isDecided).map(\.id))
+            keepInPlace(first.flatMap { decided.contains($0) ? nil : $0 }) {
+                session.hideDecidedItems = true
+                movedOn.formUnion(decided)
+            }
+        } else {
+            keepInPlace(first) {
+                session.hideDecidedItems = false
+                movedOn = []
+                pendingHide = []
+            }
+        }
+    }
+
+    /// Fades decided rows out, then takes them out of the list without moving `keeping` on screen.
+    private func hide(_ ids: Set<UUID>, keeping anchor: UUID?) {
+        guard !ids.isEmpty else { return }
+        pendingHide.subtract(ids)
+        withMotion(Motion.subtle, reduceMotion: reduceMotion) { fading.formUnion(ids) }
+        Task { @MainActor in
+            if !reduceMotion { try? await Task.sleep(for: .milliseconds(220)) }
+            keepInPlace(anchor ?? firstVisibleRow(excluding: ids)) {
+                movedOn.formUnion(ids)
+                fading.subtract(ids)
+            }
+        }
+    }
+
+    /// Hide decided: rows decided here and then scrolled off screen go once scrolling stops.
+    private func hideScrolledAway() {
+        let gone = pendingHide.filter { !frames.isVisible($0) }
+        guard !gone.isEmpty else { return }
+        pendingHide.subtract(gone)
+        keepInPlace(firstVisibleRow(excluding: gone)) { movedOn.formUnion(gone) }
+    }
+
+    private func firstVisibleRow(excluding: Set<UUID>) -> UUID? {
+        frames.rows.filter { !excluding.contains($0.key) && $0.value.minY >= frames.viewport.minY && frames.isVisible($0.key) }
+            .min { $0.value.minY < $1.value.minY }?.key
+    }
+
+    /// Makes a change to the list without the row `anchor` moving on screen: the list scrolls by
+    /// however far the change would have moved it, in the same frame.
+    private func keepInPlace(_ anchor: UUID?, _ change: () -> Void) {
+        if let anchor { frames.hold(anchor) }
+        var t = Transaction()
+        t.disablesAnimations = true
+        withTransaction(t, change)
     }
 
     // MARK: Photo and plan
@@ -518,6 +886,105 @@ struct PhotoZoomView: View {
                         .accessibilityLabel("Zoom in")
                 }
             }
+        }
+    }
+}
+
+/// Where the list's rows are on screen, and the List's own scroll view. Not observed, so it
+/// updates on every scroll frame without redrawing anything.
+@MainActor
+private final class RowFrames {
+    var rows: [UUID: CGRect] = [:]
+    var viewport: CGRect = .zero
+    weak var scrollView: UIScrollView?
+    /// A tiny UIKit view inside each row, to read where UIKit really has it (SwiftUI's reported
+    /// positions lag behind while the list is updating).
+    private var markers: [UUID: WeakView] = [:]
+    private var held: (id: UUID, screenY: CGFloat, until: CFTimeInterval)?
+    private var link: CADisplayLink?
+
+    func isVisible(_ id: UUID) -> Bool {
+        guard let frame = rows[id], frame.height > 0 else { return false }
+        return frame.intersects(viewport)
+    }
+
+    func mark(_ id: UUID, _ view: UIView) { markers[id] = WeakView(view) }
+
+    /// The row's top in the scroll view's content.
+    private func contentY(_ id: UUID) -> CGFloat? {
+        guard let scroll = scrollView, let view = markers[id]?.view, view.window != nil, view.isDescendant(of: scroll)
+        else { return nil }
+        return view.convert(CGPoint.zero, to: scroll).y
+    }
+
+    /// Keeps a row at the same height on screen while the list changes around it: for a moment,
+    /// every frame, the list scrolls by however far the row has moved. Stops if the person scrolls.
+    func hold(_ id: UUID) {
+        guard let scroll = scrollView, let y = contentY(id) else { return }
+        held = (id, y - scroll.contentOffset.y, CACurrentMediaTime() + 0.6)
+        guard link == nil else { return }
+        let link = CADisplayLink(target: LinkTarget { [weak self] in self?.tick() }, selector: #selector(LinkTarget.fire))
+        link.add(to: .main, forMode: .common)
+        self.link = link
+    }
+
+    private func tick() {
+        guard let held, let scroll = scrollView, CACurrentMediaTime() < held.until,
+              !scroll.isTracking, !scroll.isDecelerating else {
+            link?.invalidate(); link = nil; self.held = nil
+            return
+        }
+        guard let y = contentY(held.id) else { return }
+        let top = -scroll.adjustedContentInset.top
+        let bottom = max(top, scroll.contentSize.height - scroll.bounds.height + scroll.adjustedContentInset.bottom)
+        let target = min(max(y - held.screenY, top), bottom)
+        if abs(scroll.contentOffset.y - target) > 0.5 { scroll.contentOffset.y = target }
+    }
+}
+
+private struct WeakView {
+    weak var view: UIView?
+    init(_ view: UIView) { self.view = view }
+}
+
+/// CADisplayLink holds its target strongly; this keeps RowFrames out of that cycle.
+private final class LinkTarget: NSObject {
+    let action: () -> Void
+    init(_ action: @escaping () -> Void) { self.action = action }
+    @objc func fire() { action() }
+}
+
+/// Registers a row's UIKit position marker.
+private struct RowMarker: UIViewRepresentable {
+    let id: UUID
+    let frames: RowFrames
+
+    func makeUIView(context: Context) -> UIView {
+        let view = UIView()
+        view.isUserInteractionEnabled = false
+        view.isAccessibilityElement = false
+        return view
+    }
+
+    func updateUIView(_ view: UIView, context: Context) { frames.mark(id, view) }
+}
+
+/// Finds the UIScrollView a SwiftUI List is drawn in.
+private struct ScrollViewFinder: UIViewRepresentable {
+    let found: (UIScrollView) -> Void
+
+    func makeUIView(context: Context) -> UIView {
+        let view = UIView()
+        view.isUserInteractionEnabled = false
+        view.isAccessibilityElement = false
+        return view
+    }
+
+    func updateUIView(_ view: UIView, context: Context) {
+        DispatchQueue.main.async { [weak view] in
+            var next = view?.superview
+            while let candidate = next, !(candidate is UIScrollView) { next = candidate.superview }
+            if let scroll = next as? UIScrollView { found(scroll) }
         }
     }
 }

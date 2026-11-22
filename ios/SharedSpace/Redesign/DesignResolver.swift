@@ -13,11 +13,12 @@ struct PlanEntry: Identifiable {
     /// Item id for real things; placement id for placed pieces.
     let id: UUID
     let name: String
-    let xCm: Double
-    let zCm: Double
+    // Variable so a piece can be drawn where it's being dragged before it's saved.
+    var xCm: Double
+    var zCm: Double
     let widthCm: Double
     let depthCm: Double
-    let yawDeg: Double
+    var yawDeg: Double
     /// For the 3D view.
     var heightCm: Double?
     let isFlat: Bool
@@ -148,15 +149,9 @@ enum DesignResolver {
         }
         // Problems: through a wall, or on top of something that's staying, or of another piece.
         for i in placed.indices where !placed[i].isFlat {
-            let f = placed[i].footprint
-            if let room, f.x < -1 || f.z < -1 || f.maxX > Double(room.widthCm) + 1 || f.maxZ > Double(room.lengthCm) + 1
-                || !room.shape.contains(f) {
-                placed[i].problem = "Goes through a wall"
-            } else if let hit = kept.first(where: { f.overlaps($0.footprint, padding: 2) }) {
-                placed[i].problem = "Overlaps the \(hit.name.lowercased())"
-            } else if let hit = placed.first(where: { $0.id != placed[i].id && !$0.isFlat && f.overlaps($0.footprint, padding: 2) }) {
-                placed[i].problem = "Overlaps the \(hit.name.lowercased())"
-            }
+            guard let room else { continue }
+            placed[i].problem = PlacementCheck.problem(placed[i].footprint, room: room,
+                                                       others: kept + placed.filter { $0.id != placed[i].id })
         }
         result.entries += placed
         return result

@@ -11,6 +11,9 @@ struct FloorPlanView: View {
     /// Draw removed things as dashed outlines (otherwise they're left out).
     var showGhosts = false
     var selectedId: UUID?
+    /// The piece just placed, outlined in the accent colour with a glow that pulses with `glow` (0…1).
+    var highlightId: UUID? = nil
+    var glow: Double = 0
     var onSelect: ((UUID?) -> Void)?
     var zones: [FreeZone] = []
     var selectedZone: Int?
@@ -107,6 +110,15 @@ struct FloorPlanView: View {
                     .foregroundStyle(entry.isGhost ? Color.textSecondary : Color.textPrimary)
                 c.draw(text, in: CGRect(x: -rect.width / 2 + 2, y: -rect.height / 2, width: rect.width - 4, height: rect.height))
             }
+        }
+
+        if let id = highlightId, let entry = entries.first(where: { $0.id == id }) {
+            let r = map.rect(entry.footprint).insetBy(dx: -4, dy: -4)
+            let path = Path(roundedRect: r, cornerRadius: Radius.drawing + 4)
+            if glow > 0 {
+                context.stroke(path, with: .color(Color.accent.opacity(0.35 * glow)), lineWidth: Stroke.heavy + 10 * glow)
+            }
+            context.stroke(path, with: .color(.accent), lineWidth: Stroke.heavy)
         }
 
         ShapeDrawing.drawWalls(shape, t, in: &context)

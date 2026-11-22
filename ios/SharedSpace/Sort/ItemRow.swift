@@ -8,6 +8,8 @@ struct ItemRow: View {
     var number: Int?
     /// nil = not selecting; true/false = selected or not in "Select" mode.
     var selection: Bool?
+    /// The trailing "opens" chevron. Off when the list draws its own expand button beside the row.
+    var showsChevron = true
 
     var body: some View {
         HStack(spacing: Space.m) {
@@ -20,11 +22,14 @@ struct ItemRow: View {
             VStack(alignment: .leading, spacing: Space.xs) {
                 Text(item.name).textRole(.bodyStrong)
                 FlowLayout(spacing: Space.xs) { subline }
+                    // A decision tag is a little taller than "Undecided": keep room for it, so
+                    // choosing a decision never changes the row's height.
+                    .frame(minHeight: tagHeight, alignment: .leading)
             }
             Spacer(minLength: 0)
             if let selection {
                 TickBadge(isOn: selection)
-            } else {
+            } else if showsChevron {
                 RowChevron()
             }
         }
@@ -61,14 +66,16 @@ struct ItemRow: View {
         return parts.joined(separator: ", ")
     }
 
+    @ScaledMetric(relativeTo: .footnote) private var tagHeight: CGFloat = Size.tag
+
     @ViewBuilder private var subline: some View {
         let asked = SortRules.isAskedOf(item, me: me)
         if item.isDecided {
-            HStack(spacing: Space.xs) {
-                Image(systemName: item.status.icon).foregroundStyle(item.status.color).accessibilityHidden(true)
-                Text(decidedText)
+            // The decision as its gradient tag: icon and word, so it never relies on colour.
+            StatusTag(item: item, room: room, me: me)
+            if let by = decidedByOther {
+                Text("by \(by)").textRole(.secondary)
             }
-            .textRole(.secondary)
         } else if asked, let by = item.askBy {
             AppTag(kind: .suggestion, text: "\(room.name(of: by)) asked you")
         } else if item.askBy == me, let to = item.askTo {
@@ -86,13 +93,10 @@ struct ItemRow: View {
         }
     }
 
-    /// "Staying · by Alex" when someone other than the owner decided it.
-    private var decidedText: String {
-        var text = SortRules.statusText(item, room: room, me: me)
-        if let by = item.decidedBy, item.owner != .shared, item.owner != .unassigned, by != item.owner.role {
-            text += " · by \(by == me ? "you" : room.name(of: by))"
-        }
-        return text
+    /// "you" or "Alex" when someone other than the owner decided it.
+    private var decidedByOther: String? {
+        guard let by = item.decidedBy, item.owner != .shared, item.owner != .unassigned, by != item.owner.role else { return nil }
+        return by == me ? "you" : room.name(of: by)
     }
 }
 
@@ -103,7 +107,10 @@ struct DecisionButtons: View {
     let room: Room
     let me: Role
     var disabled = false
+    /// Called after a choice is saved (or cleared by tapping it again).
+    var onChoose: ((ItemStatus) -> Void)?
     @Environment(SyncEngine.self) private var sync
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var suggesting: Bool { !SortRules.canDecide(item, as: me, in: room) }
 
@@ -112,7 +119,12 @@ struct DecisionButtons: View {
             ForEach(suggesting ? ItemStatus.suggestions : ItemStatus.decisions, id: \.self) { status in
                 let on = suggesting ? (item.suggestion == status && item.suggestedBy == me) : item.status == status
                 DecisionButton(decision: status, title: label(status), isSelected: on, layout: .compact, suggesting: suggesting) {
-                    SortActions.choose(status, for: item, as: me, in: room, sync: sync)
+                    // A light tap, and only the button and the status tag cross-fade.
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    withMotion(Motion.subtleFade, reduceMotion: reduceMotion) {
+                        SortActions.choose(status, for: item, as: me, in: room, sync: sync)
+                    }
+                    onChoose?(status)
                 }
             }
         }

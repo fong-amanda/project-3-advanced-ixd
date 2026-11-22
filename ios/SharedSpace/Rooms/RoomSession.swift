@@ -22,6 +22,10 @@ final class RoomSession {
     var showGoals = false
     /// Set when People opens right after creating a room with "Invite someone".
     var showInviteOnPeople = false
+    /// Items list: every row open with its decision buttons ("Expand all"). Kept while in this room.
+    var expandAllItems = false
+    /// Items list: decided things fade out once the person moves on from them. Kept while in this room.
+    var hideDecidedItems = false
 
 
     /// The plan version on screen in Room plan (nil = the room as it is now).

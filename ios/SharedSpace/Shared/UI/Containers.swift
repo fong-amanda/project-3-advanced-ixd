@@ -627,11 +627,15 @@ struct UndoBanner<Value: Equatable>: ViewModifier {
     let text: String
     var symbol = "arrow.uturn.backward"
     var actionTitle = "Undo"
+    /// Fades in at the bottom instead of sliding in at the top (lists where nothing should move).
+    var calm = false
     var action: (Value) -> Void
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     func body(content: Content) -> some View {
-        content.overlay(alignment: .top) {
+        content.overlay(alignment: calm ? .bottom : .top) {
+            // The animation is scoped to the banner, so it never animates the screen underneath.
+            ZStack {
             if let current = value {
                 HStack(spacing: Space.m) {
                     IconCircle(symbol: symbol, tone: .sage)
@@ -649,7 +653,8 @@ struct UndoBanner<Value: Equatable>: ViewModifier {
                 .background(Color.surface, in: RoundedRectangle(cornerRadius: Radius.card, style: .continuous))
                 .elevation(.floating)
                 .padding(.horizontal, Space.page)
-                .transition(Motion.transition(.move(edge: .top).combined(with: .opacity), reduceMotion: reduceMotion))
+                .padding(.bottom, calm ? Space.s : 0)
+                .transition(calm ? .opacity : Motion.transition(.move(edge: .top).combined(with: .opacity), reduceMotion: reduceMotion))
                 .accessibilityElement(children: .contain)
                 .task(id: current) {
                     UIAccessibility.post(notification: .announcement, argument: "\(text). \(actionTitle) is available.")
@@ -658,18 +663,22 @@ struct UndoBanner<Value: Equatable>: ViewModifier {
                     if !Task.isCancelled { close() }
                 }
             }
+            }
+            .animation(calm ? (reduceMotion ? nil : Motion.subtle) : Motion.animation(Motion.banner, reduceMotion: reduceMotion),
+                       value: value)
         }
-        .animation(Motion.animation(Motion.banner, reduceMotion: reduceMotion), value: value)
     }
 
     private func close() {
-        withMotion(reduceMotion: reduceMotion, fade: true) { value = nil }
+        if calm { withMotion(Motion.subtle, reduceMotion: reduceMotion) { value = nil } }
+        else { withMotion(reduceMotion: reduceMotion, fade: true) { value = nil } }
     }
 }
 
 extension View {
-    func undoBanner<V: Equatable>(_ value: Binding<V?>, text: String, action: @escaping (V) -> Void) -> some View {
-        modifier(UndoBanner(value: value, text: text, action: action))
+    func undoBanner<V: Equatable>(_ value: Binding<V?>, text: String, calm: Bool = false,
+                                  action: @escaping (V) -> Void) -> some View {
+        modifier(UndoBanner(value: value, text: text, calm: calm, action: action))
     }
 }
 

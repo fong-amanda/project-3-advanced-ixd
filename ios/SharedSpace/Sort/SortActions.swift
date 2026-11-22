@@ -5,8 +5,11 @@ import Foundation
 @MainActor
 enum SortActions {
     /// Decide (if allowed) or suggest (if not). Tapping the current choice again clears it.
+    /// Every choice is recorded in `sync.lastDecision` so the list can offer Undo.
     static func choose(_ status: ItemStatus, for item: Item, as me: Role, in room: Room, sync: SyncEngine) {
-        if SortRules.canDecide(item, as: me, in: room) {
+        let before = DecisionUndo.Saved(item)
+        let deciding = SortRules.canDecide(item, as: me, in: room)
+        if deciding {
             let new: ItemStatus = item.status == status ? .undecided : status
             item.status = new
             item.decidedBy = new == .undecided ? nil : me
@@ -25,6 +28,20 @@ enum SortActions {
             item.suggestedBy = me
             item.suggestedAt = .now
         }
+        sync.save(item)
+
+        let text: String
+        if deciding {
+            text = item.isDecided ? "Marked “\(item.status.shortLabel)”" : "Decision cleared"
+        } else {
+            text = item.suggestion.map { "Suggested “\($0.shortLabel)”" } ?? "Suggestion cleared"
+        }
+        sync.lastDecision = DecisionUndo(itemId: item.id, text: text, before: before)
+    }
+
+    /// Puts a thing's decision and suggestion back to how they were before `choose`.
+    static func undo(_ record: DecisionUndo, for item: Item, sync: SyncEngine) {
+        record.before.apply(to: item)
         sync.save(item)
     }
 
@@ -95,5 +112,60 @@ enum SortActions {
     static func remove(_ item: Item, sync: SyncEngine) {
         item.deletedAt = .now
         sync.save(item)
+    }
+
+    /// Undoes `remove`: deletes are soft, so the thing comes back as it was, for both people.
+    static func restore(_ item: Item, sync: SyncEngine) {
+        item.deletedAt = nil
+        sync.save(item)
+    }
+
+    /// The host can remove anything; the other person only their own things.
+    static func canRemove(_ item: Item, context: RoomContext) -> Bool {
+        guard !context.readOnly else { return false }
+        return context.canEditRoom || item.owner == Owner(context.me)
+    }
+}
+
+/// One choice made on this phone, with what it replaced, for the Undo banner.
+struct DecisionUndo: Identifiable, Equatable {
+    let id = UUID()
+    let itemId: UUID
+    let text: String
+    let before: Saved
+
+    static func == (a: DecisionUndo, b: DecisionUndo) -> Bool { a.id == b.id }
+
+    struct Saved {
+        let status: ItemStatus
+        let decidedBy: Role?
+        let decidedAt: Date?
+        let suggestion: ItemStatus?
+        let suggestedBy: Role?
+        let suggestedAt: Date?
+        let moveDestination: String?
+        let pickupDate: Date?
+
+        @MainActor init(_ item: Item) {
+            status = item.status
+            decidedBy = item.decidedBy
+            decidedAt = item.decidedAt
+            suggestion = item.suggestion
+            suggestedBy = item.suggestedBy
+            suggestedAt = item.suggestedAt
+            moveDestination = item.moveDestination
+            pickupDate = item.pickupDate
+        }
+
+        @MainActor func apply(to item: Item) {
+            item.status = status
+            item.decidedBy = decidedBy
+            item.decidedAt = decidedAt
+            item.suggestion = suggestion
+            item.suggestedBy = suggestedBy
+            item.suggestedAt = suggestedAt
+            item.moveDestination = moveDestination
+            item.pickupDate = pickupDate
+        }
     }
 }

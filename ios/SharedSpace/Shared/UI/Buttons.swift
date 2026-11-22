@@ -166,11 +166,13 @@ extension View {
 
 /// Shrinks slightly while pressed. For controls that draw their own look.
 struct PressableStyle: ButtonStyle {
+    /// Off for buttons in lists, where nothing should move.
+    var scales = true
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .scaleEffect(Motion.scale(Motion.pressedScale, when: configuration.isPressed, reduceMotion: reduceMotion))
+            .scaleEffect(Motion.scale(Motion.pressedScale, when: configuration.isPressed && scales, reduceMotion: reduceMotion))
             .animation(reduceMotion ? nil : Motion.quick, value: configuration.isPressed)
     }
 }
@@ -201,9 +203,10 @@ struct DecisionButton: View {
             case .compact: compact
             }
         }
-        .buttonStyle(PressableStyle())
+        .buttonStyle(PressableStyle(scales: layout == .full))
         .opacity(isEnabled ? 1 : Opacity.disabled)
-        .sensoryFeedback(.selection, trigger: isSelected)
+        // Compact buttons sit in lists, which give their own light tap when one is chosen.
+        .sensoryFeedback(.selection, trigger: isSelected) { _, _ in layout == .full }
         .accessibilityLabel(suggesting ? "Suggest: \(resolvedTitle)" : resolvedTitle)
         .accessibilityHint(detail ?? "")
         .accessibilityAddTraits(isSelected ? .isSelected : [])
@@ -213,10 +216,15 @@ struct DecisionButton: View {
     private var tone: Tone { decision.tone }
 
     private var compact: some View {
+        // Selected, the checkmark takes the icon's place, so the button never changes size
+        // and the buttons around it never reflow.
         HStack(spacing: Space.xs) {
-            Image(systemName: decision.icon).foregroundStyle(isSelected ? tone.text : tone.icon).accessibilityHidden(true)
+            ZStack {
+                Image(systemName: decision.icon).foregroundStyle(tone.icon).opacity(isSelected ? 0 : 1)
+                Image(systemName: "checkmark.circle.fill").foregroundStyle(tone.text).opacity(isSelected ? 1 : 0)
+            }
+            .accessibilityHidden(true)
             Text(resolvedTitle)
-            if isSelected { Image(systemName: "checkmark.circle.fill").accessibilityHidden(true) }
         }
         .font(.buttonCompact)
         .foregroundStyle(isSelected ? tone.text : Color.textPrimary)

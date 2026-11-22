@@ -26,6 +26,8 @@ final class SyncEngine {
     private(set) var presentUserIds: Set<UUID> = []
     /// Most recent change made by the other person, for the in-app banner.
     var activity: ActivityEvent?
+    /// The decision (or suggestion) just made on this phone, for "Marked “Keep”. Undo".
+    var lastDecision: DecisionUndo?
     /// Bumped whenever a room photo arrives on disk, so views showing photos redraw.
     private(set) var photoRevision = 0
 
@@ -288,6 +290,11 @@ final class SyncEngine {
     /// Saves a room photo on disk, links it to the room and uploads it. False if it couldn't be written.
     @discardableResult
     func savePhoto(_ jpeg: Data, index: Int, of room: Room) -> Bool {
+        // No location or camera details on disk or in Storage, whichever path the photo came by.
+        guard let jpeg = PhotoMetadata.stripped(jpeg) else {
+            photoSaveError = "The photo couldn’t be saved without its location details, so it wasn’t saved. Try another photo."
+            return false
+        }
         do {
             try jpeg.write(to: FileStore.roomPhotoURL(room.id, index: index), options: .atomic)
         } catch {
@@ -320,7 +327,9 @@ final class SyncEngine {
             let url = FileStore.roomPhotoURL(room.id, index: index)
             guard !FileStore.exists(url) else { continue }
             do {
-                let data = try await client.storage.from("rooms").download(path: FileStore.roomPhotoStoragePath(room.id, index: index))
+                // Photos uploaded by an older build may still carry metadata; never keep it.
+                let downloaded = try await client.storage.from("rooms").download(path: FileStore.roomPhotoStoragePath(room.id, index: index))
+                guard let data = PhotoMetadata.stripped(downloaded) else { continue }
                 try data.write(to: url, options: .atomic)
                 if index == 0 { try? data.write(to: FileStore.thumbnailURL(room.id), options: .atomic) }
                 photoRevision += 1
