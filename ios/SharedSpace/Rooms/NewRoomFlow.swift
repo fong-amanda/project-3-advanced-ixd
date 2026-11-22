@@ -152,7 +152,8 @@ struct NewRoomFlow: View {
             }
             .sheet(isPresented: Binding(get: { findIn != nil }, set: { if !$0 { findIn = nil } })) {
                 if let index = findIn, photos.indices.contains(index) {
-                    DetectionReviewSheet(image: photos[index], existing: existingThings(on: index)) { chosen in
+                    // In a new room, things already follow the "whose things are in this room" answer.
+                    DetectionReviewSheet(image: photos[index], existing: existingThings(on: index)) { chosen, _ in
                         addSuggestions(chosen, photo: index)
                     }
                 }

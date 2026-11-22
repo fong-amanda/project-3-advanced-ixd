@@ -165,6 +165,8 @@ struct RoomView: View {
     @Environment(\.pendingInvite) private var pendingInvite
     @State private var session = RoomSession()
     @Query private var items: [Item]
+    /// Height of the floating tab bar, measured.
+    @State private var barHeight: CGFloat = 80
 
     init(room: Room) {
         self.room = room
@@ -184,26 +186,29 @@ struct RoomView: View {
         @Bindable var session = session
         TabView(selection: $router.roomTab) {
             Tab(RoomTab.room.title, systemImage: RoomTab.room.symbol, value: RoomTab.room) {
-                NavigationStack { RoomOverviewView(room: room) }.toolbar(.hidden, for: .tabBar)
+                NavigationStack { RoomOverviewView(room: room).tabBarClearance(barHeight) }.toolbar(.hidden, for: .tabBar)
             }
             // A goal that's off hides its tab; its items, decisions and layouts stay in the room.
             if room.sortEnabled {
                 Tab(RoomTab.items.title, systemImage: RoomTab.items.symbol, value: RoomTab.items) {
-                    NavigationStack { ItemsView(room: room) }.toolbar(.hidden, for: .tabBar)
+                    NavigationStack { ItemsView(room: room).tabBarClearance(barHeight) }.toolbar(.hidden, for: .tabBar)
                 }
             }
             if room.planEnabled {
                 Tab(RoomTab.plan.title, systemImage: RoomTab.plan.symbol, value: RoomTab.plan) {
-                    NavigationStack { RoomPlanView(room: room) }.toolbar(.hidden, for: .tabBar)
+                    NavigationStack { RoomPlanView(room: room).tabBarClearance(barHeight) }.toolbar(.hidden, for: .tabBar)
                 }
             }
             Tab(RoomTab.people.title, systemImage: RoomTab.people.symbol, value: RoomTab.people) {
-                NavigationStack { PeopleView(room: room) }.toolbar(.hidden, for: .tabBar)
+                NavigationStack { PeopleView(room: room).tabBarClearance(barHeight) }.toolbar(.hidden, for: .tabBar)
             }
         }
-        .safeAreaInset(edge: .bottom, spacing: 0) {
+        // The bar floats over the tabs. Each tab's content gets room for it (`tabBarClearance`), so
+        // nothing at the bottom of a page ends up under the bar where it can't be tapped.
+        .overlay(alignment: .bottom) {
             AppTabBar(items: tabs.map { .init(value: $0, title: $0.title, symbol: $0.symbol, badge: $0 == .items ? openCount : 0) },
                       selection: $router.roomTab)
+                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { barHeight = $0 }
         }
         .onChange(of: tabs) { keepTabVisible() }
         .sheet(item: $session.addItem) { request in
@@ -246,5 +251,13 @@ extension EnvironmentValues {
     var pendingInvite: Binding<UUID?> {
         get { self[PendingInviteKey.self] }
         set { self[PendingInviteKey.self] = newValue }
+    }
+}
+
+extension View {
+    /// Room for the floating tab bar at the bottom of a tab's content. Applied inside the tab, so
+    /// scroll views and lists can scroll their last row above the bar.
+    func tabBarClearance(_ height: CGFloat) -> some View {
+        safeAreaInset(edge: .bottom, spacing: 0) { Color.clear.frame(height: height).allowsHitTesting(false) }
     }
 }

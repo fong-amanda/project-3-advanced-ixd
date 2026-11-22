@@ -1,3 +1,13 @@
+## Get the beta
+
+**On an iPhone:** open the TestFlight link, install Apple's free **TestFlight** app when asked, then tap **Install** next to Shared Space: Sort a Room.
+
+> TestFlight link: *(added once Apple approves the beta)*
+
+- Needs an iPhone with **iOS 18** or later. There's no Android version.
+- Room scanning (LiDAR) needs an iPhone **Pro** (12 Pro or later). Everything else, including AR, works on any iPhone with iOS 18.
+- To sort with someone: create a room, open its **People** tab and send them the 5-character code. They tap **I'm invited** and enter it.
+
 ## Which device
 
 - **iPhone 16 Pro**, or any iPhone with a LiDAR scanner (iPhone 12 Pro or newer Pro models), running **iOS 18** or later.
@@ -54,9 +64,16 @@ Everyone who installs the app must use a build with the same keys. To invite som
 - **Delete room** (host only) removes the room's photos from storage and the room from the database, which deletes all its things, decisions, plans and memberships with it, for both people.
 - **Offline:** changes save on the phone and upload when it's back online ("Changes will sync when you're back online").
 
-## What's faked
-- **Live AR view of a design in the room:** built (Redesign › **View in your room**). Catalogue pieces show as true-size boxes until 3D models are added.
-- **Furniture catalogue, prices and store links:** [not built yet]
+## What's faked (needs Dan and Meg's approval)
+| Feature | What's faked | Why |
+|---|---|---|
+| **Furniture catalogue** (Redesign › Add furniture) | 28 sample pieces with realistic sizes, but made-up prices and no store links or real products | Licensing real retailer catalogues and prices is out of scope for a class project. The sizes are what the fit checks and AR use, and those are realistic. |
+| **3D furniture in AR** (Redesign › View in your room) | Pieces show as true-size coloured boxes with their name, not 3D models | We don't have licensed 3D models. The AR itself is real: true-size placement, LiDAR occlusion, lining up with the plan, and saving moves back to it. A piece's model loads automatically once a `<catalogue id>.usdz` file is added. |
+
+Not faked, but limited:
+- **Room scans, the 3D room model, AR room maps and item photos** stay on the phone that made them and aren't shared. Room photos, the room's outline and everything about the items do sync.
+- **Two people per room** (a host and one guest).
+- **Sign-in is anonymous**, so deleting the app can lose access to your rooms.
 
 ## Change log
 1. People said sort vs repurpose feel like two apps; testers wanted the Sort tab only when the room has things in it.

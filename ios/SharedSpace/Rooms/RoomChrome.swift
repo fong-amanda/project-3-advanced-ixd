@@ -23,6 +23,7 @@ struct RoomChrome<Trailing: View>: ViewModifier {
             // The system large title can't wrap, so at accessibility text sizes the room's name is
             // shown as a wrapping heading instead of being cut off ("Alex's old ro…").
             .appNavigation(room.name, large: !typeSize.isAccessibilitySize)
+            .background { TitleMarginGuard() }
             .navigationBarBackButtonHidden()
             .toolbar {
                 if typeSize.isAccessibilitySize {
@@ -179,5 +180,59 @@ private struct RoomRemoval: ViewModifier {
 extension View {
     func roomRemoval(deleting: Binding<Room?>, leaving: Binding<Room?>) -> some View {
         modifier(RoomRemoval(deleting: deleting, leaving: leaving))
+    }
+}
+
+/// Keeps the large room title off the screen's edge. Opened from a link (Messages, Safari), the
+/// navigation bar can be laid out before it's on screen and lose its side margins, leaving the
+/// title flush against the left edge. This puts the standard margin back whenever it's missing.
+private struct TitleMarginGuard: UIViewRepresentable {
+    func makeUIView(context: Context) -> UIView {
+        let view = GuardView()
+        view.isUserInteractionEnabled = false
+        view.isAccessibilityElement = false
+        return view
+    }
+
+    func updateUIView(_ view: UIView, context: Context) {
+        (view as? GuardView)?.check()
+    }
+
+    final class GuardView: UIView {
+        private var observer: NSObjectProtocol?
+
+        override func didMoveToWindow() {
+            super.didMoveToWindow()
+            check()
+            if window != nil, observer == nil {
+                observer = NotificationCenter.default.addObserver(forName: UIApplication.didBecomeActiveNotification,
+                                                                  object: nil, queue: .main) { [weak self] _ in
+                    MainActor.assumeIsolated { self?.check() }
+                }
+            }
+        }
+
+        func check() {
+            DispatchQueue.main.async { [weak self] in
+                guard let bar = self?.navigationBar, bar.window != nil else { return }
+                let margins = bar.directionalLayoutMargins
+                guard margins.leading < 8 || margins.trailing < 8 else { return }
+                bar.preservesSuperviewLayoutMargins = false
+                bar.directionalLayoutMargins = NSDirectionalEdgeInsets(top: margins.top, leading: 16,
+                                                                       bottom: margins.bottom, trailing: 16)
+                bar.setNeedsLayout()
+            }
+        }
+
+        private var navigationBar: UINavigationBar? {
+            var responder: UIResponder? = self
+            while let r = responder {
+                if let vc = r as? UIViewController, let nav = vc.navigationController { return nav.navigationBar }
+                responder = r.next
+            }
+            return nil
+        }
+
+        deinit { if let observer { NotificationCenter.default.removeObserver(observer) } }
     }
 }
