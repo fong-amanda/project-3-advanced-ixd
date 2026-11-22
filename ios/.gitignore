@@ -3,3 +3,6 @@ xcuserdata/
 *.xcuserstate
 DerivedData/
 build/
+
+# Real Supabase keys (the committed Supabase.plist holds placeholders only)
+SharedSpace/Resources/Supabase.local.plist

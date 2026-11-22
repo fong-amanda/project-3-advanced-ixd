@@ -211,8 +211,9 @@ begin
   );
 end $$;
 
--- Join a room as its guest. A room has one guest; whoever joins with the code becomes it
--- (so the same person can rejoin after reinstalling the app).
+-- Join a room as its guest. A room has one guest. Joining adds you to this room only, as its
+-- guest. While someone else is the guest, the code is refused ('room_full'), so a code that gets
+-- passed around can't push the real guest out. When the guest leaves, the spot opens again.
 create or replace function public.join_room(p_code text, p_name text)
 returns uuid language plpgsql security definer set search_path = public as $$
 declare r rooms;
@@ -221,8 +222,10 @@ begin
   select * into r from rooms where code = upper(p_code) and deleted_at is null;
   if not found then raise exception 'room_not_found'; end if;
   if r.host_user_id = auth.uid() then return r.id; end if;
+  if exists (select 1 from room_members where room_id = r.id and role = 'guest' and user_id <> auth.uid()) then
+    raise exception 'room_full';
+  end if;
 
-  delete from room_members where room_id = r.id and role = 'guest' and user_id <> auth.uid();
   insert into room_members (room_id, user_id, role, display_name)
   values (r.id, auth.uid(), 'guest', p_name)
   on conflict (room_id, user_id) do update set display_name = excluded.display_name;
@@ -268,12 +271,13 @@ begin
   end if;
 end $$;
 
--- Leave a room as the guest.
+-- Leave a room as the guest. Removes only your own membership; the room and everything in it stay
+-- with the host, and the guest spot opens for someone new.
 create or replace function public.leave_room(p_room uuid)
 returns void language plpgsql security definer set search_path = public as $$
 begin
   delete from room_members where room_id = p_room and user_id = auth.uid() and role = 'guest';
-  update rooms set guest_user_id = null, updated_at = now()
+  update rooms set guest_user_id = null, guest_joined_at = null, updated_at = now()
   where id = p_room and guest_user_id = auth.uid();
 end $$;
 

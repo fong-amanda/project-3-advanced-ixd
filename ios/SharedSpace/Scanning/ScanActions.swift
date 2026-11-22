@@ -13,6 +13,13 @@ enum ScanActions {
         room.scanVersion += 1
         sync.save(room)
         save(captured, for: room.id)
+        // AR lines up with this scan from now on. A scan without a map makes the old map useless
+        // (it no longer matches the room's coordinates), so it's removed.
+        if let frame = result.frame, let map = result.worldMap {
+            RoomFrame.saveWorldMap(map, frame: frame, roomId: room.id)
+        } else {
+            RoomFrame.forget(room.id)
+        }
 
         var order = (items.map(\.sortOrder).max() ?? -1) + 1
         let owner = SortActions.defaultOwner(in: room, items: items)

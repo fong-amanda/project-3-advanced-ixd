@@ -47,9 +47,7 @@ struct ItemRow: View {
         var parts: [String] = []
         let asked = SortRules.isAskedOf(item, me: me)
         if item.isDecided {
-            if let by = item.decidedBy, item.owner != .shared, item.owner != .unassigned, by != item.owner.role {
-                parts.append("decided by \(by == me ? "you" : room.name(of: by))")
-            }
+            if let by = decidedByOther { parts.append("decided by \(by)") }
         } else if asked, let by = item.askBy {
             parts.append("\(room.name(of: by)) asked you")
         } else if item.askBy == me, let to = item.askTo {
@@ -93,9 +91,12 @@ struct ItemRow: View {
         }
     }
 
-    /// "you" or "Alex" when someone other than the owner decided it.
+    /// "you" or "Alex": who decided. Always shown once two people share the room; on your own,
+    /// only when it wasn't the owner who decided.
     private var decidedByOther: String? {
-        guard let by = item.decidedBy, item.owner != .shared, item.owner != .unassigned, by != item.owner.role else { return nil }
+        guard let by = item.decidedBy else { return nil }
+        let notOwner = item.owner != .shared && item.owner != .unassigned && by != item.owner.role
+        guard room.guestHasJoined || notOwner else { return nil }
         return by == me ? "you" : room.name(of: by)
     }
 }

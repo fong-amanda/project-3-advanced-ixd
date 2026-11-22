@@ -1,4 +1,5 @@
 import Foundation
+import Network
 import Observation
 import Supabase
 import SwiftData
@@ -37,18 +38,42 @@ final class SyncEngine {
 
     var isShared: Bool { Backend.isConfigured }
 
+    /// False while the phone has no internet. Changes keep saving on the phone and upload on return.
+    private(set) var isOnline = true
+    private let monitor = NWPathMonitor()
+    /// The last sync problem shown, so the same one isn't shown over and over.
+    private var lastShownError: (text: String, at: Date)?
+
     init(context: ModelContext) {
         self.context = context
+        monitor.pathUpdateHandler = { [weak self] path in
+            let online = path.status == .satisfied
+            Task { @MainActor in self?.connectivityChanged(online) }
+        }
+        monitor.start(queue: .main)
+    }
+
+    /// Back online: sign in if that never happened, upload what waited, and catch up on the other
+    /// person's changes (Realtime reconnects by itself, but anything sent meanwhile was missed).
+    private func connectivityChanged(_ online: Bool) {
+        guard online != isOnline else { return }
+        isOnline = online
+        guard online, Backend.isConfigured else { return }
+        Task {
+            if isSignedIn { await refresh() } else { await start() }
+        }
     }
 
     // MARK: - Startup
 
     func start() async {
-        guard let client = Backend.client else { return }
+        guard let client = Backend.client, !isSignedIn else { return }
         do {
             let session: Session
-            if let existing = try? await client.auth.session {
-                session = existing
+            if client.auth.currentSession != nil {
+                // Already signed in on this phone. Never make a new anonymous account here: that
+                // would lose every room this person is in. If refreshing fails (offline), try later.
+                session = try await client.auth.session
             } else {
                 session = try await client.auth.signInAnonymously()
             }
@@ -613,9 +638,16 @@ final class SyncEngine {
 
     // MARK: - Errors
 
+    /// Records a sync problem and shows it once as a banner. Being offline isn't shown here: the
+    /// offline bar already says so, and everything is retried when the phone is back online.
     private func report(_ error: Error) {
-        lastError = SyncError.describe(error)
+        let text = SyncError.describe(error)
+        lastError = text
         print("Sync error:", error)
+        guard !SyncError.isOffline(error), isOnline else { return }
+        if let last = lastShownError, last.text == text, Date.now.timeIntervalSince(last.at) < 60 { return }
+        lastShownError = (text, .now)
+        activity = ActivityEvent(text: text, symbol: "exclamationmark.triangle", status: nil)
     }
 }
 
@@ -662,10 +694,33 @@ enum SyncError: LocalizedError {
         }
     }
 
+    static let offline = "You’re offline. Changes will sync when you’re back online."
+
+    static func isOffline(_ error: Error) -> Bool {
+        if let url = error as? URLError {
+            return [.notConnectedToInternet, .networkConnectionLost, .timedOut, .cannotFindHost,
+                    .cannotConnectToHost, .dataNotAllowed, .internationalRoamingOff].contains(url.code)
+        }
+        return false
+    }
+
     static func describe(_ error: Error) -> String {
         let text = "\(error)"
         if text.contains("room_not_found") { return "We couldn’t find that room. Check the code and try again." }
-        if (error as? URLError) != nil { return "You’re offline. Changes will sync when you’re back online." }
+        if text.contains("room_full") { return "Someone else has already joined this room. Ask the person who shared it." }
+        if isOffline(error) { return offline }
+        if (error as? URLError) != nil { return "Couldn’t reach the sharing server. Changes will sync when it’s back." }
+        if let pg = error as? PostgrestError {
+            switch pg.code {
+            case "42501": return "Couldn’t sync that change: you’re no longer in this room."
+            case "42P01", "42703", "PGRST202", "PGRST204":
+                return "Sharing isn’t fully set up: run the latest supabase/schema.sql in the Supabase dashboard."
+            default: return "Couldn’t sync a change. It will try again."
+            }
+        }
+        if text.contains("anonymous_provider_disabled") || text.contains("Anonymous sign-ins are disabled") {
+            return "Sharing isn’t fully set up: turn on anonymous sign-ins in Supabase."
+        }
         return (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
     }
 }

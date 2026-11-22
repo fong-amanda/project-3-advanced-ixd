@@ -25,6 +25,9 @@ struct RoomPlanView: View {
     @State private var showReactNote = false
     @State private var showHidden = false
     @State private var showShape = false
+    /// "View in your room": the live AR view, and the piece chosen when it opens.
+    @State private var showAR = false
+    @State private var arInitialPiece: CatalogPiece?
     @State private var planView: PlanViewMode = .floorPlan
     /// The piece just added from the catalogue: highlighted, and offered for Undo in the banner.
     @State private var justPlaced: JustPlaced?
@@ -132,7 +135,17 @@ struct RoomPlanView: View {
         #if DEBUG
         .onAppear { if DemoData.show3D { planView = .model } }
         #endif
-        .sheet(item: $detailPiece) { piece in PieceDetailSheet(piece: piece, units: units) }
+        .sheet(item: $detailPiece) { piece in
+            PieceDetailSheet(piece: piece, units: units) {
+                // Close the sheet, then open AR with this piece chosen.
+                detailPiece = nil
+                arInitialPiece = piece
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { showAR = true }
+            }
+        }
+        .fullScreenCover(isPresented: $showAR, onDismiss: { arInitialPiece = nil }) {
+            arView(resolved)
+        }
         .sheet(isPresented: $showCustom) {
             CustomPieceSheet(units: units) { name, w, d, h in
                 let piece = Catalogue.piece(Catalogue.customId(name: name, w: w, d: d, h: h), items: items)!
@@ -164,6 +177,11 @@ struct RoomPlanView: View {
                 Text(room.futureUse.isEmpty || room.futureUse == "Still deciding" ? "Proposed layout" : room.futureUse)
                     .font(.sectionTitle).accessibilityAddTraits(.isHeader)
                 Text(status).textRole(.secondary)
+            }
+            if !DeviceCapabilities.isSimulator {
+                Button { showAR = true } label: { Label("View in your room", systemImage: "arkit") }
+                    .buttonStyle(.app(.neutral))
+                    .accessibilityHint("Opens the camera and shows furniture at its real size")
             }
             Button { if isHost { session.showSettings = true } } label: {
                 KVRow(label: "Room",
@@ -493,12 +511,59 @@ struct RoomPlanView: View {
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: Space.m)], spacing: Space.m) {
                     ForEach(shown) { piece in
                         PieceCard(piece: piece, units: units, fit: space.flatMap { room.measured ? Fit.of(piece, in: $0) : nil },
-                                  room: room) { onPlace(piece) }
+                                  room: room, onDetails: { detailPiece = piece }) { onPlace(piece) }
                     }
                 }
             }
         }
         .padding(.top, Space.s)
+    }
+
+    /// The live AR view, showing this plan version. Moves made there save to the plan.
+    private func arView(_ resolved: ResolvedDesign) -> some View {
+        let plan = resolved.pieces.map {
+            ARPlanPiece(id: $0.placement.id, piece: $0.piece, x: $0.placement.xCm, z: $0.placement.zCm, yaw: $0.placement.yawDeg)
+        }
+        let selected = selectedPiece.flatMap { id in resolved.pieces.first { $0.placement.id == id }?.piece }
+        // Real things the plan changes: outlined if they're leaving, marked where they'll move to.
+        let markers: [ARMarker] = resolved.entries.compactMap { e in
+            let kind: ARMarker.Kind
+            switch e.style {
+            case .leaving: kind = .leaving
+            case .moved: kind = .movesHere
+            default: return nil
+            }
+            return ARMarker(id: e.id, kind: kind, name: e.name, x: e.xCm, z: e.zCm, yaw: e.yawDeg,
+                            w: e.widthCm, d: e.depthCm, h: e.heightCm ?? 75)
+        }
+        return ARRoomView(
+            room: room, choices: arChoices, initialPiece: arInitialPiece ?? selected,
+            plan: plan, markers: markers, canEdit: canEditDesign,
+            onMove: { id, x, z, yaw in
+                guard let p = resolved.pieces.first(where: { $0.placement.id == id }) else { return }
+                // Same rules as dragging in the plan: inside the walls, square to 15°.
+                let c = PlacementCheck.constrain(x: x, z: z, w: p.piece.w, d: p.piece.d, yaw: yaw, room: room, snap: 0)
+                DesignActions.place(p.placement, x: c.x, z: c.z, yawDeg: yaw, sync: sync)
+            },
+            onRemove: { id in
+                if let p = resolved.pieces.first(where: { $0.placement.id == id })?.placement { DesignActions.remove(p, sync: sync) }
+            },
+            onAdd: { piece, x, z, yaw in
+                guard isHost else { return nil }
+                let target = canEditDesign && design != nil ? design! : DesignActions.workingDesign(in: room, existing: designs, sync: sync)
+                if target.id != design?.id { pick(target) }
+                let (placement, _) = DesignActions.addPiece(piece, to: target, room: room, items: items, zone: nil, sync: sync)
+                let c = PlacementCheck.constrain(x: x, z: z, w: piece.w, d: piece.d, yaw: yaw, room: room, snap: 0)
+                DesignActions.place(placement, x: c.x, z: c.z, yawDeg: yaw, sync: sync)
+                return placement.id
+            })
+    }
+
+    /// What can be placed in AR: pieces already in this plan first, then the catalogue.
+    private var arChoices: [CatalogPiece] {
+        let inPlan = resolved.pieces.map(\.piece)
+        var seen = Set<String>()
+        return (inPlan + Catalogue.pieces).filter { seen.insert($0.id).inserted }
     }
 
     static let roomViewAnchor = "room-view"
@@ -526,6 +591,8 @@ private struct PieceCard: View {
     let units: UnitSystem
     let fit: Fit?
     let room: Room
+    /// Long-press menu and VoiceOver action: the piece's details, with "View in your room".
+    var onDetails: () -> Void
     var onPlace: () -> Void
     @Environment(SyncEngine.self) private var sync
 
@@ -556,6 +623,11 @@ private struct PieceCard: View {
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Place \(piece.name), \(units.dims(piece.w, piece.d, piece.h))\(fit.map { ", \($0.label)" } ?? "")")
         .accessibilityAddTraits(.isButton)
+        .accessibilityAction(named: "Details and View in your room", onDetails)
+        .contextMenu {
+            Button("Place in plan", systemImage: "plus", action: onPlace)
+            Button("Details", systemImage: "info.circle", action: onDetails)
+        }
     }
 }
 
@@ -579,6 +651,8 @@ private struct PieceImage: View {
 private struct PieceDetailSheet: View {
     let piece: CatalogPiece
     let units: UnitSystem
+    /// "View in your room" (opens AR with this piece chosen, lined up with the plan).
+    var onViewInRoom: () -> Void
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -599,6 +673,11 @@ private struct PieceDetailSheet: View {
                 if piece.price > 0 {
                     Text("Sample price for planning. Store links aren’t part of the app yet.")
                         .textRole(.hint)
+                }
+                if !DeviceCapabilities.isSimulator {
+                    Button(action: onViewInRoom) { Label("View in your room", systemImage: "arkit") }
+                        .buttonStyle(.app)
+                        .accessibilityHint("Opens the camera and shows the \(piece.name.lowercased()) at its real size")
                 }
                 Spacer()
             }

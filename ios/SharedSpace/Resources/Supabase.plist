@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<!-- Paste your Supabase project's values here.
-     Supabase dashboard → Project Settings → API. The anon key is safe to ship in an app;
-     row-level security in supabase/schema.sql protects the data.
-     While these are placeholders, the app runs on this device only (no sharing). -->
+<!-- PLACEHOLDERS ONLY. Don't put real keys in this file: it is committed to git.
+     Put your real values in Supabase.local.plist next to this file (same keys). Git ignores that
+     file, and a build step copies it over this one inside the app.
+     Use the Project URL and the anon / publishable key only. Never the service_role / secret key.
+     While there are only placeholders, the app runs on this device only (no sharing). -->
 <plist version="1.0">
 <dict>
 	<key>SUPABASE_URL</key>

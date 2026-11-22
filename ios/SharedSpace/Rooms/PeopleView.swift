@@ -198,7 +198,7 @@ struct InviteSheet: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: Space.l) {
-                    Text("Send \(room.name(of: .guest)) this message any way you like. They open Shared Space, tap Join with a code, and type it in.")
+                    Text("Send \(room.name(of: .guest)) this message any way you like. They open Shared Space, tap I’m invited, and type the code in.")
                         .textRole(.secondary)
                     VStack(spacing: Space.xs) {
                         Text("Room code").textRole(.secondary)
@@ -245,7 +245,7 @@ struct InviteSheet: View {
         let still = theirs > 0 ? "\(theirs) of your things are still in there. " : ""
         return """
         Hi \(room.name(of: .guest)), I’m sorting out the \(room.name.lowercased())\(becoming). \(still)\
-        Could you say what should happen to them? Open Shared Space and enter the code \(room.code), or open this link:
+        Could you say what should happen to them? Open Shared Space, tap I’m invited and enter the code \(room.code), or open this link:
         \(Backend.joinURL(code: room.code).absoluteString)
         """
     }

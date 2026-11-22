@@ -28,8 +28,34 @@ You'll need a Mac with **Xcode 16** or later (free from the App Store; open it o
 7. Click **Run** (▶) or press **Command (⌘) + R**. If your Mac asks for permission for "codesign" to use your keychain, enter your Mac password and click **Always Allow**.
 8. **Trust yourself as a developer** the first time the app opens: on the iPhone, go to Settings › General › **VPN & Device Management**, tap your Apple ID under **Developer App**, and tap **Trust**. The phone must be online for this, and a VPN can block it, so turn any VPN off first. Then open Shared Space from your home screen and allow camera access when asked.
 
+## Sharing between two phones (Supabase)
+
+Without keys the app works on one phone only ("Sharing is off"). To let two people share a room:
+
+1. **Create a project** at [supabase.com](https://supabase.com) (the free plan is enough). Save the database password in a password manager; the app never needs it.
+2. **Turn on anonymous sign-ins:** Authentication › Sign In / Providers › **Allow anonymous sign-ins** › Save. Nobody needs an email or password; each phone gets its own anonymous account.
+3. **Set up the database:** SQL Editor › New query (snippet) › paste all of [`supabase/schema.sql`](supabase/schema.sql) › **Run**. It warns about "destructive operations" because it replaces its own privacy rules; that's expected. It creates the tables, the privacy rules, the private `rooms` storage bucket and live updates. Run it again after pulling a newer version; it keeps your data.
+4. **Check** Storage › `rooms` is **not** public, and Database › Publications › `supabase_realtime` has `rooms`, `items`, `designs` and `design_placements` on.
+5. **Add your keys:** create `ios/SharedSpace/Resources/Supabase.local.plist` (copy `Supabase.plist` next to it) with your **Project URL** and the **Publishable key** (`sb_publishable_…`, from Project Settings › API Keys). Git ignores this file and a build step copies it into the app. Never use a **secret** / `service_role` key; the app refuses one.
+
+Everyone who installs the app must use a build with the same keys. To invite someone, the host opens the room's **People** tab and sends the five-character room code; the other person taps **I'm invited** and enters it.
+
+### What's stored, and who can see it
+
+| Where | What | Who can see it |
+|---|---|---|
+| Supabase database | Each room (name, size, outline, room code), its things (names, sizes, positions, owners, decisions, suggestions, notes, "asked" questions), plan versions and placed pieces, and the two members' first names | Only the room's two members. Row Level Security checks membership on every read and write, so the app's public key alone can't read anything. |
+| Supabase storage (private bucket) | Room photos, stripped of location and camera details before upload | Only the room's members, signed in. There are no public links. |
+| This iPhone only | Everything above (so it works offline), the LiDAR scan, the 3D model, the AR map of the room, item photos | Only this phone. None of these are uploaded. The live AR camera view is never saved. |
+
+- **The room code** is the key: anyone who has it can see the room's name, what it's becoming, and the host's and guest's first names (the join screen shows these) before joining. Share it only with the person you mean to invite.
+- **Joining** with the code adds you to that room only, as its guest. A room has one guest; once someone has joined, the code is refused for anyone else until they leave.
+- **Leave room** removes only the guest's membership; the host's room stays.
+- **Delete room** (host only) removes the room's photos from storage and the room from the database, which deletes all its things, decisions, plans and memberships with it, for both people.
+- **Offline:** changes save on the phone and upload when it's back online ("Changes will sync when you're back online").
+
 ## What's faked
-- **Live AR view of a design in the room:** [not built yet]
+- **Live AR view of a design in the room:** built (Redesign › **View in your room**). Catalogue pieces show as true-size boxes until 3D models are added.
 - **Furniture catalogue, prices and store links:** [not built yet]
 
 ## Change log

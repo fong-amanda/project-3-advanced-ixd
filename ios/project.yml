@@ -40,8 +40,22 @@ targets:
     dependencies:
       - package: Supabase
         product: Supabase
+    # Real keys live in SharedSpace/Resources/Supabase.local.plist (git-ignored); this swaps them in.
+    postBuildScripts:
+      - name: Use local Supabase keys
+        basedOnDependencyAnalysis: false
+        script: |
+          LOCAL="${SRCROOT}/SharedSpace/Resources/Supabase.local.plist"
+          DEST="${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/Supabase.plist"
+          if [ -f "$LOCAL" ]; then
+            cp "$LOCAL" "$DEST"
+            echo "Using Supabase.local.plist"
+          else
+            echo "warning: No Supabase.local.plist: sharing is off in this build."
+          fi
     settings:
       base:
+        ENABLE_USER_SCRIPT_SANDBOXING: NO
         PRODUCT_BUNDLE_IDENTIFIER: com.amandafong.sharedspace   # ← change me
         DEVELOPMENT_TEAM: X6YF8KG474                          # ← your Team ID
         CODE_SIGN_STYLE: Automatic
@@ -56,7 +70,7 @@ targets:
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
         INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents: YES
-        INFOPLIST_KEY_NSCameraUsageDescription: "Shared Space uses the camera to scan your room in 3D, show your new design in the real room, and take photos of items."
+        INFOPLIST_KEY_NSCameraUsageDescription: "Shared Space uses the camera to scan your room, take photos of things, and show furniture in your room. The live camera view stays on your iPhone."
     info:
       path: SharedSpace/Info.plist
       properties:
