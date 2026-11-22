@@ -33,6 +33,13 @@ enum RoomGeometry {
     /// Returns the centre point. Falls back to the middle of the room when nothing fits.
     static func findSpot(w: Double, d: Double, avoiding obstacles: [FloorRect],
                          roomWidth W: Double, roomLength L: Double, inside shape: RoomShape? = nil) -> (x: Double, z: Double) {
+        if let spot = freeSpot(w: w, d: d, avoiding: obstacles, roomWidth: W, roomLength: L, inside: shape) { return spot }
+        return fallbackSpot(roomWidth: W, roomLength: L, inside: shape)
+    }
+
+    /// A free spot along a wall where a w×d thing fits without touching anything, or nil if there's none.
+    static func freeSpot(w: Double, d: Double, avoiding obstacles: [FloorRect],
+                         roomWidth W: Double, roomLength L: Double, inside shape: RoomShape? = nil) -> (x: Double, z: Double)? {
         var best: (x: Double, z: Double, score: Double)?
         var z = d / 2 + 4
         while z <= L - d / 2 - 4 {
@@ -48,8 +55,11 @@ enum RoomGeometry {
             }
             z += 10
         }
-        if let best { return (best.x, best.z) }
-        // Nothing fits: the floor point nearest the middle.
+        return best.map { ($0.x, $0.z) }
+    }
+
+    /// Nothing fits: the floor point nearest the middle.
+    static func fallbackSpot(roomWidth W: Double, roomLength L: Double, inside shape: RoomShape?) -> (x: Double, z: Double) {
         if let shape {
             var near: (x: Double, z: Double, d: Double)?
             for z in stride(from: 10.0, to: L, by: 10) {

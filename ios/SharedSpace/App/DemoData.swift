@@ -28,6 +28,31 @@ enum DemoData {
     }
     static var reset: Bool { args.contains("-demoReset") }
     static var openItemSheet: Bool { args.contains("-demoItemSheet") }
+    /// `-demoFindThings`: opens "Things in this photo" on the first photo with five sample
+    /// suggestions (no detection), to check the card layout.
+    static var openFindThings: Bool { args.contains("-demoFindThings") }
+    /// `-demoExpandAll`: Items opens with every row expanded.
+    static var expandAllItems: Bool { args.contains("-demoExpandAll") }
+    /// `-demoScrollList`: Items scrolls down to its first row (for screenshots).
+    static var scrollList: Bool { args.contains("-demoScrollList") }
+
+    /// Sample suggestions for `-demoFindThings`: named, unnamed and one with a long name.
+    static func sampleSuggestions() -> [DetectionSuggestion] {
+        let samples: [(String, DetectedObject.Source, CGPoint)] = [
+            ("Cup", .objectModel, CGPoint(x: 0.30, y: 0.55)),
+            ("", .unnamed, CGPoint(x: 0.45, y: 0.60)),
+            ("Headphones", .classifier, CGPoint(x: 0.58, y: 0.58)),
+            ("Bottle", .objectModel, CGPoint(x: 0.70, y: 0.45)),
+            ("Table", .objectModel, CGPoint(x: 0.50, y: 0.75)),
+        ]
+        return samples.map { name, source, pin in
+            var s = DetectionSuggestion(name: name, category: .other, pin: pin,
+                                        box: CGRect(x: pin.x - 0.05, y: pin.y - 0.05, width: 0.1, height: 0.1),
+                                        confidence: 0.8, source: source)
+            s.suggestedName = name
+            return s
+        }
+    }
     static var openAccessibilityCheck: Bool { args.contains("-a11yCheck") }
     /// `-demoNewRoom photos`: the step New room opens on.
     static var newRoomStep: String? {

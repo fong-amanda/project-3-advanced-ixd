@@ -11,6 +11,14 @@ struct PhotoPin: Identifiable, Equatable {
     /// Where it stands, in words ("going to Sam"); nil while listing things before the room exists.
     var statusText: String?
     var isSelected = false
+    /// Checked while reviewing suggestions: confirmed (✓) or removed (✕, dimmed).
+    var mark: Mark?
+    /// What VoiceOver reads instead of "number, label, status".
+    var spokenLabel: String?
+    /// Draw the selected pin larger, so it stands out while its card is on screen.
+    var growsWhenSelected = false
+
+    enum Mark: Equatable { case confirmed, removed }
 }
 
 /// A room photo with numbered pins (the prototype's "photo + pins").
@@ -28,6 +36,7 @@ struct PhotoWithPins: View {
     var fill = false
 
     @State private var dragging: (id: UUID, point: CGPoint)?
+    static let highlightScale: CGFloat = 1.3
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
@@ -53,6 +62,7 @@ struct PhotoWithPins: View {
                     let p = placed[pin.id] ?? .zero
                     marker(pin)
                         .position(p)
+                        .zIndex(pin.isSelected ? 1 : 0)
                         .gesture(dragGesture(pin, frame: frame), including: onMovePin == nil ? .subviews : .all)
                 }
             }
@@ -114,6 +124,9 @@ struct PhotoWithPins: View {
                     // The decision's symbol rides on the pin, so the ring colour is never the only cue.
                     .overlay(alignment: .bottomTrailing) { statusMark(pin) }
                     .scaleEffect(Motion.scale(Motion.dragScale, when: dragging?.id == pin.id, reduceMotion: reduceMotion))
+                    // Larger while its card is showing. A size change, not motion: kept with Reduce Motion.
+                    .scaleEffect(pin.isSelected && pin.growsWhenSelected ? Self.highlightScale : 1)
+                    .opacity(pin.mark == .removed && !pin.isSelected ? Opacity.removedPin : 1)
                 if pin.isSelected {
                     PhotoLabel(text: pin.statusText.map { "\(pin.label) · \($0.prefix(1).uppercased() + $0.dropFirst())" } ?? pin.label)
                 }
@@ -123,14 +136,25 @@ struct PhotoWithPins: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("\(pin.number), \(pin.label)\(pin.statusText.map { ", \($0)" } ?? "")")
+        .accessibilityLabel(pin.spokenLabel ?? "\(pin.number), \(pin.label)\(pin.statusText.map { ", \($0)" } ?? "")")
         .accessibilityAddTraits(pin.isSelected ? .isSelected : [])
         .accessibilityShowsLargeContentViewer { Text("\(pin.number) · \(pin.label)") }
     }
 
     /// A small white-on-colour symbol for decided things (keep ✓, send 📦, let go ✕ …).
     @ViewBuilder private func statusMark(_ pin: PhotoPin) -> some View {
-        if pin.status != .undecided {
+        if let mark = pin.mark {
+            Image(systemName: mark == .confirmed ? "checkmark" : "xmark")
+                .font(.caption2.weight(.bold))
+                .dynamicTypeSize(...DynamicTypeSize.large)
+                .foregroundStyle(Color.photoBadge)
+                .frame(width: Size.badgeSmall - 2, height: Size.badgeSmall - 2)
+                .background(mark == .confirmed ? Color.keep : Color.iconNeutral, in: Circle())
+                .overlay(Circle().strokeBorder(Color.photoBadge, lineWidth: Stroke.hairline))
+                .offset(x: Space.s, y: Space.s)
+                .environment(\.colorScheme, .light)
+                .accessibilityHidden(true)
+        } else if pin.status != .undecided {
             Image(systemName: pin.status.icon)
                 .font(.caption2.weight(.bold))
                 .dynamicTypeSize(...DynamicTypeSize.large)

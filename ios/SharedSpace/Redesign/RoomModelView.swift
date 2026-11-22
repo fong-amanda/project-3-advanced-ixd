@@ -3,30 +3,42 @@ import SwiftUI
 
 /// The room in 3D, as a dollhouse: the floor from the room's outline, walls (the back and left
 /// walls full height, the others cut low so you can see in), doors and windows, and every thing
-/// as a block of its real size. Drag to orbit, pinch to zoom, tap a thing to select it.
+/// as a block of its real size. Tap a thing to select it.
+///
+/// Gestures, so moving furniture and moving the camera never fight:
+/// * one finger on a placed piece (when `onMovePiece` is set) slides it along the floor; it stays
+///   inside the walls and snaps flush to a wall when close. Its outline turns red while it overlaps
+///   something or crosses a wall, and a bar on the view says what;
+/// * one finger on empty floor turns the room; pinch zooms;
+/// * two-finger twist turns the selected piece in 15° steps (or the room, when nothing's selected).
+/// The camera is always ours (no system orbit controls), so it never keeps spinning after you let go.
 ///
 /// Things leaving the room are see-through and carry a label saying where they're going (or are
 /// left out, in the plan); pieces placed in a plan are drawn in the sage tint.
-///
-/// Nothing in the scene animates: changes (a decision, showing hidden things) rebuild it at once.
-/// The camera only moves while you drag. With Reduce Motion on, the system orbit controls (which
-/// keep spinning after you let go) are replaced by a plain drag-to-turn and pinch-to-zoom that stop
-/// the moment your finger does: no inertia, no damping, no auto-rotation.
 struct RoomModelView: View {
     let room: Room
     let entries: [PlanEntry]
     var showGhosts = true
     var selectedId: UUID?
     var onSelect: ((UUID?) -> Void)?
+    /// Pieces that can be dragged and twisted, and where they end up (x, z in cm, yaw in degrees).
+    var movableIds: Set<UUID> = []
+    var onMovePiece: ((UUID, Double, Double, Double) -> Void)?
+    /// The piece that was just placed: drawn with a wider accent outline.
+    var highlightId: UUID?
 
     private var ghosts: [PlanEntry] { showGhosts ? entries.filter(\.isGhost) : [] }
 
-    /// The view's size, for sizing tap volumes (measured, so the RealityView stays the root view).
+    /// The view's size, for sizing tap volumes and turning touches into floor points.
     @State private var viewSize: CGSize = .zero
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    /// Reduce Motion camera: angles in radians and a zoom factor, changed only by your fingers.
+    /// The camera: angles in radians and a zoom factor, changed only by your fingers.
     @State private var orbit = Orbit()
     @State private var orbitAtStart: Orbit?
+    /// A piece being dragged or twisted, drawn there until it's let go and saved.
+    @State private var moving: Moving?
+    @State private var gesture: GestureMode = .none
+
+    private enum GestureMode { case none, orbit, move, pinch, twist }
 
     struct Orbit: Equatable {
         var yaw: Float = atan2(0.55, 0.65)
@@ -34,9 +46,36 @@ struct RoomModelView: View {
         var zoom: Float = 1
     }
 
+    struct Moving: Equatable {
+        let id: UUID
+        var x: Double
+        var z: Double
+        var yaw: Double
+        /// Where the finger grabbed it, relative to its centre (cm), so it doesn't jump.
+        var grab: (dx: Double, dz: Double) = (0, 0)
+        var startYaw: Double = 0
+        static func == (a: Moving, b: Moving) -> Bool { a.id == b.id && a.x == b.x && a.z == b.z && a.yaw == b.yaw }
+    }
+
+    /// Entries as drawn: the moving piece where the finger has it.
+    private var drawn: [PlanEntry] {
+        guard let m = moving else { return entries }
+        return entries.map { e in
+            guard e.id == m.id else { return e }
+            var e = e
+            e.xCm = m.x; e.zCm = m.z; e.yawDeg = m.yaw
+            e.problem = liveProblem(e)
+            return e
+        }
+    }
+
+    private func liveProblem(_ e: PlanEntry) -> String? {
+        PlacementCheck.problem(e.footprint, room: room, others: entries.filter { $0.id != e.id })
+    }
+
     var body: some View {
-        let scene = RoomScene(shape: room.shape, height: Double(room.heightCm), entries: entries,
-                              showGhosts: showGhosts, selectedId: selectedId, viewSize: viewSize)
+        let scene = RoomScene(shape: room.shape, height: Double(room.heightCm), entries: drawn,
+                              showGhosts: showGhosts, selectedId: selectedId, highlightId: highlightId, viewSize: viewSize)
         RealityView { content in
             content.camera = .virtual
             content.add(scene.build())
@@ -46,14 +85,15 @@ struct RoomModelView: View {
             let old = content.entities.filter { $0.name == RoomScene.rootName }
             for entity in old { content.remove(entity) }
             content.add(scene.build())
-            if reduceMotion, let cam = content.entities.first(where: { $0.name == RoomScene.cameraName }) {
+            if let cam = content.entities.first(where: { $0.name == RoomScene.cameraName }) {
                 scene.place(cam, orbit: orbit)
             }
         }
-        .realityViewCameraControls(reduceMotion ? .none : .orbit)
-        .simultaneousGesture(orbitDrag, including: reduceMotion ? .all : .subviews)
-        .simultaneousGesture(orbitPinch, including: reduceMotion ? .all : .subviews)
-        .gesture(SpatialTapGesture().targetedToAnyEntity().onEnded { value in
+        .realityViewCameraControls(.none)
+        .gesture(dragGesture)
+        .simultaneousGesture(pinchGesture)
+        .simultaneousGesture(twistGesture)
+        .simultaneousGesture(SpatialTapGesture().targetedToAnyEntity().onEnded { value in
             var e: Entity? = value.entity
             while let current = e, UUID(uuidString: current.name) == nil { e = current.parent }
             let id = e.flatMap { UUID(uuidString: $0.name) }
@@ -64,7 +104,9 @@ struct RoomModelView: View {
         .accessibilityHidden(true)
         .background(Color.stage)
         .overlay(alignment: .bottomLeading) {
-            if !ghosts.isEmpty {
+            if let m = moving, let e = drawn.first(where: { $0.id == m.id }) {
+                movingBar(e)
+            } else if !ghosts.isEmpty {
                 Label("See-through things are leaving the room", systemImage: "eye.slash")
                     .font(.detailStrong)
                     .foregroundStyle(Color.textPrimary)
@@ -75,51 +117,202 @@ struct RoomModelView: View {
             }
         }
         .overlay { accessibilityLayer }
-    }
-
-    /// Reduce Motion: turn the room by dragging; it stops exactly when the finger does.
-    private var orbitDrag: some Gesture {
-        DragGesture(minimumDistance: 4)
-            .onChanged { value in
-                let start = orbitAtStart ?? orbit
-                if orbitAtStart == nil { orbitAtStart = orbit }
-                var next = start
-                next.yaw = start.yaw - Float(value.translation.width) * 0.008
-                next.pitch = min(max(start.pitch + Float(value.translation.height) * 0.006, 0.15), 1.35)
-                orbit = next
+        #if DEBUG
+        // UI tests: a 1-point marker where the selected piece appears, so they can drag it.
+        .overlay(alignment: .topLeading) {
+            if let id = selectedId, let e = drawn.first(where: { $0.id == id }), let p = screenPoint(e) {
+                Color.clear.frame(width: 1, height: 1)
+                    .position(p)
+                    .accessibilityElement()
+                    .accessibilityIdentifier("debug-selected-piece")
+                    .accessibilityLabel("\(Int(e.xCm)),\(Int(e.zCm)),\(Int(e.yawDeg))")
             }
-            .onEnded { _ in orbitAtStart = nil }
+        }
+        #endif
     }
 
-    private var orbitPinch: some Gesture {
+    /// Where a thing's centre (at half its height) appears in the view: the inverse of `floorPoint`.
+    private func screenPoint(_ e: PlanEntry) -> CGPoint? {
+        guard viewSize.width > 0 else { return nil }
+        let pose = RoomScene.cameraPose(shape: room.shape, orbit: orbit)
+        let f = simd_normalize(pose.target - pose.from)
+        let right = simd_normalize(simd_cross(f, [0, 1, 0]))
+        let up = simd_cross(right, f)
+        let b = room.shape.bounds
+        let point = SIMD3<Float>(Float((e.xCm - b.maxX / 2) / 100), Float((e.isFlat ? 0 : (e.heightCm ?? 75) / 2) / 100),
+                                 Float((e.zCm - b.maxZ / 2) / 100))
+        let v = point - pose.from
+        let depth = simd_dot(v, f)
+        guard depth > 0 else { return nil }
+        let t = tan(RoomScene.fieldOfView * .pi / 360), aspect = Float(viewSize.width / viewSize.height)
+        let nx = simd_dot(v, right) / (depth * t * aspect), ny = simd_dot(v, up) / (depth * t)
+        return CGPoint(x: CGFloat((nx + 1) / 2) * viewSize.width, y: CGFloat((1 - ny) / 2) * viewSize.height)
+    }
+
+    /// While dragging or twisting: the piece's name, size and whether the spot works.
+    private func movingBar(_ e: PlanEntry) -> some View {
+        VStack(alignment: .leading, spacing: Space.xs) {
+            Text(e.name).font(.bodyStrong).foregroundStyle(Color.textPrimary)
+            Text("\(room.unitSystem.dims(e.widthCm, e.depthCm, e.heightCm ?? 0)) · \(Int(e.yawDeg))°")
+                .font(.detail).foregroundStyle(Color.textSecondary)
+            if let problem = e.problem {
+                Label(problem, systemImage: "exclamationmark.triangle").font(.detailStrong).foregroundStyle(Color.danger)
+            } else {
+                Label("Fits here", systemImage: "checkmark").font(.detailStrong).foregroundStyle(Color.keep)
+            }
+        }
+        .padding(Space.m)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.surface, in: RoundedRectangle(cornerRadius: Radius.tile, style: .continuous))
+        .elevation(.floating)
+        .padding(Space.m)
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+    }
+
+    // MARK: Gestures
+
+    /// One finger: on a movable piece, move it; anywhere else, turn the room.
+    private var dragGesture: some Gesture {
+        DragGesture(minimumDistance: 6)
+            .onChanged { value in
+                if gesture == .pinch || gesture == .twist { return }
+                if gesture == .none {
+                    if onMovePiece != nil, let (e, hit) = pieceUnder(value.startLocation) {
+                        gesture = .move
+                        moving = Moving(id: e.id, x: e.xCm, z: e.zCm, yaw: e.yawDeg, grab: (e.xCm - hit.x, e.zCm - hit.z))
+                        if selectedId != e.id { onSelect?(e.id) }
+                    } else {
+                        gesture = .orbit
+                        orbitAtStart = orbit
+                    }
+                }
+                switch gesture {
+                case .move:
+                    guard var m = moving, let e = entries.first(where: { $0.id == m.id }),
+                          let p = floorPoint(value.location, heightCm: (e.heightCm ?? 75) / 2) else { return }
+                    let c = PlacementCheck.constrain(x: p.x + m.grab.dx, z: p.z + m.grab.dz, w: e.widthCm, d: e.depthCm,
+                                                     yaw: m.yaw, room: room)
+                    m.x = c.x; m.z = c.z
+                    moving = m
+                case .orbit:
+                    let start = orbitAtStart ?? orbit
+                    var next = start
+                    next.yaw = start.yaw - Float(value.translation.width) * 0.008
+                    next.pitch = min(max(start.pitch + Float(value.translation.height) * 0.006, 0.15), 1.35)
+                    orbit = next
+                default: break
+                }
+            }
+            .onEnded { _ in
+                if gesture == .move { commit() }
+                if gesture == .move || gesture == .orbit { gesture = .none }
+                orbitAtStart = nil
+            }
+    }
+
+    private var pinchGesture: some Gesture {
         MagnifyGesture()
             .onChanged { value in
-                let start = orbitAtStart ?? orbit
-                if orbitAtStart == nil { orbitAtStart = orbit }
-                orbit.zoom = min(max(start.zoom / Float(value.magnification), 0.45), 2.2)
+                if gesture == .move { moving = nil }   // a second finger: zoom instead of dropping it somewhere odd
+                if gesture != .pinch { gesture = .pinch; orbitAtStart = orbit }
+                orbit.zoom = min(max((orbitAtStart ?? orbit).zoom / Float(value.magnification), 0.45), 2.2)
             }
-            .onEnded { _ in orbitAtStart = nil }
+            .onEnded { _ in gesture = .none; orbitAtStart = nil }
     }
 
-    /// An invisible layer that lists each thing for VoiceOver, with where it stands
-    /// ("Guitar, going to Sam"); things still in the room can be selected from it.
+    /// Two-finger twist: turns the selected piece in 15° steps, or the room when nothing's selected.
+    private var twistGesture: some Gesture {
+        RotateGesture(minimumAngleDelta: .degrees(4))
+            .onChanged { value in
+                if let id = selectedId, movableIds.contains(id), onMovePiece != nil, let e = entries.first(where: { $0.id == id }) {
+                    if moving == nil || moving?.id != id { moving = Moving(id: id, x: e.xCm, z: e.zCm, yaw: e.yawDeg, startYaw: e.yawDeg) }
+                    gesture = .twist
+                    guard var m = moving else { return }
+                    // Twisting clockwise on screen turns it clockwise seen from above.
+                    m.yaw = PlacementCheck.snapYaw(m.startYaw + value.rotation.degrees)
+                    let c = PlacementCheck.constrain(x: m.x, z: m.z, w: e.widthCm, d: e.depthCm, yaw: m.yaw, room: room, snap: 0)
+                    m.x = c.x; m.z = c.z
+                    moving = m
+                } else {
+                    if gesture != .twist { gesture = .twist; orbitAtStart = orbit }
+                    orbit.yaw = (orbitAtStart ?? orbit).yaw - Float(value.rotation.radians)
+                }
+            }
+            .onEnded { _ in
+                if moving != nil { commit() }
+                gesture = .none; orbitAtStart = nil
+            }
+    }
+
+    private func commit() {
+        guard let m = moving else { return }
+        onMovePiece?(m.id, m.x, m.z, m.yaw)
+        // Keep drawing it where it was dropped until the saved plan catches up.
+        DispatchQueue.main.async { moving = nil }
+    }
+
+    // MARK: Touch → floor
+
+    /// The point on a horizontal plane `heightCm` above the floor under a touch, in room cm.
+    private func floorPoint(_ point: CGPoint, heightCm: Double) -> (x: Double, z: Double)? {
+        guard viewSize.width > 0, viewSize.height > 0 else { return nil }
+        let pose = RoomScene.cameraPose(shape: room.shape, orbit: orbit)
+        let f = simd_normalize(pose.target - pose.from)
+        let right = simd_normalize(simd_cross(f, [0, 1, 0]))
+        let up = simd_cross(right, f)
+        let t = tan(RoomScene.fieldOfView * .pi / 360)
+        let aspect = Float(viewSize.width / viewSize.height)
+        let nx = Float(point.x / viewSize.width) * 2 - 1
+        let ny = 1 - Float(point.y / viewSize.height) * 2
+        let dir = simd_normalize(f + right * nx * t * aspect + up * ny * t)
+        let planeY = Float(heightCm / 100)
+        guard abs(dir.y) > 0.0001 else { return nil }
+        let k = (planeY - pose.from.y) / dir.y
+        guard k > 0 else { return nil }
+        let hit = pose.from + dir * k
+        let b = room.shape.bounds
+        return (Double(hit.x) * 100 + b.maxX / 2, Double(hit.z) * 100 + b.maxZ / 2)
+    }
+
+    /// The movable piece under a touch (with a margin so small pieces are easy to grab), nearest first.
+    private func pieceUnder(_ point: CGPoint) -> (PlanEntry, (x: Double, z: Double))? {
+        let candidates = entries.filter { movableIds.contains($0.id) }
+        var best: (PlanEntry, (x: Double, z: Double), Double)?
+        for e in candidates {
+            let h = e.isFlat ? 0 : (e.heightCm ?? 75) / 2
+            guard let p = floorPoint(point, heightCm: h) else { continue }
+            let f = e.footprint
+            let margin = 15.0
+            guard p.x >= f.x - margin, p.x <= f.maxX + margin, p.z >= f.z - margin, p.z <= f.maxZ + margin else { continue }
+            let dist = hypot(p.x - e.xCm, p.z - e.zCm)
+            if best == nil || dist < best!.2 { best = (e, p, dist) }
+        }
+        return best.map { ($0.0, $0.1) }
+    }
+
+    /// An invisible layer that lists each thing for VoiceOver, with where it stands and where it is
+    /// ("Armchair, placed in the plan. 1′ 8″ from the left wall, 4′ 2″ from the back wall").
+    /// Placed pieces are moved with the arrow buttons on their bar (no dragging needed).
     private var accessibilityLayer: some View {
         Color.clear
         .allowsHitTesting(false)
         .accessibilityElement(children: .contain)
         .accessibilityLabel("3D view of the room")
         .accessibilityChildren {
-            // Each thing, with where it stands ("Guitar, going to Sam"), selectable when it's still here.
             ForEach(entries.filter { !$0.isGhost || showGhosts }) { entry in
+                let position = PlacementCheck.spokenPosition(entry, units: room.unitSystem)
                 if onSelect != nil && !entry.isGhost {
                     Rectangle()
                         .accessibilityLabel(entry.spokenName)
-                        .accessibilityValue(entry.problem ?? "")
+                        .accessibilityValue([position, entry.problem].compactMap { $0 }.joined(separator: ". "))
+                        .accessibilityHint(movableIds.contains(entry.id) ? "Select it, then use the move buttons below the view." : "")
                         .accessibilityAddTraits(entry.id == selectedId ? [.isButton, .isSelected] : .isButton)
                         .accessibilityAction { onSelect?(entry.id == selectedId ? nil : entry.id) }
                 } else {
                     Rectangle()
                         .accessibilityLabel(entry.isGhost ? "\(entry.spokenName), shown see-through" : entry.spokenName)
+                        .accessibilityValue(position)
                 }
             }
         }
@@ -135,14 +328,23 @@ private struct RoomScene {
     let entries: [PlanEntry]
     let showGhosts: Bool
     let selectedId: UUID?
+    var highlightId: UUID? = nil
     var viewSize: CGSize = .zero
 
     private static let wallThickness: Float = 0.08
     private static let lipHeight: Float = 0.06
     private static let ghostOpacity: Float = 0.22
 
-    private static let fieldOfView: Float = 40
-    private var cameraDistance: Float { Float(max(shape.bounds.maxX, shape.bounds.maxZ) / 100) * 1.9 + 1.2 }
+    static let fieldOfView: Float = 40
+    private var cameraDistance: Float { Self.cameraDistance(shape) }
+    static func cameraDistance(_ shape: RoomShape) -> Float { Float(max(shape.bounds.maxX, shape.bounds.maxZ) / 100) * 1.9 + 1.2 }
+
+    /// Where the camera is for an orbit, in scene metres (the room's centre is the origin).
+    static func cameraPose(shape: RoomShape, orbit: RoomModelView.Orbit) -> (from: SIMD3<Float>, target: SIMD3<Float>) {
+        let r = cameraDistance(shape) * (0.55 * 0.55 + 0.75 * 0.75 + 0.65 * 0.65).squareRoot() * orbit.zoom
+        let from = SIMD3<Float>(r * cos(orbit.pitch) * sin(orbit.yaw), r * sin(orbit.pitch), r * cos(orbit.pitch) * cos(orbit.yaw))
+        return (from, [0, 0.4, 0])
+    }
 
     static let cameraName = "room-camera"
 
@@ -157,12 +359,11 @@ private struct RoomScene {
         return cam
     }
 
-    /// Reduce Motion camera: placed straight from the angles, with nothing easing in between.
+    /// Placed straight from the angles, with nothing easing in between.
     @MainActor
     func place(_ cam: Entity, orbit: RoomModelView.Orbit) {
-        let r = cameraDistance * (0.55 * 0.55 + 0.75 * 0.75 + 0.65 * 0.65).squareRoot() * orbit.zoom
-        let from = SIMD3<Float>(r * cos(orbit.pitch) * sin(orbit.yaw), r * sin(orbit.pitch), r * cos(orbit.pitch) * cos(orbit.yaw))
-        cam.look(at: [0, 0.4, 0], from: from, relativeTo: nil)
+        let pose = Self.cameraPose(shape: shape, orbit: orbit)
+        cam.look(at: pose.target, from: pose.from, relativeTo: nil)
     }
 
     /// How many metres 44 points cover at the starting camera distance, so small things can be
@@ -278,17 +479,19 @@ private struct RoomScene {
             tag.position = [0, h / 2 + 0.18, 0]
             block.addChild(tag)
         }
-        if entry.id == selectedId {
-            // A flat accent frame on the floor around the selected thing.
-            let ring = ModelEntity(mesh: .generateBox(size: [Float(entry.widthCm / 100) + 0.08, 0.004, Float(entry.depthCm / 100) + 0.08]),
+        if entry.id == selectedId || entry.id == highlightId {
+            // A flat accent frame on the floor around the selected thing; wider for the one just placed.
+            let pad: Float = entry.id == highlightId ? 0.2 : 0.08
+            let ring = ModelEntity(mesh: .generateBox(size: [Float(entry.widthCm / 100) + pad, 0.004, Float(entry.depthCm / 100) + pad]),
                                    materials: [UnlitMaterial(color: UIColor(Color.accent))])
             ring.position = [0, -h / 2 + 0.003, 0]
             block.addChild(ring)
         }
         if entry.problem != nil {
-            let warn = ModelEntity(mesh: .generateBox(size: [Float(entry.widthCm / 100) + 0.06, 0.004, Float(entry.depthCm / 100) + 0.06]),
+            // Red frame: overlapping something or crossing a wall (drawn over the accent one).
+            let warn = ModelEntity(mesh: .generateBox(size: [Float(entry.widthCm / 100) + 0.12, 0.006, Float(entry.depthCm / 100) + 0.12]),
                                    materials: [UnlitMaterial(color: UIColor(Color.danger))])
-            warn.position = [0, -h / 2 + 0.002, 0]
+            warn.position = [0, -h / 2 + 0.004, 0]
             block.addChild(warn)
         }
         return block

@@ -26,6 +26,17 @@ struct RoomPlanView: View {
     @State private var showHidden = false
     @State private var showShape = false
     @State private var planView: PlanViewMode = .floorPlan
+    /// The piece just added from the catalogue: highlighted, and offered for Undo in the banner.
+    @State private var justPlaced: JustPlaced?
+    @State private var highlight: JustPlaced?
+
+    struct JustPlaced: Identifiable, Equatable {
+        let id = UUID()
+        let placementId: UUID
+        let name: String
+        let fits: Bool
+        let at = Date()
+    }
 
     enum PlanViewMode: Hashable { case floorPlan, model }
 
@@ -54,17 +65,30 @@ struct RoomPlanView: View {
 
     var body: some View {
         let resolved = resolved
+        ScrollViewReader { proxy in
         ScrollView {
             VStack(alignment: .leading, spacing: Space.l) {
                 header(resolved)
                 versions
                 ChipPicker(options: [.init(value: PlanViewMode.floorPlan, title: "Floor plan"),
                                             .init(value: PlanViewMode.model, title: "3D")], selection: $planView)
+                    .id(Self.roomViewAnchor)
                 if planView == .model {
                     RoomModelView(room: room, entries: resolved.entries, showGhosts: showHidden || design == nil,
-                                  selectedId: selectedPiece) { id in selectedPiece = id }
+                                  selectedId: selectedPiece, onSelect: { id in selectedPiece = id },
+                                  movableIds: canEditDesign ? Set(resolved.pieces.map(\.placement.id)) : [],
+                                  onMovePiece: canEditDesign ? { id, x, z, yaw in
+                                      if let p = resolved.pieces.first(where: { $0.placement.id == id })?.placement {
+                                          DesignActions.place(p, x: x, z: z, yawDeg: yaw, sync: sync)
+                                      }
+                                  } : nil,
+                                  highlightId: highlight?.placementId)
                         .aspectRatio(1, contentMode: .fit)
                         .clipShape(RoundedRectangle(cornerRadius: Radius.cardLarge, style: .continuous))
+                    if canEditDesign && !resolved.pieces.isEmpty {
+                        Text("Drag a piece to move it, twist with two fingers to turn it. Drag the floor to look around; pinch to zoom.")
+                            .textRole(.hint)
+                    }
                 } else {
                     plan(resolved)
                 }
@@ -85,7 +109,7 @@ struct RoomPlanView: View {
                         }
                         .buttonStyle(.app(.neutral))
                     } else {
-                        catalogue
+                        catalogue { piece in place(piece, proxy: proxy) }
                     }
                 } else {
                     pieceList(resolved)
@@ -93,7 +117,16 @@ struct RoomPlanView: View {
             }
             .pagePadding()
         }
+        }
         .pageBackground()
+        .undoBanner($justPlaced, text: justPlaced.map { $0.fits ? "Added \($0.name). Drag it to move it." :
+                                                     "Added \($0.name), but there’s no free space where it fits. Drag it somewhere or remove it." } ?? "") { added in
+            if let p = designs.flatMap(\.livePlacements).first(where: { $0.id == added.placementId }) {
+                DesignActions.remove(p, sync: sync)
+                if selectedPiece == added.placementId { selectedPiece = nil }
+                highlight = nil
+            }
+        }
         .roomChrome(room)
         .sheet(isPresented: $showShape) { ShapeEditorSheet(room: room) }
         #if DEBUG
@@ -103,7 +136,7 @@ struct RoomPlanView: View {
         .sheet(isPresented: $showCustom) {
             CustomPieceSheet(units: units) { name, w, d, h in
                 let piece = Catalogue.piece(Catalogue.customId(name: name, w: w, d: d, h: h), items: items)!
-                place(piece)
+                place(piece, proxy: nil)
                 category = .custom
             }
         }
@@ -215,10 +248,25 @@ struct RoomPlanView: View {
     // MARK: Plan
 
     private func plan(_ resolved: ResolvedDesign) -> some View {
+        // The piece just placed pulses for a moment (a steady outline with Reduce Motion).
+        TimelineView(.animation(paused: highlight == nil || reduceMotion)) { time in
+            planView(resolved, glow: glow(at: time.date))
+        }
+    }
+
+    /// 0…1…0 twice over 1.6 s after a piece is placed; 0 afterwards and with Reduce Motion.
+    private func glow(at date: Date) -> Double {
+        guard let h = highlight, !reduceMotion else { return 0 }
+        let t = date.timeIntervalSince(h.at)
+        guard t < 1.6 else { return 0 }
+        return sin(t / 0.8 * .pi).magnitude
+    }
+
+    private func planView(_ resolved: ResolvedDesign, glow: Double) -> some View {
         let zoneId: Int? = if case .zone(let id) = fitMode { id } else { nil }
         return FloorPlanView(
             room: room, entries: resolved.entries, showGhosts: showHidden || design == nil,
-            selectedId: selectedPiece,
+            selectedId: selectedPiece, highlightId: highlight?.placementId, glow: glow,
             onSelect: { id in selectedPiece = id },
             zones: canEditDesign ? zones : [], selectedZone: zoneId,
             onSelectZone: { id in fitMode = id.map { .zone($0) } ?? .any },
@@ -235,6 +283,7 @@ struct RoomPlanView: View {
             HStack(alignment: .firstTextBaseline) {
                 VStack(alignment: .leading, spacing: Space.xs) {
                     Text(piece.name).textRole(.bodyStrong)
+                    Text("\(units.dims(piece.w, piece.d, piece.h)) · turned \(Int(placement.yawDeg))°").textRole(.secondary)
                     if let problem = entry.problem {
                         Label(problem, systemImage: "exclamationmark.triangle").font(.detailStrong).foregroundStyle(Color.letGo)
                     } else {
@@ -246,7 +295,7 @@ struct RoomPlanView: View {
                 Spacer()
             }
             AdaptiveStack(spacing: Space.s) {
-                Button { DesignActions.turn(placement, sync: sync) } label: { Label("Turn", systemImage: "arrow.clockwise") }
+                Button { DesignActions.rotate(placement, by: 90, piece: piece, room: room, sync: sync) } label: { Label("Rotate 90°", systemImage: "arrow.clockwise") }
                     .buttonStyle(.app(.neutral, size: .compact, width: .hug))
                 Button("Details") { detailPiece = piece }
                     .buttonStyle(.app(.neutral, size: .compact, width: .hug))
@@ -263,6 +312,11 @@ struct RoomPlanView: View {
                 nudge("arrow.up", "Move toward the back wall") { DesignActions.move(placement, x: placement.xCm, z: placement.zCm - 10, sync: sync) }
                 nudge("arrow.down", "Move toward the front") { DesignActions.move(placement, x: placement.xCm, z: placement.zCm + 10, sync: sync) }
                 nudge("arrow.right", "Move right") { DesignActions.move(placement, x: placement.xCm + 10, z: placement.zCm, sync: sync) }
+            }
+            HStack(spacing: Space.s) {
+                Text("Turn").textRole(.secondary)
+                nudge("arrow.counterclockwise", "Turn 15 degrees left") { DesignActions.rotate(placement, by: -15, piece: piece, room: room, sync: sync) }
+                nudge("arrow.clockwise", "Turn 15 degrees right") { DesignActions.rotate(placement, by: 15, piece: piece, room: room, sync: sync) }
             }
         }
         .card(padding: Space.l, radius: Radius.tile)
@@ -374,7 +428,7 @@ struct RoomPlanView: View {
         }
     }
 
-    private var catalogue: some View {
+    private func catalogue(onPlace: @escaping (CatalogPiece) -> Void) -> some View {
         let space = activeSpace
         let all = catalogueChoices
         let fitting = space.map { s in all.filter { Fit.of($0, in: s) != .no } } ?? all
@@ -439,7 +493,7 @@ struct RoomPlanView: View {
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: Space.m)], spacing: Space.m) {
                     ForEach(shown) { piece in
                         PieceCard(piece: piece, units: units, fit: space.flatMap { room.measured ? Fit.of(piece, in: $0) : nil },
-                                  room: room) { place(piece) }
+                                  room: room) { onPlace(piece) }
                     }
                 }
             }
@@ -447,13 +501,21 @@ struct RoomPlanView: View {
         .padding(.top, Space.s)
     }
 
-    private func place(_ piece: CatalogPiece) {
+    static let roomViewAnchor = "room-view"
+
+    /// Places a piece, then makes it obvious: back up to the room, the piece selected and
+    /// highlighted, and a banner ("Added Armchair. Drag it to move it.", with Undo).
+    private func place(_ piece: CatalogPiece, proxy: ScrollViewProxy?) {
         let target = canEditDesign && design != nil ? design! : DesignActions.workingDesign(in: room, existing: designs, sync: sync)
         if target.id != design?.id { pick(target) }
         let zone: FreeZone? = if case .zone(let id) = fitMode { zones.first { $0.id == id } } else { nil }
-        let placement = DesignActions.addPiece(piece, to: target, room: room, items: items, zone: zone, sync: sync)
+        let (placement, fits) = DesignActions.addPiece(piece, to: target, room: room, items: items, zone: zone, sync: sync)
         selectedPiece = placement.id
-        UIAccessibility.post(notification: .announcement, argument: "\(piece.name) placed in the plan")
+        let added = JustPlaced(placementId: placement.id, name: piece.name, fits: fits)
+        highlight = added
+        justPlaced = added
+        withMotion(Motion.screen, reduceMotion: reduceMotion) { proxy?.scrollTo(Self.roomViewAnchor, anchor: .top) }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 4) { if highlight?.id == added.id { highlight = nil } }
     }
 }
 

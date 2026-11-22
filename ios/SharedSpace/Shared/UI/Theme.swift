@@ -259,6 +259,8 @@ enum Opacity {
     static let zoneFill: Double = 0.5
     static let zoneFillSelected: Double = 1
     static let pinLabel: Double = 0.86
+    /// Suggestion pins the person removed (still shown, so the numbering doesn’t jump).
+    static let removedPin: Double = 0.55
     /// Where the logo's two squares overlap.
     static let logoOverlap: Double = 0.55
 }
@@ -302,6 +304,11 @@ enum Motion {
     static let screen = Animation.snappy(duration: 0.3)
     static let banner = Animation.spring(duration: 0.35)
     static let bannerDuration: Duration = .seconds(3.6)
+    /// Calm changes in lists (the Sort list's decisions, rows opening, Expand all): a short, even
+    /// ease with no spring or overshoot. With Reduce Motion these happen at once (see `withMotion`).
+    static let subtle = Animation.easeInOut(duration: 0.2)
+    /// A chosen decision and its status tag cross-fading to their new look.
+    static let subtleFade = Animation.easeOut(duration: 0.15)
     static let pressedScale: CGFloat = 0.98
     static let dragScale: CGFloat = 1.25
 

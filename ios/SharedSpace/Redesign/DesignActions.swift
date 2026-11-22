@@ -12,12 +12,17 @@ enum DesignActions {
         return design
     }
 
-    /// Places a piece, in the chosen free zone (turned to fit if needed) or the best free spot.
+    /// Places a piece in an empty spot where it fits: the chosen free zone (turned to fit if needed),
+    /// else the best free spot along a wall, turned 90° if that's the only way it fits. `fits` is
+    /// false when there's no free spot; it's then put near the middle so it can be dragged somewhere.
     @discardableResult
     static func addPiece(_ piece: CatalogPiece, to design: Design, room: Room, items: [Item], zone: FreeZone?,
-                         sync: SyncEngine) -> DesignPlacement {
+                         sync: SyncEngine) -> (placement: DesignPlacement, fits: Bool) {
         let W = Double(room.widthCm), L = Double(room.lengthCm)
         var x = W / 2, z = L * 0.55, yaw = 0.0
+        var fits = true
+        let resolved = DesignResolver.resolve(items: items, design: design, room: room)
+        let others = resolved.entries.filter { !$0.isGhost && !$0.isFlat }
         if !piece.isFlat {
             if let zone {
                 let r = zone.rect
@@ -29,20 +34,46 @@ enum DesignActions {
                 if f.z < 0 { z -= f.z }
                 if f.maxX > W { x -= f.maxX - W }
                 if f.maxZ > L { z -= f.maxZ - L }
+                fits = PlacementCheck.problem(RoomGeometry.footprint(x: x, z: z, w: piece.w, d: piece.d, yawDeg: yaw),
+                                              room: room, others: others) == nil
             } else {
-                let resolved = DesignResolver.resolve(items: items, design: design, room: room)
-                let obstacles = resolved.entries.filter { !$0.isGhost && !$0.isFlat }.map(\.footprint)
-                let spot = RoomGeometry.findSpot(w: piece.w, d: piece.d, avoiding: obstacles, roomWidth: W, roomLength: L,
-                                                 inside: room.shape)
-                x = spot.x
-                z = spot.z
+                let obstacles = others.map(\.footprint)
+                if let spot = RoomGeometry.freeSpot(w: piece.w, d: piece.d, avoiding: obstacles, roomWidth: W, roomLength: L,
+                                                    inside: room.shape) {
+                    (x, z) = spot
+                } else if let spot = RoomGeometry.freeSpot(w: piece.d, d: piece.w, avoiding: obstacles, roomWidth: W, roomLength: L,
+                                                           inside: room.shape) {
+                    (x, z) = spot
+                    yaw = 90
+                } else {
+                    (x, z) = RoomGeometry.fallbackSpot(roomWidth: W, roomLength: L, inside: room.shape)
+                    fits = false
+                }
             }
         }
         let placement = DesignPlacement(design: design, catalogId: piece.id, xCm: x.rounded(), zCm: z.rounded(), yawDeg: yaw)
         sync.insert(placement)
         sync.save(placement)
         touch(design, sync: sync)
-        return placement
+        return (placement, fits)
+    }
+
+    /// Moves and turns a piece in one go (dragging and twisting in 3D).
+    static func place(_ placement: DesignPlacement, x: Double, z: Double, yawDeg: Double, sync: SyncEngine) {
+        placement.xCm = x
+        placement.zCm = z
+        placement.yawDeg = yawDeg
+        sync.save(placement)
+    }
+
+    /// Turns a piece in 15° steps, sliding it back inside the walls if turning pushed it through one.
+    static func rotate(_ placement: DesignPlacement, by deg: Double, piece: CatalogPiece, room: Room, sync: SyncEngine) {
+        placement.yawDeg = PlacementCheck.snapYaw(placement.yawDeg + deg)
+        let c = PlacementCheck.constrain(x: placement.xCm, z: placement.zCm, w: piece.w, d: piece.d,
+                                         yaw: placement.yawDeg, room: room, snap: 0)
+        placement.xCm = c.x
+        placement.zCm = c.z
+        sync.save(placement)
     }
 
     static func move(_ placement: DesignPlacement, x: Double, z: Double, sync: SyncEngine) {
