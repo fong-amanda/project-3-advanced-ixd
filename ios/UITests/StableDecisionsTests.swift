@@ -142,8 +142,13 @@ final class StableDecisionsTests: XCTestCase {
 
         // Moving on: open the next row. The decided one fades out; the opened row stays put.
         // (Bring it fully on screen first: XCUITest scrolls anything half-hidden before tapping it.)
+        // Let the "Marked Keep · Undo" banner go first: it sits over the bottom of the list.
+        let banner = app.staticTexts["Marked “Keep”"]
+        if banner.exists { banner.tap() }
+        sleep(1)
         var drags = 0
-        while !app.buttons["Show choices for \(second)"].isHittable && drags < 4 {
+        while (!app.buttons["Show choices for \(second)"].isHittable
+               || app.buttons["Show choices for \(second)"].frame.minY > app.frame.height * 0.6) && drags < 4 {
             app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.6))
                 .press(forDuration: 0.05, thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.4)))
             sleep(1); drags += 1
