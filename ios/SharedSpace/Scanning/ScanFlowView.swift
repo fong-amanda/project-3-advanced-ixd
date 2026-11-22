@@ -1,3 +1,4 @@
+import ARKit
 import RoomPlan
 import SwiftUI
 
@@ -48,8 +49,12 @@ struct ScanFlowView: View {
             ZStack(alignment: .bottom) {
                 RoomCaptureRepresentable(stopRequest: stopRequest) { result in
                     switch result {
-                    case .success(let room):
-                        if let converted = ScanImporter.convert(room) { phase = .review(converted, room) }
+                    case .success(let capture):
+                        let room = capture.room
+                        if var converted = ScanImporter.convert(room) {
+                            converted.worldMap = capture.worldMap
+                            phase = .review(converted, room)
+                        }
                         else { phase = .failed("We couldn’t find enough walls. Try scanning again, slowly, along every wall.") }
                     case .failure(let error):
                         phase = .failed(error.localizedDescription)
@@ -160,7 +165,12 @@ private struct ScanReview: View {
 /// Apple's RoomCaptureView: live scanning with its own coaching.
 private struct RoomCaptureRepresentable: UIViewRepresentable {
     let stopRequest: Int
-    var onFinish: (Result<CapturedRoom, Error>) -> Void
+    var onFinish: (Result<ScanCapture, Error>) -> Void
+
+    struct ScanCapture {
+        let room: CapturedRoom
+        let worldMap: ARWorldMap?
+    }
 
     func makeUIView(context: Context) -> RoomCaptureView {
         let view = RoomCaptureView(frame: .zero)
@@ -173,7 +183,15 @@ private struct RoomCaptureRepresentable: UIViewRepresentable {
         context.coordinator.onFinish = onFinish
         if stopRequest != context.coordinator.stopRequest {
             context.coordinator.stopRequest = stopRequest
-            view.captureSession.stop()
+            // Keep ARKit's map of the room (on this phone only) so AR can line up with it later,
+            // then finish the scan. A map that isn't ready is simply skipped.
+            let coordinator = context.coordinator
+            view.captureSession.arSession.getCurrentWorldMap { map, _ in
+                DispatchQueue.main.async {
+                    coordinator.worldMap = map
+                    view.captureSession.stop()
+                }
+            }
         }
     }
 
@@ -185,10 +203,11 @@ private struct RoomCaptureRepresentable: UIViewRepresentable {
 
     @objc(SSRoomCaptureCoordinator)
     final class Coordinator: NSObject, RoomCaptureViewDelegate {
-        var onFinish: (Result<CapturedRoom, Error>) -> Void
+        var onFinish: (Result<ScanCapture, Error>) -> Void
         var stopRequest = 0
+        var worldMap: ARWorldMap?
 
-        init(onFinish: @escaping (Result<CapturedRoom, Error>) -> Void) { self.onFinish = onFinish }
+        init(onFinish: @escaping (Result<ScanCapture, Error>) -> Void) { self.onFinish = onFinish }
 
         // RoomCaptureViewDelegate requires NSCoding; the coordinator is never archived.
         required init?(coder: NSCoder) { nil }
@@ -198,8 +217,9 @@ private struct RoomCaptureRepresentable: UIViewRepresentable {
 
         func captureView(didPresent processedResult: CapturedRoom, error: (any Error)?) {
             let finish = onFinish
-            DispatchQueue.main.async {
-                if let error { finish(.failure(error)) } else { finish(.success(processedResult)) }
+            DispatchQueue.main.async { [weak self] in
+                if let error { finish(.failure(error)) }
+                else { finish(.success(ScanCapture(room: processedResult, worldMap: self?.worldMap))) }
             }
         }
     }

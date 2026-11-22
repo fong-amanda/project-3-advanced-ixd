@@ -1,3 +1,4 @@
+import ARKit
 import Foundation
 import RoomPlan
 import simd
@@ -17,6 +18,10 @@ struct ScanResult {
     var shape: RoomShape
     var heightCm: Double
     var objects: [Object]
+    /// Where the room sits in the scan's AR world, to line up AR with the plan later.
+    var frame: RoomFrame?
+    /// ARKit's map of the room from the end of the scan (stays on this phone).
+    var worldMap: ARWorldMap?
 }
 
 enum ScanImporter {
@@ -60,7 +65,9 @@ enum ScanImporter {
                                      w: Double(o.dimensions.x) * 100, d: Double(o.dimensions.z) * 100, h: Double(o.dimensions.y) * 100,
                                      x: c.x.rounded(), z: c.y.rounded(), yawDeg: (yaw / 90).rounded() * 90)
         }
-        return ScanResult(shape: shape, heightCm: height.rounded(), objects: objects)
+        let floorY = room.walls.map { $0.transform.columns.3.y - $0.dimensions.y / 2 }.min() ?? 0
+        return ScanResult(shape: shape, heightCm: height.rounded(), objects: objects,
+                          frame: .fromScan(angle: angle, minX: minX, minZ: minZ, floorY: floorY))
     }
 
     // MARK: Geometry

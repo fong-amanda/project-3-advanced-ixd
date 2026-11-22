@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		0A94FB3A7A5EA2738E09547C /* ScanResult.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F0FE224295D46FDCBDE02D1 /* ScanResult.swift */; };
+		5A1E5C0A7B1D4E2F9C3A0F01 /* RoomFrame.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A1E5C0A7B1D4E2F9C3A0F02 /* RoomFrame.swift */; };
 		0D583EF935263396633465FD /* Controls.swift in Sources */ = {isa = PBXBuildFile; fileRef = ACC4D52AA22E7413382D07F7 /* Controls.swift */; };
 		114F7C0B88E16E61F58BAB34 /* JoinRoomSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7362D0491EACDEC90E895DB6 /* JoinRoomSheet.swift */; };
 		178473560EEA802ED1380FF1 /* PhotoSources.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A00C9467ACB19843752CB1B /* PhotoSources.swift */; };
@@ -68,6 +69,7 @@
 		EDF14A7080493EBBB0ED0129 /* PeopleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 408BEB0B482015A21247813C /* PeopleView.swift */; };
 		EE93B4D2D009527E54816C99 /* ScanFlowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30B180C72869F53E1DAF1B5E /* ScanFlowView.swift */; };
 		F068456D286B4BEA43E403EB /* PieceDrag.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93496AB82282D9FF8696AD2B /* PieceDrag.swift */; };
+		5A1E5C0A7B1D4E2F9C3A0E01 /* ARRoomView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A1E5C0A7B1D4E2F9C3A0E02 /* ARRoomView.swift */; };
 		F1F0AADC7AD1F9CB58F63885 /* RoomSettingsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B18B92C4FB0A567C83B6297 /* RoomSettingsSheet.swift */; };
 		F29FFBC1D405B793D6AF6382 /* AccessibilityAuditTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6733226757F6B9FFB9C895D /* AccessibilityAuditTests.swift */; };
 		F953378487D1F37906495B9B /* DesignResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34C84B7AF4620114E68930CA /* DesignResolver.swift */; };
@@ -137,8 +139,10 @@
 		8CEDAC17AE600B78EE388D6D /* RoomSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoomSession.swift; sourceTree = "<group>"; };
 		90B8D5E995C9215AD01D5C55 /* Router.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Router.swift; sourceTree = "<group>"; };
 		93496AB82282D9FF8696AD2B /* PieceDrag.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PieceDrag.swift; sourceTree = "<group>"; };
+		5A1E5C0A7B1D4E2F9C3A0E02 /* ARRoomView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ARRoomView.swift; sourceTree = "<group>"; };
 		9672125BE156D1C5E150DDCB /* ItemCategory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ItemCategory.swift; sourceTree = "<group>"; };
 		9F0FE224295D46FDCBDE02D1 /* ScanResult.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanResult.swift; sourceTree = "<group>"; };
+		5A1E5C0A7B1D4E2F9C3A0F02 /* RoomFrame.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoomFrame.swift; sourceTree = "<group>"; };
 		9FF491762D05266A948FF7BE /* RoomGeometry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoomGeometry.swift; sourceTree = "<group>"; };
 		A221999CE049CE5C01D15069 /* AddItemSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddItemSheet.swift; sourceTree = "<group>"; };
 		A6733226757F6B9FFB9C895D /* AccessibilityAuditTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessibilityAuditTests.swift; sourceTree = "<group>"; };
@@ -191,6 +195,7 @@
 				662C7968887BDCA953D0ED55 /* ScanActions.swift */,
 				30B180C72869F53E1DAF1B5E /* ScanFlowView.swift */,
 				9F0FE224295D46FDCBDE02D1 /* ScanResult.swift */,
+				5A1E5C0A7B1D4E2F9C3A0F02 /* RoomFrame.swift */,
 			);
 			path = Scanning;
 			sourceTree = "<group>";
@@ -283,6 +288,7 @@
 				34C84B7AF4620114E68930CA /* DesignResolver.swift */,
 				281056BB7148EA3C43426BBC /* FloorPlanView.swift */,
 				93496AB82282D9FF8696AD2B /* PieceDrag.swift */,
+				5A1E5C0A7B1D4E2F9C3A0E02 /* ARRoomView.swift */,
 				57B212374F85A071BA6F69F1 /* RoomModelView.swift */,
 				515806478FE4577811281EA3 /* RoomPlanView.swift */,
 				82426F792FADA667FAE22AC6 /* ShapeDrawing.swift */,
@@ -389,6 +395,7 @@
 			buildPhases = (
 				F0F488D6B806ABEBAAB4A802 /* Sources */,
 				B099BB3F49E4E6499D0E39A9 /* Resources */,
+				5A1E5C0A7B1D4E2F9C3A0D01 /* Use local Supabase keys */,
 				F8B704231E88505154522D8B /* Frameworks */,
 			);
 			buildRules = (
@@ -477,6 +484,28 @@
 		};
 /* End PBXResourcesBuildPhase section */
 
+/* Begin PBXShellScriptBuildPhase section */
+		5A1E5C0A7B1D4E2F9C3A0D01 /* Use local Supabase keys */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Use local Supabase keys";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# Real Supabase keys live in Resources/Supabase.local.plist, which git ignores.\n# If it exists, it replaces the placeholder Supabase.plist inside the built app.\nLOCAL=\"${SRCROOT}/SharedSpace/Resources/Supabase.local.plist\"\nDEST=\"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/Supabase.plist\"\nif [ -f \"$LOCAL\" ]; then\n  cp \"$LOCAL\" \"$DEST\"\n  echo \"Using Supabase.local.plist\"\nelse\n  echo \"warning: No Supabase.local.plist: sharing is off in this build.\"\nfi\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
 /* Begin PBXSourcesBuildPhase section */
 		F0F488D6B806ABEBAAB4A802 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
@@ -518,6 +547,7 @@
 				9D1971866798E744F1FDD5DA /* PhotoPins.swift in Sources */,
 				178473560EEA802ED1380FF1 /* PhotoSources.swift in Sources */,
 				F068456D286B4BEA43E403EB /* PieceDrag.swift in Sources */,
+				5A1E5C0A7B1D4E2F9C3A0E01 /* ARRoomView.swift in Sources */,
 				325183FBF8CA4CCBC539C185 /* Room.swift in Sources */,
 				5C2F47C0792CEADE936BD3ED /* RoomCard.swift in Sources */,
 				2B035D1C1EFB009FF83B8BDD /* RoomChrome.swift in Sources */,
@@ -533,6 +563,7 @@
 				8488A431AB9CDB75ED644639 /* ScanActions.swift in Sources */,
 				EE93B4D2D009527E54816C99 /* ScanFlowView.swift in Sources */,
 				0A94FB3A7A5EA2738E09547C /* ScanResult.swift in Sources */,
+				5A1E5C0A7B1D4E2F9C3A0F01 /* RoomFrame.swift in Sources */,
 				9843A9848DD2508A26D26DD5 /* ShapeDrawing.swift in Sources */,
 				A6B326D52B64AF086E59B1DE /* ShapeEditor.swift in Sources */,
 				D0531DF24157D88B3CE44F94 /* SharedSpaceApp.swift in Sources */,
@@ -678,7 +709,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = SharedSpace/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Shared Space";
-				INFOPLIST_KEY_NSCameraUsageDescription = "Shared Space uses the camera to scan your room in 3D, show your new design in the real room, and take photos of items.";
+				INFOPLIST_KEY_NSCameraUsageDescription = "Shared Space uses the camera to scan your room, take photos of things, and show furniture in your room. The live camera view stays on your iPhone.";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
@@ -686,6 +717,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				PRODUCT_BUNDLE_IDENTIFIER = com.amandafong.sharedspace;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = 1;
@@ -770,7 +802,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = SharedSpace/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Shared Space";
-				INFOPLIST_KEY_NSCameraUsageDescription = "Shared Space uses the camera to scan your room in 3D, show your new design in the real room, and take photos of items.";
+				INFOPLIST_KEY_NSCameraUsageDescription = "Shared Space uses the camera to scan your room, take photos of things, and show furniture in your room. The live camera view stays on your iPhone.";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
@@ -778,6 +810,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				PRODUCT_BUNDLE_IDENTIFIER = com.amandafong.sharedspace;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = 1;

@@ -11,12 +11,18 @@ enum Backend {
     }
 
     static let config: Config? = {
+        #if DEBUG
+        // Demo rooms and UI tests (-demoRoom) stay on the device, so they never reach the real project.
+        if ProcessInfo.processInfo.arguments.contains("-demoRoom") { return nil }
+        #endif
         guard
             let fileURL = Bundle.main.url(forResource: "Supabase", withExtension: "plist"),
             let dict = NSDictionary(contentsOf: fileURL) as? [String: String],
             let urlString = dict["SUPABASE_URL"], !urlString.contains("YOUR-"),
             let url = URL(string: urlString),
-            let key = dict["SUPABASE_ANON_KEY"], !key.contains("YOUR-"), !key.isEmpty
+            let key = dict["SUPABASE_ANON_KEY"], !key.contains("YOUR-"), !key.contains("PASTE-"), !key.isEmpty,
+            // The service_role / secret key bypasses every privacy rule: never use it in the app.
+            !key.hasPrefix("sb_secret_"), !Backend.isServiceRoleJWT(key)
         else { return nil }
         let web = dict["WEB_BASE_URL"].flatMap { $0.contains("YOUR-") ? nil : URL(string: $0) }
         return Config(url: url, anonKey: key, webBaseURL: web)
@@ -33,6 +39,16 @@ enum Backend {
     }
 
     static var isConfigured: Bool { client != nil }
+
+    /// True for a legacy service_role key (a JWT whose payload says "role": "service_role").
+    private static func isServiceRoleJWT(_ key: String) -> Bool {
+        let parts = key.split(separator: ".")
+        guard parts.count == 3 else { return false }
+        var payload = String(parts[1]).replacingOccurrences(of: "-", with: "+").replacingOccurrences(of: "_", with: "/")
+        while payload.count % 4 != 0 { payload += "=" }
+        guard let data = Data(base64Encoded: payload), let text = String(data: data, encoding: .utf8) else { return false }
+        return text.contains("\"service_role\"")
+    }
 
     /// Link that opens the join screen: the web guest page when configured (it hands off to the
     /// app if installed), otherwise the app's own URL scheme.

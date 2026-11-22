@@ -51,7 +51,7 @@ final class Router {
     var roomTab: RoomTab = .items
     var showNewRoom = false
     var showAddRoom = false
-    /// Set by "Join with a code" or an invite link; shows the join sheet.
+    /// Set by "I’m invited" or an invite link; shows the join sheet.
     var joinRequest: JoinRequest?
     /// A message that needs reading (not a passing banner), shown as an alert.
     var notice: Notice?
@@ -121,6 +121,20 @@ struct RootView: View {
             JoinRoomSheet(initialCode: request.code) { roomId in router.openRoom(roomId) }
         }
         .activityBanner($sync.activity)
+        // No internet: say so once, plainly, until it's back. Everything keeps working on the phone.
+        .safeAreaInset(edge: .top, spacing: 0) {
+            if sync.isShared && !sync.isOnline {
+                Label(SyncError.offline, systemImage: "wifi.slash")
+                    .font(.detailStrong)
+                    .foregroundStyle(Color.textPrimary)
+                    .frame(maxWidth: .infinity)
+                    .padding(.horizontal, Space.page)
+                    .padding(.vertical, Space.s)
+                    .background(Color.surface)
+                    .overlay(alignment: .bottom) { Rectangle().fill(Color.outline).frame(height: Stroke.hairline) }
+                    .accessibilityAddTraits(.isStaticText)
+            }
+        }
         .alert(router.notice?.title ?? "", isPresented: Binding(get: { router.notice != nil }, set: { if !$0 { router.notice = nil } }),
                presenting: router.notice) { _ in
             Button("OK", role: .cancel) {}

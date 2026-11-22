@@ -149,7 +149,7 @@ struct HomeView: View {
             Text("No rooms yet").textRole(.cardTitle)
             Button { router.showNewRoom = true } label: { Label("Add a room", systemImage: "plus") }
                 .buttonStyle(.app(.primary, width: .hug))
-            Button("Join with a code") { router.joinRequest = JoinRequest(code: "") }
+            Button("I’m invited") { router.joinRequest = JoinRequest(code: "") }
                 .buttonStyle(.app(.neutral, size: .compact))
         }
         .frame(maxWidth: .infinity)
@@ -169,7 +169,7 @@ struct AddRoomSheet: View {
                     dismiss()
                     router.showNewRoom = true
                 }
-                row("Join with a code", detail: "Someone shared a room with you", symbol: "person.2") {
+                row("I’m invited", detail: "Join a room with the code someone sent you", symbol: "person.2") {
                     dismiss()
                     router.joinRequest = JoinRequest(code: "")
                 }
