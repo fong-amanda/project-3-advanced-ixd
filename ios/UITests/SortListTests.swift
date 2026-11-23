@@ -188,4 +188,33 @@ final class SortListTests: XCTestCase {
                       || app.staticTexts.matching(NSPredicate(format: "label CONTAINS 'Add something'")).firstMatch.exists
                       || app.textFields.firstMatch.exists, "tapping the photo didn't open Add something")
     }
+
+    /// The furniture catalogue in Redesign: real pieces, placed and drawn with their 3D model.
+    func testFurnitureCatalogue() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["-demoReset", "-demoRoom", "-demoTab", "plan", "-demo3D", "-forceLight"]
+        app.launch()
+        sleep(3)
+        let loveseat = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Place Midtown loveseat'")).firstMatch
+        var tries = 0
+        while !(loveseat.exists && loveseat.isHittable) && tries < 12 {
+            app.coordinate(withNormalizedOffset: CGVector(dx: 0.05, dy: 0.8))
+                .press(forDuration: 0.01, thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.05, dy: 0.3)))
+            tries += 1
+        }
+        attach(app, "catalogue")
+        XCTAssertTrue(loveseat.exists, "catalogue doesn't list the Midtown loveseat")
+        loveseat.tap()
+        sleep(4)
+        attach(app, "placed in 3D")
+        for _ in 0..<12 {
+            app.coordinate(withNormalizedOffset: CGVector(dx: 0.05, dy: 0.8))
+                .press(forDuration: 0.01, thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.05, dy: 0.2)))
+        }
+        let credits = app.buttons["Furniture credits"]
+        XCTAssertTrue(credits.exists, "no Furniture credits button")
+        credits.tap()
+        sleep(2)
+        attach(app, "credits")
+    }
 }

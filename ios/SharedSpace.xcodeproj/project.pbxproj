@@ -70,6 +70,8 @@
 		EE93B4D2D009527E54816C99 /* ScanFlowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30B180C72869F53E1DAF1B5E /* ScanFlowView.swift */; };
 		F068456D286B4BEA43E403EB /* PieceDrag.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93496AB82282D9FF8696AD2B /* PieceDrag.swift */; };
 		5A1E5C0A7B1D4E2F9C3A0E01 /* ARRoomView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A1E5C0A7B1D4E2F9C3A0E02 /* ARRoomView.swift */; };
+		5A1E5C0A7B1D4E2F9C3A1010 /* FurnitureCreditsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A1E5C0A7B1D4E2F9C3A1011 /* FurnitureCreditsView.swift */; };
+		5A1E5C0A7B1D4E2F9C3A1012 /* ModelCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A1E5C0A7B1D4E2F9C3A1013 /* ModelCache.swift */; };
 		F1F0AADC7AD1F9CB58F63885 /* RoomSettingsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B18B92C4FB0A567C83B6297 /* RoomSettingsSheet.swift */; };
 		F29FFBC1D405B793D6AF6382 /* AccessibilityAuditTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6733226757F6B9FFB9C895D /* AccessibilityAuditTests.swift */; };
 		F953378487D1F37906495B9B /* DesignResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34C84B7AF4620114E68930CA /* DesignResolver.swift */; };
@@ -78,6 +80,7 @@
 		FC28BF6E549705BCA9867178 /* Buttons.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA930FCC268E84DF1832042D /* Buttons.swift */; };
 		FC4C078C10D7D5859A90BEDA /* PhotoImport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 144F29A4B0C95F0A6A95514E /* PhotoImport.swift */; };
 		FD194F245D656F91057E26DE /* Supabase.plist in Resources */ = {isa = PBXBuildFile; fileRef = 2AB72EF68269E0B3CB3D20EE /* Supabase.plist */; };
+		5A1E5C0A7B1D4E2F9C3A1020 /* Furniture in Resources */ = {isa = PBXBuildFile; fileRef = 5A1E5C0A7B1D4E2F9C3A1021 /* Furniture */; };
 		FD97C139EA65A65404CFF8FC /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAB78D7AC1B4EB855405811B /* HomeView.swift */; };
 /* End PBXBuildFile section */
 
@@ -105,6 +108,7 @@
 		5A1E5C0A7B1D4E2F9C3A0C02 /* StableDecisionsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StableDecisionsTests.swift; sourceTree = "<group>"; };
 		281056BB7148EA3C43426BBC /* FloorPlanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloorPlanView.swift; sourceTree = "<group>"; };
 		2AB72EF68269E0B3CB3D20EE /* Supabase.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Supabase.plist; sourceTree = "<group>"; };
+		5A1E5C0A7B1D4E2F9C3A1021 /* Furniture */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Furniture; sourceTree = "<group>"; };
 		2D3519FFDF337AB872A41B1F /* CaptureConsent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureConsent.swift; sourceTree = "<group>"; };
 		30259062438E664FBD9725E8 /* ItemDetailSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ItemDetailSheet.swift; sourceTree = "<group>"; };
 		30B180C72869F53E1DAF1B5E /* ScanFlowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanFlowView.swift; sourceTree = "<group>"; };
@@ -140,6 +144,8 @@
 		90B8D5E995C9215AD01D5C55 /* Router.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Router.swift; sourceTree = "<group>"; };
 		93496AB82282D9FF8696AD2B /* PieceDrag.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PieceDrag.swift; sourceTree = "<group>"; };
 		5A1E5C0A7B1D4E2F9C3A0E02 /* ARRoomView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ARRoomView.swift; sourceTree = "<group>"; };
+		5A1E5C0A7B1D4E2F9C3A1011 /* FurnitureCreditsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FurnitureCreditsView.swift; sourceTree = "<group>"; };
+		5A1E5C0A7B1D4E2F9C3A1013 /* ModelCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelCache.swift; sourceTree = "<group>"; };
 		9672125BE156D1C5E150DDCB /* ItemCategory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ItemCategory.swift; sourceTree = "<group>"; };
 		9F0FE224295D46FDCBDE02D1 /* ScanResult.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanResult.swift; sourceTree = "<group>"; };
 		5A1E5C0A7B1D4E2F9C3A0F02 /* RoomFrame.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoomFrame.swift; sourceTree = "<group>"; };
@@ -217,6 +223,7 @@
 			children = (
 				82303F92E13110083349841C /* Assets.xcassets */,
 				2AB72EF68269E0B3CB3D20EE /* Supabase.plist */,
+				5A1E5C0A7B1D4E2F9C3A1021 /* Furniture */,
 				D853304AA83049F16EFBA1BE /* Models */,
 			);
 			path = Resources;
@@ -289,6 +296,8 @@
 				281056BB7148EA3C43426BBC /* FloorPlanView.swift */,
 				93496AB82282D9FF8696AD2B /* PieceDrag.swift */,
 				5A1E5C0A7B1D4E2F9C3A0E02 /* ARRoomView.swift */,
+				5A1E5C0A7B1D4E2F9C3A1011 /* FurnitureCreditsView.swift */,
+				5A1E5C0A7B1D4E2F9C3A1013 /* ModelCache.swift */,
 				57B212374F85A071BA6F69F1 /* RoomModelView.swift */,
 				515806478FE4577811281EA3 /* RoomPlanView.swift */,
 				82426F792FADA667FAE22AC6 /* ShapeDrawing.swift */,
@@ -479,6 +488,7 @@
 				3F11BD69E861BCD73C5DE2E2 /* Assets.xcassets in Resources */,
 				4551586E222CD250C30FAA67 /* LICENSE-YOLOv3.txt in Resources */,
 				FD194F245D656F91057E26DE /* Supabase.plist in Resources */,
+				5A1E5C0A7B1D4E2F9C3A1020 /* Furniture in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -548,6 +558,8 @@
 				178473560EEA802ED1380FF1 /* PhotoSources.swift in Sources */,
 				F068456D286B4BEA43E403EB /* PieceDrag.swift in Sources */,
 				5A1E5C0A7B1D4E2F9C3A0E01 /* ARRoomView.swift in Sources */,
+				5A1E5C0A7B1D4E2F9C3A1010 /* FurnitureCreditsView.swift in Sources */,
+				5A1E5C0A7B1D4E2F9C3A1012 /* ModelCache.swift in Sources */,
 				325183FBF8CA4CCBC539C185 /* Room.swift in Sources */,
 				5C2F47C0792CEADE936BD3ED /* RoomCard.swift in Sources */,
 				2B035D1C1EFB009FF83B8BDD /* RoomChrome.swift in Sources */,

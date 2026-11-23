@@ -67,13 +67,37 @@ Everyone who installs the app must use a build with the same keys. To invite som
 ## What's faked (needs Dan and Meg's approval)
 | Feature | What's faked | Why |
 |---|---|---|
-| **Furniture catalogue** (Redesign › Add furniture) | 28 sample pieces with realistic sizes, but made-up prices and no store links or real products | Licensing real retailer catalogues and prices is out of scope for a class project. The sizes are what the fit checks and AR use, and those are realistic. |
-| **3D furniture in AR** (Redesign › View in your room) | Pieces show as true-size coloured boxes with their name, not 3D models | We don't have licensed 3D models. The AR itself is real: true-size placement, LiDAR occlusion, lining up with the plan, and saving moves back to it. A piece's model loads automatically once a `<catalogue id>.usdz` file is added. |
+| **Furniture catalogue** (Redesign › Add furniture) | Nothing about the furniture itself: 24 real pieces with real sizes and real 3D models (11 Amazon products and 13 BlenderKit models). What's left out: prices, store links and buying. | Shopping is out of scope for a class project. The sizes, which the fit checks and AR rely on, are real. |
+| **Catalogue thumbnails** | Each card shows an icon for its kind of furniture, not a product photo | The real 3D model is shown in the 3D view and in AR. |
 
 Not faked, but limited:
 - **Room scans, the 3D room model, AR room maps and item photos** stay on the phone that made them and aren't shared. Room photos, the room's outline and everything about the items do sync.
 - **Two people per room** (a host and one guest).
 - **Sign-in is anonymous**, so deleting the app can lose access to your rooms.
+
+## Credits
+
+**Furniture 3D models and product data:** Amazon Berkeley Objects, Amazon.com, CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Models resized and converted to USDZ. Source: https://amazon-berkeley-objects.s3.amazonaws.com/index.html
+
+**BlenderKit models** (all CC0 1.0, public domain: https://creativecommons.org/publicdomain/zero/1.0/). Resized, simplified and converted to USDZ:
+
+| Model | Author | BlenderKit |
+|---|---|---|
+| Curved lounger with air mattress | Joachim Bornemann | https://www.blenderkit.com/asset-gallery-detail/21ae746b-5ea9-490d-b65a-b8792f10c85c/ |
+| Gothic Bed 01 | Poly Haven | https://www.blenderkit.com/asset-gallery-detail/dc64e9f5-ba68-4306-8a96-15966ab75567/ |
+| Master bed | Rohma Ansari | https://www.blenderkit.com/asset-gallery-detail/3a845132-df64-4f02-8da6-44229fe774e4/ |
+| Old Hospital Bed | Vavrinec Foltan | https://www.blenderkit.com/asset-gallery-detail/d91eed93-39a3-480e-9e87-ac9814583385/ |
+| Carl-hansen-son 501 | polimesh | https://www.blenderkit.com/asset-gallery-detail/0bfe4a6a-7c4a-49de-9b6b-a4e855dde193/ |
+| Modern Fabric Pouf | Kamil Macieja | https://www.blenderkit.com/asset-gallery-detail/c0afe8be-94f7-4c7d-929c-8d8d0a36d7de/ |
+| Mid Century Lounge Chair | Poly Haven | https://www.blenderkit.com/asset-gallery-detail/f5f8aa7e-aa53-4c35-abb2-6c6c81b30604/ |
+| Modern Chair | abd3d | https://www.blenderkit.com/asset-gallery-detail/b39ed6ef-2af2-4cb2-ae0b-827a1458f5ef/ |
+| Ikea modern chair | LucidKumo | https://www.blenderkit.com/asset-gallery-detail/d85ae05e-ac69-425d-8b2a-693851a9ba6d/ |
+| Trecento Sessanta | polimesh | https://www.blenderkit.com/asset-gallery-detail/2762707d-892d-4fd1-8ce6-5460da1f0b5a/ |
+| Modern coffee table | Zoltán Péter Fáth | https://www.blenderkit.com/asset-gallery-detail/ae1bbe53-c7c0-4f57-8181-34470815acb2/ |
+| Modern Glass Table | Rohma Ansari | https://www.blenderkit.com/asset-gallery-detail/c56d5811-f7c7-42a0-b007-11547d50f798/ |
+| Modern Coffee Table | FortaMesh Moezi | https://www.blenderkit.com/asset-gallery-detail/b6bdc26a-36bb-4be3-8f64-312836aae79b/ |
+
+The app also shows these credits under Redesign › Add furniture › **Furniture credits**. The catalogue (names, sizes, sources, licenses) is in `SharedSpace/Resources/Furniture/catalog.json`, and the models are the `.usdz` files next to it.
 
 ## Change log
 1. People said sort vs repurpose feel like two apps; testers wanted the Sort tab only when the room has things in it.
