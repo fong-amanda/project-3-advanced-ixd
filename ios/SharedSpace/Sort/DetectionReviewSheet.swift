@@ -12,14 +12,19 @@ struct DetectionReviewSheet: View {
     let image: UIImage
     /// What's already listed, so things already pinned aren't suggested and scanned things are linked.
     let existing: [ExistingThing]
-    /// The confirmed suggestions (renamed as the person left them).
-    var onConfirm: ([DetectionSuggestion]) -> Void
+    /// "Whose are these?" for the things added (empty when there's no second person). The first is
+    /// chosen unless `owner` says otherwise.
+    var ownerChoices: [(owner: Owner, title: String)] = []
+    var defaultOwner: Owner = .host
+    /// The confirmed suggestions (renamed as the person left them), and whose they are.
+    var onConfirm: ([DetectionSuggestion], Owner) -> Void
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.accessibilityVoiceOverEnabled) private var voiceOver
     @Environment(\.dynamicTypeSize) private var typeSize
     @State private var phase: Phase = .detecting
+    @State private var owner: Owner?
     @State private var suggestions: [DetectionSuggestion] = []
     @State private var skipped = 0
     @State private var merged = 0
@@ -354,10 +359,19 @@ struct DetectionReviewSheet: View {
 
     private var footer: some View {
         VStack(spacing: Space.s) {
+            if ownerChoices.count > 1 {
+                // Whose the new things are, so they don't have to be reassigned one by one afterwards.
+                AdaptiveStack {
+                    Text("Whose are these?").textRole(.label)
+                    ChipPicker(options: ownerChoices.map { .init(value: $0.owner, title: $0.title) },
+                               selection: Binding(get: { owner ?? defaultOwner }, set: { owner = $0 }),
+                               accessibilityLabel: "Whose are these?")
+                }
+            }
             Button(confirmed.isEmpty ? "Confirm things to add them" : "Add \(confirmed.count) \(confirmed.count == 1 ? "thing" : "things")") {
                 var chosen = confirmed
                 for i in chosen.indices { chosen[i].name = chosen[i].name.trimmingCharacters(in: .whitespaces) }
-                onConfirm(chosen.filter { !$0.name.isEmpty })
+                onConfirm(chosen.filter { !$0.name.isEmpty }, owner ?? defaultOwner)
                 dismiss()
             }
             .buttonStyle(.app(.primary))

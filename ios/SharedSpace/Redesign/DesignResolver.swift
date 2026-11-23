@@ -23,6 +23,8 @@ struct PlanEntry: Identifiable {
     var heightCm: Double?
     let isFlat: Bool
     let colorHex: String
+    /// Catalogue pieces: their 3D model file (drawn at w × d × h in the 3D view).
+    var model: String? = nil
     let style: Style
     /// Set for pieces that need a look ("Overlaps the desk").
     var problem: String?
@@ -88,6 +90,7 @@ struct PlanEntry: Identifiable {
         heightCm = piece.h
         isFlat = piece.isFlat
         colorHex = piece.colorHex
+        model = piece.model
         style = .newPiece
     }
 }

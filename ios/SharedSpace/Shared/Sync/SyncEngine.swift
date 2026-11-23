@@ -183,7 +183,7 @@ final class SyncEngine {
     func leave(_ room: Room) async {
         if let client = Backend.client, isSignedIn {
             do {
-                try await client.rpc("leave_room", params: ["p_room": room.id.uuidString]).execute()
+                try await client.rpc("leave_room", params: ["p_room": room.id.uuidString]).retry(enabled: false).execute()
             } catch { report(error) }
         }
         if openRoomId == room.id { await closeRoom() }
@@ -217,7 +217,7 @@ final class SyncEngine {
                 paths += files.filter { $0.id != nil }.map { "\(prefix)/\($0.name)" }   // id is nil for folders
             }
             if !paths.isEmpty { _ = try await bucket.remove(paths: paths) }
-            try await client.rpc("delete_room", params: ["p_room": id.uuidString]).execute()
+            try await client.rpc("delete_room", params: ["p_room": id.uuidString]).retry(enabled: false).execute()
             PendingRoomDeletions.remove(id)
             return true
         } catch {
@@ -270,13 +270,13 @@ final class SyncEngine {
     func peekRoom(code: String) async throws -> RoomPeek {
         guard let client = Backend.client else { throw SyncError.notShared }
         if !isSignedIn { await start() }
-        return try await client.rpc("peek_room", params: ["p_code": code]).execute().value
+        return try await client.rpc("peek_room", params: ["p_code": code]).retry(enabled: false).execute().value
     }
 
     func joinRoom(code: String, name: String) async throws -> UUID {
         guard let client = Backend.client else { throw SyncError.notShared }
         if !isSignedIn { await start() }
-        let id: UUID = try await client.rpc("join_room", params: ["p_code": code, "p_name": name]).execute().value
+        let id: UUID = try await client.rpc("join_room", params: ["p_code": code, "p_name": name]).retry(enabled: false).execute().value
         Identity.name = name
         try await pullAllRooms()
         return id
@@ -372,13 +372,13 @@ final class SyncEngine {
         let stamp = room.updatedAt
         do {
             if room.existsRemotely {
-                try await client.from("rooms").update(RoomPatchDTO(room)).eq("id", value: room.id.uuidString).execute()
+                try await client.from("rooms").update(RoomPatchDTO(room)).eq("id", value: room.id.uuidString).retry(enabled: false).execute()
             } else {
                 do {
-                    try await client.from("rooms").insert(RoomDTO(room), returning: .minimal).execute()
+                    try await client.from("rooms").insert(RoomDTO(room), returning: .minimal).retry(enabled: false).execute()
                 } catch let error as PostgrestError where error.code == "23505" {
                     room.code = RoomCode.make()   // code already taken; try once more with a new one
-                    try await client.from("rooms").insert(RoomDTO(room), returning: .minimal).execute()
+                    try await client.from("rooms").insert(RoomDTO(room), returning: .minimal).retry(enabled: false).execute()
                 }
                 room.existsRemotely = true
             }
@@ -393,7 +393,7 @@ final class SyncEngine {
         if let room = item.room, !room.existsRemotely { await upload(room) }
         let stamp = item.updatedAt
         do {
-            try await client.from("items").upsert(ItemDTO(item), returning: .minimal).execute()
+            try await client.from("items").upsert(ItemDTO(item), returning: .minimal).retry(enabled: false).execute()
             if item.updatedAt == stamp { item.needsUpload = false }
             persist()
         } catch { report(error) }
@@ -403,7 +403,7 @@ final class SyncEngine {
         guard let client = Backend.client, isSignedIn else { return }
         let stamp = design.updatedAt
         do {
-            try await client.from("designs").upsert(DesignUpsertDTO(design), returning: .minimal).execute()
+            try await client.from("designs").upsert(DesignUpsertDTO(design), returning: .minimal).retry(enabled: false).execute()
             design.existsRemotely = true
             if design.updatedAt == stamp { design.needsUpload = false }
             persist()
@@ -416,7 +416,7 @@ final class SyncEngine {
         if let design = placement.design, !design.existsRemotely { await upload(design) }
         let stamp = placement.updatedAt
         do {
-            try await client.from("design_placements").upsert(PlacementDTO(placement), returning: .minimal).execute()
+            try await client.from("design_placements").upsert(PlacementDTO(placement), returning: .minimal).retry(enabled: false).execute()
             if placement.updatedAt == stamp { placement.needsUpload = false }
             persist()
         } catch { report(error) }
@@ -445,7 +445,7 @@ final class SyncEngine {
         isWorking = true
         defer { isWorking = false }
         // A room deleted on this phone while offline stays deleted until the server catches up.
-        let fetched: [RoomDTO] = try await client.from("rooms").select().execute().value
+        let fetched: [RoomDTO] = try await client.from("rooms").select().retry(enabled: false).execute().value
         let remote = fetched.filter { !PendingRoomDeletions.contains($0.id) }
         let remoteIds = Set(remote.map(\.id))
         for dto in remote { applyRoom(dto) }
@@ -466,9 +466,9 @@ final class SyncEngine {
     func pullContents(of roomId: UUID) async throws {
         guard let client = Backend.client, isSignedIn else { return }
         let rid = roomId.uuidString
-        let items: [ItemDTO] = try await client.from("items").select().eq("room_id", value: rid).execute().value
-        let designs: [DesignDTO] = try await client.from("designs").select().eq("room_id", value: rid).execute().value
-        let placements: [PlacementDTO] = try await client.from("design_placements").select().eq("room_id", value: rid).execute().value
+        let items: [ItemDTO] = try await client.from("items").select().eq("room_id", value: rid).retry(enabled: false).execute().value
+        let designs: [DesignDTO] = try await client.from("designs").select().eq("room_id", value: rid).retry(enabled: false).execute().value
+        let placements: [PlacementDTO] = try await client.from("design_placements").select().eq("room_id", value: rid).retry(enabled: false).execute().value
         items.forEach { applyItem($0, announce: false) }
         designs.forEach { applyDesign($0) }
         placements.forEach { applyPlacement($0) }
@@ -643,11 +643,16 @@ final class SyncEngine {
     private func report(_ error: Error) {
         let text = SyncError.describe(error)
         lastError = text
-        print("Sync error:", error)
-        guard !SyncError.isOffline(error), isOnline else { return }
-        if let last = lastShownError, last.text == text, Date.now.timeIntervalSince(last.at) < 60 { return }
-        lastShownError = (text, .now)
-        activity = ActivityEvent(text: text, symbol: "exclamationmark.triangle", status: nil)
+        #if DEBUG
+        NSLog("Sync error: %@", "\(error)")
+        #endif
+        // Really offline: the offline bar already says so. Online but the server can't be reached
+        // (a network that blocks it, the app not allowed mobile data): say that, once a minute.
+        guard isOnline else { return }
+        let shown = SyncError.isOffline(error) ? SyncError.unreachable : text
+        if let last = lastShownError, last.text == shown, Date.now.timeIntervalSince(last.at) < 60 { return }
+        lastShownError = (shown, .now)
+        activity = ActivityEvent(text: shown, symbol: "exclamationmark.triangle", status: nil)
     }
 }
 
@@ -695,6 +700,7 @@ enum SyncError: LocalizedError {
     }
 
     static let offline = "You’re offline. Changes will sync when you’re back online."
+    static let unreachable = "Couldn’t reach the sharing server. Check your Wi-Fi or mobile data. Changes will sync when it’s back."
 
     static func isOffline(_ error: Error) -> Bool {
         if let url = error as? URLError {

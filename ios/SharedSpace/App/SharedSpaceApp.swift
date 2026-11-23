@@ -32,7 +32,13 @@ struct SharedSpaceApp: App {
                 #endif
                 .task {
                     #if DEBUG
-                    if DemoData.requested {
+                    if DemoData.joinFlow {
+                        let id = DemoData.room(sync: sync).id
+                        router.joinRequest = JoinRequest(code: "")
+                        try? await Task.sleep(for: .seconds(1.5))
+                        router.joinRequest = nil
+                        router.openRoom(id, showing: DemoData.requestedTab ?? .items)
+                    } else if DemoData.requested {
                         router.openRoom(DemoData.room(sync: sync).id, showing: DemoData.requestedTab ?? .items)
                     }
                     if DemoData.newRoomStep != nil { router.showNewRoom = true }

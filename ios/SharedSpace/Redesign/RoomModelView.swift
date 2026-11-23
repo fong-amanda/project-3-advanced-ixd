@@ -74,6 +74,8 @@ struct RoomModelView: View {
     }
 
     var body: some View {
+        // Read so the scene is rebuilt with real models once they've loaded.
+        let _ = ModelCache.shared.revision
         let scene = RoomScene(shape: room.shape, height: Double(room.heightCm), entries: drawn,
                               showGhosts: showGhosts, selectedId: selectedId, highlightId: highlightId, viewSize: viewSize)
         RealityView { content in
@@ -90,6 +92,7 @@ struct RoomModelView: View {
             }
         }
         .realityViewCameraControls(.none)
+        .task(id: Set(entries.compactMap(\.model))) { await ModelCache.shared.preload(entries.compactMap(\.model)) }
         .gesture(dragGesture)
         .simultaneousGesture(pinchGesture)
         .simultaneousGesture(twistGesture)
@@ -467,6 +470,13 @@ private struct RoomScene {
         block.position = [Float(entry.xCm / 100), h / 2, Float(entry.zCm / 100)]
         block.orientation = simd_quatf(angle: Float(-entry.yawDeg * .pi / 180), axis: [0, 1, 0])
         block.name = entry.id.uuidString
+        // A catalogue piece with a model: draw the model, at the piece's real size, instead of the box.
+        if let file = entry.model, !entry.isGhost, let model = ModelCache.shared.cached(file) {
+            ModelCache.fit(model, w: Float(entry.widthCm / 100), h: h, d: Float(entry.depthCm / 100))
+            model.position.y -= h / 2
+            block.model = nil
+            block.addChild(model)
+        }
         if !entry.isGhost {
             // A tap volume of at least 44 × 44 points, even for small things like a lamp.
             let m = minimumHitSize

@@ -33,12 +33,22 @@ enum Backend {
             supabaseURL: c.url,
             supabaseKey: c.anonKey,
             options: SupabaseClientOptions(
-                db: .init(encoder: JSONCoding.encoder, decoder: JSONCoding.decoder)
+                db: .init(encoder: JSONCoding.encoder, decoder: JSONCoding.decoder),
+                global: .init(session: session)
             )
         )
     }
 
     static var isConfigured: Bool { client != nil }
+
+    /// Requests give up after 20 seconds instead of waiting forever (a blocked network, an app
+    /// not allowed to use mobile data), so the person sees "offline" and it's retried later.
+    private static let session: URLSession = {
+        let c = URLSessionConfiguration.default
+        c.timeoutIntervalForRequest = 20
+        c.waitsForConnectivity = false
+        return URLSession(configuration: c)
+    }()
 
     /// True for a legacy service_role key (a JWT whose payload says "role": "service_role").
     private static func isServiceRoleJWT(_ key: String) -> Bool {

@@ -35,6 +35,9 @@ enum DemoData {
     static var expandAllItems: Bool { args.contains("-demoExpandAll") }
     /// `-demoScrollList`: Items scrolls down to its first row (for screenshots).
     static var scrollList: Bool { args.contains("-demoScrollList") }
+    /// `-demoJoinFlow`: start on Rooms, show the join sheet, then open the room while it closes
+    /// (what joining from an invite link does).
+    static var joinFlow: Bool { args.contains("-demoJoinFlow") }
 
     /// Sample suggestions for `-demoFindThings`: named, unnamed and one with a long name.
     static func sampleSuggestions() -> [DetectionSuggestion] {

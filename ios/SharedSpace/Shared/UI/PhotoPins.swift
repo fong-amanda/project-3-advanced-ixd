@@ -30,6 +30,8 @@ struct PhotoWithPins: View {
     let image: UIImage
     let pins: [PhotoPin]
     var onTapPin: ((UUID) -> Void)?
+    /// What tapping the photo does, for VoiceOver.
+    var photoHint = "Double-tap to add something"
     var onTapPhoto: ((CGPoint) -> Void)?
     var onMovePin: ((UUID, CGPoint) -> Void)?
     /// Fill the frame (cropping) instead of showing the whole photo.
@@ -48,7 +50,7 @@ struct PhotoWithPins: View {
                     .frame(width: frame.width, height: frame.height)
                     .offset(x: frame.minX, y: frame.minY)
                     .accessibilityLabel("Photo of the room")
-                    .accessibilityHint(onTapPhoto == nil ? "" : "Double-tap to add something")
+                    .accessibilityHint(onTapPhoto == nil ? "" : photoHint)
                     .accessibilityAddTraits(onTapPhoto == nil ? [] : .isButton)
                     .gesture(SpatialTapGesture().onEnded { value in
                         guard let onTapPhoto else { return }

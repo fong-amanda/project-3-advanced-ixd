@@ -129,8 +129,9 @@ struct ItemsView: View {
             SortSummarySheet(items: relevant, room: room, me: me) { router.roomTab = room.planEnabled ? .plan : .room }
         }
         .sheet(item: $findIn) { target in
-            DetectionReviewSheet(image: target.image, existing: existingThings(on: target.index)) { chosen in
-                addSuggestions(chosen, photo: target.index)
+            DetectionReviewSheet(image: target.image, existing: existingThings(on: target.index),
+                                 ownerChoices: ownerChoices, defaultOwner: SortActions.defaultOwner(in: room, items: Array(items))) { chosen, owner in
+                addSuggestions(chosen, photo: target.index, owner: owner)
             }
         }
         .fullScreenCover(isPresented: $showZoom) { PhotoZoomView(room: room, photo: photoIndex, items: items) }
@@ -229,18 +230,32 @@ struct ItemsView: View {
         }
         .safeAreaInset(edge: .bottom) {
             if selecting {
-                Button {
-                    for item in items where selectedIds.contains(item.id) && !item.isDecided {
-                        SortActions.ask(about: item, as: me, sync: sync)
+                AdaptiveStack(spacing: Space.s) {
+                    Button {
+                        for item in items where selectedIds.contains(item.id) && !item.isDecided {
+                            SortActions.ask(about: item, as: me, sync: sync)
+                        }
+                        let n = selectedIds.count
+                        selecting = false
+                        selectedIds = []
+                        sync.activity = ActivityEvent(text: "Asked \(room.name(of: me.other)) about \(n)", symbol: "text.bubble", status: nil)
+                    } label: {
+                        Label("Ask \(room.name(of: me.other))\(selectedIds.isEmpty ? "" : " about \(selectedIds.count)")", systemImage: "text.bubble")
                     }
-                    let n = selectedIds.count
-                    selecting = false
-                    selectedIds = []
-                    sync.activity = ActivityEvent(text: "Asked \(room.name(of: me.other)) about \(n)", symbol: "text.bubble", status: nil)
-                } label: {
-                    Label("Ask \(room.name(of: me.other)) about \(selectedIds.isEmpty ? "" : "\(selectedIds.count)")", systemImage: "text.bubble")
+                    .buttonStyle(.app)
+                    // Several things at once: whose they are (after a photo or scan added them all to one person).
+                    Menu {
+                        ForEach(ownerChoices.indices, id: \.self) { i in let choice = ownerChoices[i]
+                            Button(choice.owner == .shared ? "Make them shared" : choice.owner == Owner(me) ? "Make them mine" : "Make them \(choice.title)") {
+                                setOwner(choice.owner)
+                            }
+                        }
+                    } label: {
+                        Label("Change owner", systemImage: "person.2")
+                    }
+                    .buttonStyle(.app(.neutral))
+                    .accessibilityLabel("Change owner of \(selectedIds.count) selected")
                 }
-                .buttonStyle(.app)
                 .disabled(selectedIds.isEmpty)
                 .padding(.horizontal, Space.page).padding(.vertical, Space.s)
                 .barBackground()
@@ -633,6 +648,24 @@ struct ItemsView: View {
         }
     }
 
+    /// Select mode: hands the selected things to one person (or both). A thing's decision belongs to
+    /// its owner, so changing the owner clears it, as it does in the item sheet.
+    private func setOwner(_ owner: Owner) {
+        let chosen = items.filter { selectedIds.contains($0.id) }
+        for item in chosen { SortActions.setOwner(owner, for: item, sync: sync) }
+        selecting = false
+        selectedIds = []
+        let whose = owner == .shared ? "shared" : owner == Owner(me) ? "yours" : "\(room.name(of: me.other))’s"
+        sync.activity = ActivityEvent(text: "\(chosen.count) \(chosen.count == 1 ? "thing is" : "things are") now \(whose)", symbol: "person.2", status: nil)
+    }
+
+    /// "Whose are these?" when things are added in bulk. Only once there's a second person.
+    private var ownerChoices: [(owner: Owner, title: String)] {
+        guard room.hasGuest else { return [] }
+        let other = room.name(of: me.other)
+        return [(Owner(me.other), "\(other)’s"), (Owner(me), "Mine"), (.shared, "Both")]
+    }
+
     private func existingThings(on photo: Int) -> [ExistingThing] {
         items.map {
             ExistingThing(id: $0.id, name: $0.name, category: $0.category, pin: $0.pin(on: photo),
@@ -641,10 +674,9 @@ struct ItemsView: View {
     }
 
     /// Confirmed suggestions: a scanned match gets its number on the photo; anything else is added.
-    private func addSuggestions(_ chosen: [DetectionSuggestion], photo: Int) {
+    private func addSuggestions(_ chosen: [DetectionSuggestion], photo: Int, owner: Owner) {
         guard !chosen.isEmpty else { return }
         var all = Array(items)
-        let owner = SortActions.defaultOwner(in: room, items: all)
         var added = 0, linked = 0
         for s in chosen {
             if let match = s.match, let item = all.first(where: { $0.id == match.id }) {
@@ -705,9 +737,16 @@ struct ItemsView: View {
                         }
                     },
                     onTapPin: { id in selectedId = selectedId == id ? nil : id },
-                    onTapPhoto: context.canEditRoom && !selecting ? { point in
-                        session.addItem = AddItemRequest(pin: point, photo: shownPhoto)
-                    } : nil,
+                    photoHint: context.canEditRoom ? "Double-tap to add something" : "",
+                    onTapPhoto: selecting ? nil : { point in
+                        if context.canEditRoom {
+                            session.addItem = AddItemRequest(pin: point, photo: shownPhoto)
+                        } else {
+                            // Only the host adds things; say so rather than doing nothing.
+                            sync.activity = ActivityEvent(text: "Only \(room.name(of: .host)) can add things to this room",
+                                                          symbol: "info.circle", status: nil)
+                        }
+                    },
                     onMovePin: context.canEditRoom ? { id, point in
                         if let item = items.first(where: { $0.id == id }) {
                             SortActions.setPin(point, photo: shownPhoto, for: item, sync: sync)

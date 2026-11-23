@@ -25,6 +25,7 @@ struct RoomPlanView: View {
     @State private var showReactNote = false
     @State private var showHidden = false
     @State private var showShape = false
+    @State private var showCredits = false
     /// "View in your room": the live AR view, and the piece chosen when it opens.
     @State private var showAR = false
     @State private var arInitialPiece: CatalogPiece?
@@ -132,6 +133,7 @@ struct RoomPlanView: View {
         }
         .roomChrome(room)
         .sheet(isPresented: $showShape) { ShapeEditorSheet(room: room) }
+        .sheet(isPresented: $showCredits) { FurnitureCreditsView() }
         #if DEBUG
         .onAppear { if DemoData.show3D { planView = .model } }
         #endif
@@ -409,8 +411,7 @@ struct RoomPlanView: View {
                     HStack {
                         Text(entry.piece.name)
                         Spacer()
-                        Text(entry.piece.price > 0 ? entry.piece.price.formatted(.currency(code: "USD").precision(.fractionLength(0)))
-                                                   : (entry.piece.source == .custom ? "Own piece" : "Yours"))
+                        Text(units.dims(entry.piece.w, entry.piece.d, entry.piece.h))
                             .foregroundStyle(Color.textSecondary)
                     }
                     .padding(.vertical, Space.s)
@@ -515,6 +516,8 @@ struct RoomPlanView: View {
                     }
                 }
             }
+            Button { showCredits = true } label: { Label("Furniture credits", systemImage: "info.circle") }
+                .buttonStyle(.app(.primary, size: .compact))
         }
         .padding(.top, Space.s)
     }
@@ -654,6 +657,7 @@ private struct PieceDetailSheet: View {
     /// "View in your room" (opens AR with this piece chosen, lined up with the plan).
     var onViewInRoom: () -> Void
     @Environment(\.dismiss) private var dismiss
+    @State private var showCredits = false
 
     var body: some View {
         NavigationStack {
@@ -663,16 +667,22 @@ private struct PieceDetailSheet: View {
                 .clipShape(RoundedRectangle(cornerRadius: Radius.card))
                 .accessibilityHidden(true)
                 HStack(alignment: .firstTextBaseline) {
-                    Text(piece.price > 0 ? piece.price.formatted(.currency(code: "USD").precision(.fractionLength(0)))
-                                         : (piece.source == .custom ? "Own piece" : "Yours"))
+                    Text(piece.brand ?? (piece.source == .custom ? "Your own piece" : piece.credit == nil ? "Already here" : piece.style))
                         .font(.sectionTitle)
                     Spacer()
                     Text(units.dims(piece.w, piece.d, piece.h)).foregroundStyle(Color.textSecondary)
                 }
-                Text(piece.style).foregroundStyle(Color.textSecondary)
-                if piece.price > 0 {
-                    Text("Sample price for planning. Store links aren’t part of the app yet.")
-                        .textRole(.hint)
+                if piece.brand != nil { Text(piece.style).foregroundStyle(Color.textSecondary) }
+                if let credit = piece.credit {
+                    Button { showCredits = true } label: {
+                        Text("3D model: \(credit.source) · \(credit.license)")
+                            .font(.detail)
+                            .foregroundStyle(Color.textSecondary)
+                            .underline()
+                    }
+                    .buttonStyle(.plain)
+                    .frame(minHeight: Size.tapTarget)
+                    .accessibilityHint("Shows the furniture credits")
                 }
                 if !DeviceCapabilities.isSimulator {
                     Button(action: onViewInRoom) { Label("View in your room", systemImage: "arkit") }
@@ -687,6 +697,7 @@ private struct PieceDetailSheet: View {
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
         }
         .presentationDetents([.medium, .large])
+        .sheet(isPresented: $showCredits) { FurnitureCreditsView() }
     }
 }
 
@@ -746,8 +757,7 @@ private struct PlanPreviewSheet: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: Space.l) {
-                    let cost = resolved.pieceCost
-                    Text("\(room.futureUse.isEmpty ? "Proposed layout" : room.futureUse) · \(resolved.pieces.count) piece\(resolved.pieces.count == 1 ? "" : "s")\(cost > 0 ? " · about \(cost.formatted(.currency(code: "USD").precision(.fractionLength(0))))" : "")")
+                    Text("\(room.futureUse.isEmpty ? "Proposed layout" : room.futureUse) · \(resolved.pieces.count) piece\(resolved.pieces.count == 1 ? "" : "s")")
                         .foregroundStyle(Color.textSecondary)
                     FloorPlanView(room: room, entries: resolved.entries)
                         .card(padding: Space.m, radius: Radius.cardLarge)

@@ -22,6 +22,21 @@ struct CatalogPiece: Identifiable, Hashable {
     let style: String
     let colorHex: String
     var source: Source = .catalogue
+    /// Catalogue furniture: the maker (Amazon products), its 3D model and who to credit for it.
+    var brand: String? = nil
+    /// File name in the app's Furniture folder (a USDZ). Scaled to w × d × h when shown.
+    var model: String? = nil
+    var credit: Credit? = nil
+
+    /// Where a model and its product data come from, and under which license.
+    struct Credit: Hashable {
+        let source: String        // "Amazon Berkeley Objects" or "BlenderKit"
+        let sourceName: String    // the product or asset's own name there
+        let author: String
+        let license: String       // "CC BY 4.0", "CC0 1.0"
+        let licenseURL: URL?
+        let sourceURL: URL?
+    }
 
     var isFlat: Bool { kind.isFlat }
 
@@ -45,8 +60,12 @@ struct CatalogPiece: Identifiable, Hashable {
 }
 
 enum Catalogue {
-    /// Sample furniture with realistic sizes (cm), from the prototype. Prices are illustrative.
-    static let pieces: [CatalogPiece] = [
+    /// The furniture catalogue: real products and 3D models, from Resources/Furniture/catalog.json.
+    static let pieces: [CatalogPiece] = FurnitureCatalog.load()
+
+    /// The prototype's sample furniture (boxes, made-up prices). No longer offered, but plans that
+    /// already use one still draw it.
+    static let samples: [CatalogPiece] = [
         .init(id: "b1", category: .beds, kind: .bed, name: "Linnea single bed", w: 97, d: 207, h: 88, price: 299, style: "Light & airy", colorHex: "#E4DED2"),
         .init(id: "b2", category: .beds, kind: .bed, name: "Harbor double bed", w: 146, d: 206, h: 95, price: 549, style: "Warm wood", colorHex: "#C7B39A"),
         .init(id: "b3", category: .beds, kind: .bed, name: "Daybed with trundle", w: 98, d: 205, h: 80, price: 429, style: "Light & airy", colorHex: "#D9D2C4"),
@@ -77,7 +96,7 @@ enum Catalogue {
         .init(id: "d5", category: .decor, kind: .other, name: "Luggage rack", w: 66, d: 40, h: 53, price: 79, style: "Warm wood", colorHex: "#B8916A"),
     ]
 
-    private static let byId = Dictionary(uniqueKeysWithValues: pieces.map { ($0.id, $0) })
+    private static let byId = Dictionary((samples + pieces).map { ($0.id, $0) }, uniquingKeysWith: { _, new in new })
 
     /// Turns a placement's catalogId back into a piece. `items` resolves "existing|…" copies.
     static func piece(_ catalogId: String, items: [Item]) -> CatalogPiece? {
@@ -186,5 +205,40 @@ enum FreeZones {
             "front-left": "Front left corner", "front-mid": "Near the front", "front-right": "Front right corner",
         ]
         return names["\(v)-\(h)"] ?? "Free space"
+    }
+}
+
+// MARK: - Catalogue file
+
+/// Reads Resources/Furniture/catalog.json (made from the BlenderKit and Amazon Berkeley Objects
+/// models; see the README's Credits).
+enum FurnitureCatalog {
+    private struct File: Decodable { let pieces: [Entry] }
+    private struct Entry: Decodable {
+        let id, name, category, kind, style, colorHex, model, source, sourceName, author, license: String
+        let brand: String?
+        let widthCm, depthCm, heightCm: Double
+        let licenseUrl, sourceUrl: String?
+    }
+
+    static func load() -> [CatalogPiece] {
+        guard let url = Bundle.main.url(forResource: "catalog", withExtension: "json", subdirectory: "Furniture"),
+              let data = try? Data(contentsOf: url),
+              let file = try? JSONDecoder().decode(File.self, from: data) else { return [] }
+        return file.pieces.map { e in
+            CatalogPiece(id: e.id, category: CatalogPiece.Category(rawValue: e.category) ?? .decor,
+                         kind: ItemCategory(rawValue: e.kind) ?? .other, name: e.name,
+                         w: e.widthCm, d: e.depthCm, h: e.heightCm, price: 0, style: e.style, colorHex: e.colorHex,
+                         brand: e.brand, model: e.model,
+                         credit: .init(source: e.source, sourceName: e.sourceName, author: e.author, license: e.license,
+                                       licenseURL: e.licenseUrl.flatMap(URL.init(string:)),
+                                       sourceURL: e.sourceUrl.flatMap(URL.init(string:))))
+        }
+    }
+
+    /// A model file in the app's Furniture folder.
+    static func modelURL(_ file: String) -> URL? {
+        let name = (file as NSString).deletingPathExtension
+        return Bundle.main.url(forResource: name, withExtension: "usdz", subdirectory: "Furniture")
     }
 }

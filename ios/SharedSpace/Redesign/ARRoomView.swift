@@ -900,16 +900,16 @@ enum MarkerEntity {
 
 // MARK: - Pieces
 
-/// A piece's 3D entity at true size, standing on y = 0: its USDZ model when the app has one
-/// (a <catalogue id>.usdz in the app), otherwise a box with its name over it.
+/// A piece's 3D entity at true size, standing on y = 0: its catalogue model (Resources/Furniture)
+/// when it has one, otherwise a box with its name over it.
 enum PieceEntity {
     @MainActor
     static func make(_ piece: CatalogPiece) async -> (root: Entity, ring: Entity) {
         let w = Float(piece.w) / 100, d = Float(piece.d) / 100, h = Float(max(piece.h, 1)) / 100
         let root = Entity()
-        if let url = Bundle.main.url(forResource: piece.id, withExtension: "usdz"),
-           let model = try? await Entity(contentsOf: url) {
-            fit(model, w: w, h: h, d: d)
+        if let file = piece.model, let model = await ModelCache.shared.load(file) {
+            // The catalogue's real model, scaled to the piece's real size.
+            ModelCache.fit(model, w: w, h: h, d: d)
             root.addChild(model)
         } else {
             let colour = UIColor(Color.material(piece.colorHex))
@@ -931,17 +931,6 @@ enum PieceEntity {
         ring.isEnabled = false
         root.addChild(ring)
         return (root, ring)
-    }
-
-    /// Scales a model to the piece's width, height and depth, centred, standing on y = 0.
-    @MainActor
-    private static func fit(_ model: Entity, w: Float, h: Float, d: Float) {
-        let b = model.visualBounds(relativeTo: nil)
-        let e = b.extents
-        guard e.x > 0, e.y > 0, e.z > 0 else { return }
-        let s = SIMD3<Float>(w / e.x, h / e.y, d / e.z)
-        model.scale *= s
-        model.position = [-b.center.x * s.x, -b.min.y * s.y, -b.center.z * s.z]
     }
 
     /// A small label that always faces the camera.

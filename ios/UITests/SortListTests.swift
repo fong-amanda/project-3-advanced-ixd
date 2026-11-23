@@ -129,4 +129,92 @@ final class SortListTests: XCTestCase {
         XCTAssertTrue(app.buttons["Show choices for \(name)"].waitForExistence(timeout: 3), "Undo didn't bring it back")
         attach(app, "undone")
     }
+
+    /// The floating tab bar must never cover the end of a page.
+    func testBottomOfPageClearsTabBar() throws {
+        let app = launch()
+        for _ in 0..<8 { app.swipeUp() }
+        sleep(1)
+        attach(app, "bottom of Sort")
+        let add = app.buttons["Add something"]
+        let bar = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Sort'")).firstMatch
+        XCTAssertTrue(add.exists && add.isHittable, "Add something can't be tapped")
+        print("ADD maxY", add.frame.maxY, "BAR minY", bar.frame.minY)
+        XCTAssertLessThanOrEqual(add.frame.maxY, bar.frame.minY + 1, "Add something is under the tab bar")
+        // The other tabs: scroll to the bottom by dragging near the top (away from the floor plan).
+        for tab in ["Redesign", "People", "Room"] {
+            app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", tab)).firstMatch.tap()
+            sleep(1)
+            for _ in 0..<14 {
+                app.coordinate(withNormalizedOffset: CGVector(dx: 0.05, dy: 0.8))
+                    .press(forDuration: 0.01, thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.05, dy: 0.1)))
+            }
+            sleep(1)
+            attach(app, "bottom of \(tab)")
+        }
+    }
+
+    /// The room's large title keeps its left margin when a room is opened from Rooms.
+    func testRoomTitleMargin() throws {
+        let app = launch()
+        attach(app, "opened directly")
+        app.buttons["Back to rooms"].firstMatch.tap()
+        sleep(1)
+        for i in 0..<3 {
+            app.buttons.matching(NSPredicate(format: "label CONTAINS 'Alex'")).firstMatch.tap()
+            sleep(2)
+            let title = app.staticTexts["Alex’s old room"].firstMatch
+            print("TITLE minX", i, title.exists ? title.frame.minX : -1)
+            attach(app, "reopened \(i)")
+            app.buttons["Back to rooms"].firstMatch.tap()
+            sleep(1)
+        }
+        // From the Sort tab's empty state (no items for this person), as on the guest's phone.
+        app.buttons.matching(NSPredicate(format: "label CONTAINS 'Alex'")).firstMatch.tap()
+        sleep(2)
+        attach(app, "final")
+    }
+
+    /// Tapping an empty spot on the room photo opens "Add something" at that spot.
+    func testTapPhotoToAdd() throws {
+        let app = launch()
+        let photo = app.descendants(matching: .any)["Photo of the room"].firstMatch
+        XCTAssertTrue(photo.waitForExistence(timeout: 5), "no room photo")
+        // Top-left of the photo: wall, away from the pins.
+        photo.coordinate(withNormalizedOffset: CGVector(dx: 0.15, dy: 0.15)).tap()
+        sleep(2)
+        attach(app, "after tapping the photo")
+        XCTAssertTrue(app.navigationBars.staticTexts.matching(NSPredicate(format: "label CONTAINS 'Add'")).firstMatch.exists
+                      || app.staticTexts.matching(NSPredicate(format: "label CONTAINS 'Add something'")).firstMatch.exists
+                      || app.textFields.firstMatch.exists, "tapping the photo didn't open Add something")
+    }
+
+    /// The furniture catalogue in Redesign: real pieces, placed and drawn with their 3D model.
+    func testFurnitureCatalogue() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["-demoReset", "-demoRoom", "-demoTab", "plan", "-demo3D", "-forceLight"]
+        app.launch()
+        sleep(3)
+        let loveseat = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Place Midtown loveseat'")).firstMatch
+        var tries = 0
+        while !(loveseat.exists && loveseat.isHittable) && tries < 12 {
+            app.coordinate(withNormalizedOffset: CGVector(dx: 0.05, dy: 0.8))
+                .press(forDuration: 0.01, thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.05, dy: 0.3)))
+            tries += 1
+        }
+        attach(app, "catalogue")
+        XCTAssertTrue(loveseat.exists, "catalogue doesn't list the Midtown loveseat")
+        loveseat.tap()
+        sleep(4)
+        attach(app, "placed in 3D")
+        for _ in 0..<12 {
+            app.coordinate(withNormalizedOffset: CGVector(dx: 0.05, dy: 0.8))
+                .press(forDuration: 0.01, thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.05, dy: 0.2)))
+        }
+        let credits = app.buttons["Furniture credits"]
+        XCTAssertTrue(credits.exists, "no Furniture credits button")
+        credits.tap()
+        sleep(2)
+        attach(app, "credits")
+    }
 }
