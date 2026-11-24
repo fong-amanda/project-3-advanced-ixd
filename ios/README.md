@@ -1,13 +1,3 @@
-## Get the beta
-
-**On an iPhone:** open the TestFlight link, install Apple's free **TestFlight** app when asked, then tap **Install** next to Shared Space: Sort a Room.
-
-> TestFlight link: *(added once Apple approves the beta)*
-
-- Needs an iPhone with **iOS 18** or later. There's no Android version.
-- Room scanning (LiDAR) needs an iPhone **Pro** (12 Pro or later). Everything else, including AR, works on any iPhone with iOS 18.
-- To sort with someone: create a room, open its **People** tab and send them the 5-character code. They tap **I'm invited** and enter it.
-
 ## Which device
 
 - **iPhone 16 Pro**, or any iPhone with a LiDAR scanner (iPhone 12 Pro or newer Pro models), running **iOS 18** or later.
@@ -38,66 +28,9 @@ You'll need a Mac with **Xcode 16** or later (free from the App Store; open it o
 7. Click **Run** (▶) or press **Command (⌘) + R**. If your Mac asks for permission for "codesign" to use your keychain, enter your Mac password and click **Always Allow**.
 8. **Trust yourself as a developer** the first time the app opens: on the iPhone, go to Settings › General › **VPN & Device Management**, tap your Apple ID under **Developer App**, and tap **Trust**. The phone must be online for this, and a VPN can block it, so turn any VPN off first. Then open Shared Space from your home screen and allow camera access when asked.
 
-## Sharing between two phones (Supabase)
-
-Without keys the app works on one phone only ("Sharing is off"). To let two people share a room:
-
-1. **Create a project** at [supabase.com](https://supabase.com) (the free plan is enough). Save the database password in a password manager; the app never needs it.
-2. **Turn on anonymous sign-ins:** Authentication › Sign In / Providers › **Allow anonymous sign-ins** › Save. Nobody needs an email or password; each phone gets its own anonymous account.
-3. **Set up the database:** SQL Editor › New query (snippet) › paste all of [`supabase/schema.sql`](supabase/schema.sql) › **Run**. It warns about "destructive operations" because it replaces its own privacy rules; that's expected. It creates the tables, the privacy rules, the private `rooms` storage bucket and live updates. Run it again after pulling a newer version; it keeps your data.
-4. **Check** Storage › `rooms` is **not** public, and Database › Publications › `supabase_realtime` has `rooms`, `items`, `designs` and `design_placements` on.
-5. **Add your keys:** create `ios/SharedSpace/Resources/Supabase.local.plist` (copy `Supabase.plist` next to it) with your **Project URL** and the **Publishable key** (`sb_publishable_…`, from Project Settings › API Keys). Git ignores this file and a build step copies it into the app. Never use a **secret** / `service_role` key; the app refuses one.
-
-Everyone who installs the app must use a build with the same keys. To invite someone, the host opens the room's **People** tab and sends the five-character room code; the other person taps **I'm invited** and enters it.
-
-### What's stored, and who can see it
-
-| Where | What | Who can see it |
-|---|---|---|
-| Supabase database | Each room (name, size, outline, room code), its things (names, sizes, positions, owners, decisions, suggestions, notes, "asked" questions), plan versions and placed pieces, and the two members' first names | Only the room's two members. Row Level Security checks membership on every read and write, so the app's public key alone can't read anything. |
-| Supabase storage (private bucket) | Room photos, stripped of location and camera details before upload | Only the room's members, signed in. There are no public links. |
-| This iPhone only | Everything above (so it works offline), the LiDAR scan, the 3D model, the AR map of the room, item photos | Only this phone. None of these are uploaded. The live AR camera view is never saved. |
-
-- **The room code** is the key: anyone who has it can see the room's name, what it's becoming, and the host's and guest's first names (the join screen shows these) before joining. Share it only with the person you mean to invite.
-- **Joining** with the code adds you to that room only, as its guest. A room has one guest; once someone has joined, the code is refused for anyone else until they leave.
-- **Leave room** removes only the guest's membership; the host's room stays.
-- **Delete room** (host only) removes the room's photos from storage and the room from the database, which deletes all its things, decisions, plans and memberships with it, for both people.
-- **Offline:** changes save on the phone and upload when it's back online ("Changes will sync when you're back online").
-
-## What's faked (needs Dan and Meg's approval)
-| Feature | What's faked | Why |
-|---|---|---|
-| **Furniture catalogue** (Redesign › Add furniture) | Nothing about the furniture itself: 24 real pieces with real sizes and real 3D models (11 Amazon products and 13 BlenderKit models). What's left out: prices, store links and buying. | Shopping is out of scope for a class project. The sizes, which the fit checks and AR rely on, are real. |
-| **Catalogue thumbnails** | Each card shows an icon for its kind of furniture, not a product photo | The real 3D model is shown in the 3D view and in AR. |
-
-Not faked, but limited:
-- **Room scans, the 3D room model, AR room maps and item photos** stay on the phone that made them and aren't shared. Room photos, the room's outline and everything about the items do sync.
-- **Two people per room** (a host and one guest).
-- **Sign-in is anonymous**, so deleting the app can lose access to your rooms.
-
-## Credits
-
-**Furniture 3D models and product data:** Amazon Berkeley Objects, Amazon.com, CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Models resized and converted to USDZ. Source: https://amazon-berkeley-objects.s3.amazonaws.com/index.html
-
-**BlenderKit models** (all CC0 1.0, public domain: https://creativecommons.org/publicdomain/zero/1.0/). Resized, simplified and converted to USDZ:
-
-| Model | Author | BlenderKit |
-|---|---|---|
-| Curved lounger with air mattress | Joachim Bornemann | https://www.blenderkit.com/asset-gallery-detail/21ae746b-5ea9-490d-b65a-b8792f10c85c/ |
-| Gothic Bed 01 | Poly Haven | https://www.blenderkit.com/asset-gallery-detail/dc64e9f5-ba68-4306-8a96-15966ab75567/ |
-| Master bed | Rohma Ansari | https://www.blenderkit.com/asset-gallery-detail/3a845132-df64-4f02-8da6-44229fe774e4/ |
-| Old Hospital Bed | Vavrinec Foltan | https://www.blenderkit.com/asset-gallery-detail/d91eed93-39a3-480e-9e87-ac9814583385/ |
-| Carl-hansen-son 501 | polimesh | https://www.blenderkit.com/asset-gallery-detail/0bfe4a6a-7c4a-49de-9b6b-a4e855dde193/ |
-| Modern Fabric Pouf | Kamil Macieja | https://www.blenderkit.com/asset-gallery-detail/c0afe8be-94f7-4c7d-929c-8d8d0a36d7de/ |
-| Mid Century Lounge Chair | Poly Haven | https://www.blenderkit.com/asset-gallery-detail/f5f8aa7e-aa53-4c35-abb2-6c6c81b30604/ |
-| Modern Chair | abd3d | https://www.blenderkit.com/asset-gallery-detail/b39ed6ef-2af2-4cb2-ae0b-827a1458f5ef/ |
-| Ikea modern chair | LucidKumo | https://www.blenderkit.com/asset-gallery-detail/d85ae05e-ac69-425d-8b2a-693851a9ba6d/ |
-| Trecento Sessanta | polimesh | https://www.blenderkit.com/asset-gallery-detail/2762707d-892d-4fd1-8ce6-5460da1f0b5a/ |
-| Modern coffee table | Zoltán Péter Fáth | https://www.blenderkit.com/asset-gallery-detail/ae1bbe53-c7c0-4f57-8181-34470815acb2/ |
-| Modern Glass Table | Rohma Ansari | https://www.blenderkit.com/asset-gallery-detail/c56d5811-f7c7-42a0-b007-11547d50f798/ |
-| Modern Coffee Table | FortaMesh Moezi | https://www.blenderkit.com/asset-gallery-detail/b6bdc26a-36bb-4be3-8f64-312836aae79b/ |
-
-The app also shows these credits under Redesign › Add furniture › **Furniture credits**. The catalogue (names, sizes, sources, licenses) is in `SharedSpace/Resources/Furniture/catalog.json`, and the models are the `.usdz` files next to it.
+## What's faked
+- **Live AR view of a design in the room:** [not built yet]
+- **Furniture catalogue, prices and store links:** [not built yet]
 
 ## Change log
 1. People said sort vs repurpose feel like two apps; testers wanted the Sort tab only when the room has things in it.
